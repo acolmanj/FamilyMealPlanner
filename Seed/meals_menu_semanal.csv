@@ -1,0 +1,155 @@
+﻿week_no,sheet_date_label,in_last_8_weeks,day,slot,meal_as_written,name_group,ingredients_after_colon,source_note,slot_type,gluten_keyword_flag
+1,10/8/2026,no,Monday,Lunch,Curry Rogan Josh (cordero),Curry Rogan Josh (lamb),,,,Tier C keyword: check label (curry)
+1,10/8/2026,no,Tuesday,Lunch,Pisto,Pisto (variants),,,,
+1,10/8/2026,no,Wednesday,Lunch,Calabaza con alubias y garbanzos,Calabaza con alubias/garbanzos (variants),,,,Tier C keyword: check label (alubias)
+1,10/8/2026,no,Thursday,Lunch,Pastel de pescado,Pastel de pescado,,,,
+1,10/8/2026,no,Friday,Lunch,Pasta con chorizo,Pasta con chorizo (variants),,,,Tier A/B keyword: needs GF version (pasta)
+1,10/8/2026,no,Saturday,Lunch,Pizza (Claremont Family Day),Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+1,10/8/2026,no,Sunday,Lunch,Roast lamb,Cordero asado / roast lamb,,,,
+1,10/8/2026,no,Monday,Dinner,Ensalada de brocoli y garbanzos,Ensalada de brocoli y garbanzos,,,,
+1,10/8/2026,no,Tuesday,Dinner,Fish fingers,Fish fingers,,,,Tier A/B keyword: needs GF version (fish fingers)
+1,10/8/2026,no,Wednesday,Dinner,Pancakes con salmón,Pancakes con salmón,,,,Tier A/B keyword: needs GF version (pancakes)
+1,10/8/2026,no,Thursday,Dinner,Ensalada verde,Ensalada verde,,,,
+1,10/8/2026,no,Friday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+1,10/8/2026,no,Saturday,Dinner,Alitas de Pollo (One Pot Book),Alitas de Pollo (One Pot Book),,One Pot Book,,Tier C keyword: check label (alitas)
+1,10/8/2026,no,Sunday,Dinner,Ensalada de lentejas,Ensalada de lentejas,,,,
+2,17/08/2024,no,Monday,Lunch,Alitas de Pollo (Sobras),Sobras,,,Sobras,Tier C keyword: check label (alitas)
+2,17/08/2024,no,Tuesday,Lunch,"Curry Rogan Josh (cordero): 2 Cebollas picadas, 1 dedo de gengibre picado, 1 chile picado, 1 pu1ado de cilantro picado",Curry Rogan Josh (lamb),"2 Cebollas picadas, 1 dedo de gengibre picado, 1 chile picado, 1 pu1ado de cilantro picado",,,Tier C keyword: check label (curry)
+2,17/08/2024,no,Wednesday,Lunch,Lentejas,Lentejas estofadas (variants),,,,
+2,17/08/2024,no,Thursday,Lunch,Risoto:,Risoto,,,,Tier C keyword: check label (risoto)
+2,17/08/2024,no,Friday,Lunch,Pasta,Pasta,,,,Tier A/B keyword: needs GF version (pasta)
+2,17/08/2024,no,Saturday,Lunch,Curry de cangrejo (Jamie),Curry de cangrejo (Jamie),,Jamie,,Tier C keyword: check label (curry)
+2,17/08/2024,no,Sunday,Lunch,"Pollo asado con patatas, zanahorias y navos",Pollo asado con patatas,,,,
+2,17/08/2024,no,Monday,Dinner,Tostadas con aguacate y huevos,Tostada con aguacate/huevos (variants),,,,Tier A/B keyword: needs GF version (tostada)
+2,17/08/2024,no,Tuesday,Dinner,"Tortilla de patatas con ensalada: 1 Cebolla picada, 6 Patatas cortadas finas (650gr)",Tortilla de patatas con ensalada,"1 Cebolla picada, 6 Patatas cortadas finas (650gr)",,,
+2,17/08/2024,no,Wednesday,Dinner,Pescado con ensalada de tomates y aguacate,Pescado con ensalada de tomates y aguacate,,,,
+2,17/08/2024,no,Thursday,Dinner,"Sopa de garbanzos con fideos: 1 Puerro picado, 2 Dientes de ajo",Sopa de garbanzos con fideos,"1 Puerro picado, 2 Dientes de ajo",,,Tier A/B keyword: needs GF version (fideos)
+2,17/08/2024,no,Friday,Dinner,"Sobras: RIsoto, sopa de garbanzos y tostis",Sobras,,,Sobras,Tier A/B keyword: needs GF version (tosti)
+2,17/08/2024,no,Saturday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+2,17/08/2024,no,Sunday,Dinner,"Sopa de zanahoria: 1 Cebolla roja picada, 3 dientes de ajo en láminas, 750 gr zanahorias cortadas",Sopa de zanahoria,"1 Cebolla roja picada, 3 dientes de ajo en láminas, 750 gr zanahorias cortadas",,,Tier C keyword: check label (sopa)
+3,24/08/2024,no,Monday,Lunch,Arroz a la cubana: 2 cebollas picadas,Arroz a la cubana,2 cebollas picadas,,,
+3,24/08/2024,no,Tuesday,Lunch,"Pasta con garbanzos y tomatitos: 400gr tomates cherri partidos por la mitad, 2 dientes de ajo en láminas, hojas de albahaca fresca",Pasta con garbanzos y tomatitos,"400gr tomates cherri partidos por la mitad, 2 dientes de ajo en láminas, hojas de albahaca fresca",,,Tier A/B keyword: needs GF version (pasta)
+3,24/08/2024,no,Wednesday,Lunch,Pastel de pescado,Pastel de pescado,,,,
+3,24/08/2024,no,Thursday,Lunch,"Tortilla de berenjena con ensalada: 1 berenjena en cuadraditos, 1 cebolla, 1/2 pimiento rojo y un ajo picados, perejil picado",Tortilla de berenjena con ensalada,"1 berenjena en cuadraditos, 1 cebolla, 1/2 pimiento rojo y un ajo picados, perejil picado",,,
+3,24/08/2024,no,Friday,Lunch,Pasta,Pasta,,,,Tier A/B keyword: needs GF version (pasta)
+3,24/08/2024,no,Saturday,Lunch,Smash burgers (Alex),Smash burgers (Alex),,Alex,,Tier C keyword: check label (burger)
+3,24/08/2024,no,Sunday,Lunch,Beef bourginon,Beef bourginon,,,,Tier C keyword: check label (bourg)
+3,24/08/2024,no,Monday,Dinner,Ensalada verde,Ensalada verde,,,,
+3,24/08/2024,no,Tuesday,Dinner,Pechugas de Pollo,Pechugas de Pollo,,,,
+3,24/08/2024,no,Wednesday,Dinner,Sobras,Sobras,,,Sobras,
+3,24/08/2024,no,Thursday,Dinner,"Sopa de alubias (libro veg Jamie): 4 Cebollas rojas picadas, 4 Dientes ajo picados, 4 Palos de apio picados, 1 chile",Sopa de alubias (libro veg Jamie),"4 Cebollas rojas picadas, 4 Dientes ajo picados, 4 Palos de apio picados, 1 chile",libro veg Jamie,,Tier C keyword: check label (sopa)
+3,24/08/2024,no,Friday,Dinner,Salchichas,Salchichas / sausages (variants),,,,Tier C keyword: check label (salchicha)
+3,24/08/2024,no,Saturday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+3,24/08/2024,no,Sunday,Dinner,"Ensalada de lentejas y adamame: 1 cebolla morada pequena en juliana, 150gr de adamame, 25 gr de almendras tostadas fileteadas, perejil",Ensalada de lentejas y adamame,"1 cebolla morada pequena en juliana, 150gr de adamame, 25 gr de almendras tostadas fileteadas, perejil",,,Tier A/B keyword: needs GF version (tostada)
+4,31/08/2024,yes,Monday,Lunch,Ensalada de brocoli y garbanzos,Ensalada de brocoli y garbanzos,,,,
+4,31/08/2024,yes,Tuesday,Lunch,Pasta con tomate (congelador) y chorizo,Pasta con chorizo (variants),,,,Tier A/B keyword: needs GF version (pasta)
+4,31/08/2024,yes,Wednesday,Lunch,Pisto con arroz (congelador),Pisto (variants),,,,
+4,31/08/2024,yes,Thursday,Lunch,Lentejas,Lentejas estofadas (variants),,,,
+4,31/08/2024,yes,Friday,Lunch,Calabaza con alubias y garbanzos,Calabaza con alubias/garbanzos (variants),,,,Tier C keyword: check label (alubias)
+4,31/08/2024,yes,Saturday,Lunch,Fajitas de Pollo,Fajitas de Pollo,,,,Tier A/B keyword: needs GF version (fajitas)
+4,31/08/2024,yes,Sunday,Lunch,Cordero asado,Cordero asado / roast lamb,,,,
+4,31/08/2024,yes,Monday,Dinner,Patatas asadas con bacon y ensalada,Patatas asadas con bacon y ensalada,,,,
+4,31/08/2024,yes,Tuesday,Dinner,Pancakes con salmón y ensalada,Pancakes con salmón,,,,Tier A/B keyword: needs GF version (pancakes)
+4,31/08/2024,yes,Wednesday,Dinner,Chili con Carne,Chili con Carne,,,,Tier C keyword: check label (chili)
+4,31/08/2024,yes,Thursday,Dinner,Tortilla rápida de patatas y ensalada,Tortilla rápida de patatas y ensalada,,,,
+4,31/08/2024,yes,Friday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+4,31/08/2024,yes,Saturday,Dinner,Ensalada verde,Ensalada verde,,,,
+4,31/08/2024,yes,Sunday,Dinner,Sopa de calabaza y naranja (Arguinano Pg 96),Sopa de calabaza y naranja (Arguinano Pg 96),,Arguinano Pg 96,,Tier C keyword: check label (sopa)
+5,07/09/2024,yes,Monday,Lunch,Pasta con atún (Jamie),Pasta con atún (variants),,Jamie,,Tier A/B keyword: needs GF version (pasta)
+5,07/09/2024,yes,Tuesday,Lunch,Chuletas de cerdo con puré de patatas,Chuletas de cerdo con puré de patatas,,,,
+5,07/09/2024,yes,Wednesday,Lunch,Lentejas,Lentejas estofadas (variants),,,,
+5,07/09/2024,yes,Thursday,Lunch,Lamb Rogan Josh,Curry Rogan Josh (lamb),,,,
+5,07/09/2024,yes,Friday,Lunch,,,,,blank,
+5,07/09/2024,yes,Saturday,Lunch,Chili con Carne,Chili con Carne,,,,Tier C keyword: check label (chili)
+5,07/09/2024,yes,Sunday,Lunch,"Sopa de alubias (libro veg Jamie): 4 Cebollas rojas picadas, 4 Dientes ajo picados, 4 Palos de apio picados, 1 chile",Sopa de alubias (libro veg Jamie),"4 Cebollas rojas picadas, 4 Dientes ajo picados, 4 Palos de apio picados, 1 chile",libro veg Jamie,,Tier C keyword: check label (sopa)
+5,07/09/2024,yes,Monday,Dinner,Huevos fritos/Pollo (sobras) con ensalada de pepino y patatas (Pais menú semanal 31 Agosto),Sobras,,Pais menú semanal 31 Agosto,Sobras,
+5,07/09/2024,yes,Tuesday,Dinner,Puré de 'naranja',Puré de 'naranja',,,,
+5,07/09/2024,yes,Wednesday,Dinner,Salchichas con ensalada,Salchichas / sausages (variants),,,,Tier C keyword: check label (salchicha)
+5,07/09/2024,yes,Thursday,Dinner,Ensalada de gnoquis crujientes,Ensalada de gnoquis crujientes,,,,Tier A/B keyword: needs GF version (gnoqu)
+5,07/09/2024,yes,Friday,Dinner,Fish burgers,Fish burgers,,,,Tier A/B keyword: needs GF version (fish burgers)
+5,07/09/2024,yes,Saturday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+5,07/09/2024,yes,Sunday,Dinner,Bunsens,Bunsens,,,,
+6,14/09/2024,yes,Monday,Lunch,Pisto con puré de patatas,Pisto (variants),,,,
+6,14/09/2024,yes,Tuesday,Lunch,Ensalada de arroz,Ensalada de arroz,,,,
+6,14/09/2024,yes,Wednesday,Lunch,Lentejas,Lentejas estofadas (variants),,,,
+6,14/09/2024,yes,Thursday,Lunch,Pasta con albóndigas,Pasta con albóndigas,,,,Tier A/B keyword: needs GF version (pasta)
+6,14/09/2024,yes,Friday,Lunch,Sobras,Sobras,,,Sobras,
+6,14/09/2024,yes,Saturday,Lunch,Nandos (cumple chicos),Take-away / eating out,,,Take-away,
+6,14/09/2024,yes,Sunday,Lunch,Solomillos de vaca,Solomillos de vaca,,,,
+6,14/09/2024,yes,Monday,Dinner,Fish fingers con ensalada de pepino,Fish fingers,,,,Tier A/B keyword: needs GF version (fish fingers)
+6,14/09/2024,yes,Tuesday,Dinner,Sausages,Salchichas / sausages (variants),,,,Tier C keyword: check label (sausage)
+6,14/09/2024,yes,Wednesday,Dinner,Pollo,Pollo,,,,
+6,14/09/2024,yes,Thursday,Dinner,Ensalada de brocoli y garbanzos,Ensalada de brocoli y garbanzos,,,,
+6,14/09/2024,yes,Friday,Dinner,Patatas asadas con ensalada,Patatas asadas con ensalada,,,,
+6,14/09/2024,yes,Saturday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+6,14/09/2024,yes,Sunday,Dinner,Tosties,Tostis / tosties,,,,Tier A/B keyword: needs GF version (tosti)
+7,21/09/2026,yes,Monday,Lunch,Pasta con atún y anchoillas,Pasta con atún (variants),,,,Tier A/B keyword: needs GF version (pasta)
+7,21/09/2026,yes,Tuesday,Lunch,Curry Rogan Josh (cordero),Curry Rogan Josh (lamb),,,,Tier C keyword: check label (curry)
+7,21/09/2026,yes,Wednesday,Lunch,Calabaza con alubias y garbanzos,Calabaza con alubias/garbanzos (variants),,,,Tier C keyword: check label (alubias)
+7,21/09/2026,yes,Thursday,Lunch,Pasta con chorizo,Pasta con chorizo (variants),,,,Tier A/B keyword: needs GF version (pasta)
+7,21/09/2026,yes,Friday,Lunch,Pasta (sobras),Sobras,,,Sobras,Tier A/B keyword: needs GF version (pasta)
+7,21/09/2026,yes,Saturday,Lunch,Pechugas de pollo con patatas asadas y ensalada,Pechugas de pollo con patatas asadas y ensalada,,,,
+7,21/09/2026,yes,Sunday,Lunch,Amburguesas,Amburguesas,,,,
+7,21/09/2026,yes,Monday,Dinner,Take-away,Take-away / eating out,,,Take-away,
+7,21/09/2026,yes,Tuesday,Dinner,Fish fingers con ensalada de pepino,Fish fingers,,,,Tier A/B keyword: needs GF version (fish fingers)
+7,21/09/2026,yes,Wednesday,Dinner,Tostada con guacamole y huevos. Ensalada de pepino,Tostada con aguacate/huevos (variants),,,,Tier A/B keyword: needs GF version (tostada)
+7,21/09/2026,yes,Thursday,Dinner,Pancakes con salmón,Pancakes con salmón,,,,Tier A/B keyword: needs GF version (pancakes)
+7,21/09/2026,yes,Friday,Dinner,Chili con Carne,Chili con Carne,,,,Tier C keyword: check label (chili)
+7,21/09/2026,yes,Saturday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+7,21/09/2026,yes,Sunday,Dinner,Sopa de zanahorias y gengibre,Sopa de zanahorias y gengibre,,,,Tier C keyword: check label (sopa)
+8,28/09/2026,yes,Monday,Lunch,Pasta carbonara,Pasta carbonara,,,,Tier A/B keyword: needs GF version (pasta)
+8,28/09/2026,yes,Tuesday,Lunch,Pisto con puré de patatas,Pisto (variants),,,,
+8,28/09/2026,yes,Wednesday,Lunch,Arroz a la cubana,Arroz a la cubana,,,,
+8,28/09/2026,yes,Thursday,Lunch,Pastel de pescado,Pastel de pescado,,,,
+8,28/09/2026,yes,Friday,Lunch,Pasta pesto,Pasta pesto,,,,Tier A/B keyword: needs GF version (pasta)
+8,28/09/2026,yes,Saturday,Lunch,Chili con Carne,Chili con Carne,,,,Tier C keyword: check label (chili)
+8,28/09/2026,yes,Sunday,Lunch,Pollo asado con patatas y zanahorias,Pollo asado con patatas,,,,
+8,28/09/2026,yes,Monday,Dinner,Tostada con berdel y ensalada,Tostada con aguacate/huevos (variants),,,,Tier A/B keyword: needs GF version (tostada)
+8,28/09/2026,yes,Tuesday,Dinner,"Sopa de garbanzos con fideos: 1 Puerro picado, 2 Dientes de ajo",Sopa de garbanzos con fideos,"1 Puerro picado, 2 Dientes de ajo",,,Tier A/B keyword: needs GF version (fideos)
+8,28/09/2026,yes,Wednesday,Dinner,Tostis con ensalada,Tostis / tosties,,,,Tier A/B keyword: needs GF version (tosti)
+8,28/09/2026,yes,Thursday,Dinner,,,,,blank,
+8,28/09/2026,yes,Friday,Dinner,Pastel de pescado,Pastel de pescado,,,,
+8,28/09/2026,yes,Saturday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+8,28/09/2026,yes,Sunday,Dinner,Puré de alubias,Puré de alubias,,,,Tier C keyword: check label (alubias)
+9,05/10/2026,yes,Monday,Lunch,Risotto,Risotto,,,,Tier C keyword: check label (risotto)
+9,05/10/2026,yes,Tuesday,Lunch,Pasta con atún y tomate,Pasta con atún (variants),,,,Tier A/B keyword: needs GF version (pasta)
+9,05/10/2026,yes,Wednesday,Lunch,Calabaza con garbanzos,Calabaza con alubias/garbanzos (variants),,,,
+9,05/10/2026,yes,Thursday,Lunch,Lentejas,Lentejas estofadas (variants),,,,
+9,05/10/2026,yes,Friday,Lunch,Pasta con Pollo,Pasta con Pollo,,,,Tier A/B keyword: needs GF version (pasta)
+9,05/10/2026,yes,Saturday,Lunch,Bolognesa,Pasta boloñesa (variants),,,,Tier A/B keyword: needs GF version (bolognesa)
+9,05/10/2026,yes,Sunday,Lunch,Stakes con patatas al horno,Stakes con patatas al horno,,,,
+9,05/10/2026,yes,Monday,Dinner,"Tosatada con aguacate, huevos y ensalada",Tostada con aguacate/huevos (variants),,,,Tier A/B keyword: needs GF version (tosatada)
+9,05/10/2026,yes,Tuesday,Dinner,Salchichas con ensalada de pepino,Salchichas / sausages (variants),,,,Tier C keyword: check label (salchicha)
+9,05/10/2026,yes,Wednesday,Dinner,Fish fingers con pepino,Fish fingers,,,,Tier A/B keyword: needs GF version (fish fingers)
+9,05/10/2026,yes,Thursday,Dinner,Alcachofas salteadas,Alcachofas salteadas,,,,
+9,05/10/2026,yes,Friday,Dinner,Jamie's beans,Jamie's beans,,,,Tier C keyword: check label (beans)
+9,05/10/2026,yes,Saturday,Dinner,Pizza,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+9,05/10/2026,yes,Sunday,Dinner,Tosties,Tostis / tosties,,,,Tier A/B keyword: needs GF version (tosti)
+10,12/10/2026,yes,Monday,Lunch,"Estofado de lentejas, berenjenas y granada",Lentejas estofadas (variants),,,,Tier C keyword: check label (estofado)
+10,12/10/2026,yes,Tuesday,Lunch,Pasta con atún y anchoillas,Pasta con atún (variants),,,,Tier A/B keyword: needs GF version (pasta)
+10,12/10/2026,yes,Wednesday,Lunch,Pisto con puré de patatas,Pisto (variants),,,,
+10,12/10/2026,yes,Thursday,Lunch,Fish burgers,Fish burgers,,,,Tier A/B keyword: needs GF version (fish burgers)
+10,12/10/2026,yes,Friday,Lunch,,,,,blank,
+10,12/10/2026,yes,Saturday,Lunch,Pasta bolognesa,Pasta boloñesa (variants),,,,Tier A/B keyword: needs GF version (pasta)
+10,12/10/2026,yes,Sunday,Lunch,Salmón con arroz,Salmón con arroz,,,,
+10,12/10/2026,yes,Monday,Dinner,Ensalada verde,Ensalada verde,,,,
+10,12/10/2026,yes,Tuesday,Dinner,Loaded black bean nachos,Loaded black bean nachos,,,,Tier C keyword: check label (nachos)
+10,12/10/2026,yes,Wednesday,Dinner,Ensalada templada de boniato y rúcula,Ensalada templada de boniato y rúcula,,,,
+10,12/10/2026,yes,Thursday,Dinner,Salchichas con pepino,Salchichas / sausages (variants),,,,Tier C keyword: check label (salchicha)
+10,12/10/2026,yes,Friday,Dinner,Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula,Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula,,,,
+10,12/10/2026,yes,Saturday,Dinner,Pizza y nuggets,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+10,12/10/2026,yes,Sunday,Dinner,Sopa,Sopa,,,,Tier C keyword: check label (sopa)
+11,19/10/2026,yes,Monday,Lunch,Lentejas estofadas,Lentejas estofadas (variants),,,,
+11,19/10/2026,yes,Tuesday,Lunch,Calabaza con alubias y garbanzos,Calabaza con alubias/garbanzos (variants),,,,Tier C keyword: check label (alubias)
+11,19/10/2026,yes,Wednesday,Lunch,Pasta con atún (Jamie),Pasta con atún (variants),,Jamie,,Tier A/B keyword: needs GF version (pasta)
+11,19/10/2026,yes,Thursday,Lunch,Patatas al horno can bacon y ensalada verde,Patatas al horno can bacon y ensalada verde,,,,
+11,19/10/2026,yes,Friday,Lunch,,,,,blank,
+11,19/10/2026,yes,Saturday,Lunch,Nachos con carne,Nachos con carne,,,,Tier C keyword: check label (nachos)
+11,19/10/2026,yes,Sunday,Lunch,Cordero asado,Cordero asado / roast lamb,,,,
+11,19/10/2026,yes,Monday,Dinner,Tortilla de brocoli y queso con esnsalada de tomate,Tortilla de brocoli y queso con esnsalada de tomate,,,,
+11,19/10/2026,yes,Tuesday,Dinner,Fish fingers con ensalada de pepino,Fish fingers,,,,Tier A/B keyword: needs GF version (fish fingers)
+11,19/10/2026,yes,Wednesday,Dinner,Pancakes con salmón y ensalada,Pancakes con salmón,,,,Tier A/B keyword: needs GF version (pancakes)
+11,19/10/2026,yes,Thursday,Dinner,Ensalada de arroz,Ensalada de arroz,,,,
+11,19/10/2026,yes,Friday,Dinner,Pollo pochado,Pollo pochado,,,,
+11,19/10/2026,yes,Saturday,Dinner,Pizza y croquetas,Pizza,,,,Tier A/B keyword: needs GF version (pizza)
+11,19/10/2026,yes,Sunday,Dinner,,,,,blank,

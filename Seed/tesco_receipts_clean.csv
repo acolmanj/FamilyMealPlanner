@@ -1,0 +1,98 @@
+﻿order_date,store_section,item_type,product_ordered,qty_ordered,unit_price_eur,outcome,product_delivered,qty_delivered,delivered_unit_price_eur,line_total_paid_eur,gluten_screen_draft
+2026-10-05,Substitution,food,Barilla Gluten Free Fusilli 400G,1,3.79,substituted,Tesco Free From Penne Pasta 500G,1,1.3,1.30,Free From range: confirm GF label
+2026-10-05,Substitution,food,Barilla Gluten Free Spaghetti 400G,2,3.79,substituted,Tesco Free From Spaghetti 500G,2,1.09,2.18,Free From range: confirm GF label
+2026-10-05,Substitution,household/personal care,Finish Ultimate All In One Deep Clean & Shine 75 Dishwasher Tablets 967.5g,1,18.0,substituted,Finish Quantum All In One Lemon 64s Dishwasher Tablets 665.6g,2,17.0,34.00,not food
+2026-10-05,Fridge,food,Clonakilty Pork Sausages 454G,1,3.9,delivered,Clonakilty Pork Sausages 454G,1,3.9,3.90,do not reuse without GF label / check label (per instructions)
+2026-10-05,Fridge,food,Noel Spicy Cooking Chorizo 200G,1,2.69,delivered,Noel Spicy Cooking Chorizo 200G,1,2.69,2.69,do not reuse without GF label / check label (per instructions)
+2026-10-05,Fridge,food,Tesco Fresh Milk 2 Litre,6,2.25,delivered,Tesco Fresh Milk 2 Litre,6,2.25,13.50,plain/naturally GF
+2026-10-05,Fridge,food,Tesco Irish Chestnut Mushrooms 250G,1,1.19,delivered,Tesco Irish Chestnut Mushrooms 250G,1,1.19,0.99,plain/naturally GF
+2026-10-05,Fridge,food,Tesco Irish Lean Beef Steak Mince 5% Fat 750g,1,10.5,delivered,Tesco Irish Lean Beef Steak Mince 5% Fat 750g,1,10.5,9.50,plain/naturally GF
+2026-10-05,Fridge,food,Tesco Spanish Chorizo Sausage Slices 150G,1,1.75,delivered,Tesco Spanish Chorizo Sausage Slices 150G,1,1.75,1.75,do not reuse without GF label / check label (per instructions)
+2026-10-05,Fridge,food,Yoplait Hazelnut Yoghurt 4X125g,2,2.99,delivered,Yoplait Hazelnut Yoghurt 4X125g,2,2.99,5.98,check label (Tier C or unverified)
+2026-10-05,Freezer,food,Birds Eye 12 Gluten Free Fish Finger 360G,2,5.75,delivered,Birds Eye 12 Gluten Free Fish Finger 360G,2,5.75,11.50,GF labelled in product name
+2026-10-05,Freezer,food,Birds Eye Gluten Free Breaded Fish Fillets 250G,2,4.29,delivered,Birds Eye Gluten Free Breaded Fish Fillets 250G,2,4.29,8.58,GF labelled in product name
+2026-10-05,Cupboard,household/personal care,Andrex Classic Clean Toilet Rolls X9,2,7.59,delivered,Andrex Classic Clean Toilet Rolls X9,2,7.59,12.00,not food
+2026-10-05,Cupboard,household/personal care,Ariel Laundry Detergent 4in1 Pods Original 60 Washes 1044g,1,20.0,delivered,Ariel Laundry Detergent 4in1 Pods Original 60 Washes 1044g,1,20.0,12.50,not food
+2026-10-05,Cupboard,food,Bonne Maman Strawberry Conserve 370G,2,4.3,delivered,Bonne Maman Strawberry Conserve 370G,2,4.3,8.60,check label (Tier C or unverified)
+2026-10-05,Cupboard,food,John West Foods Tuna Chunks In Sunflower Oil 145G,9,2.8,delivered,John West Foods Tuna Chunks In Sunflower Oil 145G,9,2.8,25.20,plain/naturally GF
+2026-10-05,Cupboard,household/personal care,Kleenex Balsam Twin Pack Tissues 64S,2,5.15,delivered,Kleenex Balsam Twin Pack Tissues 64S,2,5.15,7.00,not food
+2026-10-05,Cupboard,food,Knorr Beef Stock Pot 8 X 28G,1,3.99,delivered,Knorr Beef Stock Pot 8 X 28G,1,3.99,3.99,do not reuse without GF label / check label (per instructions)
+2026-10-05,Cupboard,alcohol,Marques Del Atrio Crianza Rioja 75Cl,1,15.0,delivered,Marques Del Atrio Crianza Rioja 75Cl,1,15.0,12.00,alcohol (beer is Tier A; not a meal ingredient)
+2026-10-05,Cupboard,food,Parmentier Sardines in Extra Virgin Olive Oil 135g,3,3.79,delivered,Parmentier Sardines in Extra Virgin Olive Oil 135g,3,3.79,11.37,check label (Tier C or unverified)
+2026-10-05,Cupboard,food,Promise Gluten Free Soft White Loaf 480G,1,4.89,delivered,Promise Gluten Free Soft White Loaf 480G,1,4.89,4.89,GF labelled in product name
+2026-10-05,Cupboard,food,Roma Chopped Tomatoes 3 X 400G,3,4.0,delivered,Roma Chopped Tomatoes 3 X 400G,3,4.0,12.00,check label (Tier C or unverified)
+2026-10-05,Cupboard,food,Tesco Family Pack Onions 1 Kilograms,1,1.29,delivered,Tesco Family Pack Onions 1 Kilograms,1,1.29,1.29,plain/naturally GF
+2026-10-05,Cupboard,food,Tesco Garlic 4 Pack,1,1.19,delivered,Tesco Garlic 4 Pack,1,1.19,1.19,plain/naturally GF
+2026-10-05,Cupboard,food,Tesco Granulated Sugar 1Kg,1,1.69,delivered,Tesco Granulated Sugar 1Kg,1,1.69,1.69,plain/naturally GF
+2026-10-05,Cupboard,food,Weetabix Cereal 48 Pack,1,7.3,delivered,Weetabix Cereal 48 Pack,1,7.3,7.30,do not reuse without GF label / check label (per instructions)
+2026-08-31,Substitution,food,Barilla Gluten Free Fusilli 400G,3,3.79,substituted,Tesco Free From Fusilli Pasta 500G,2,1.09,2.01,Free From range: confirm GF label
+2026-08-31,Substitution,food,Bonne Maman Strawberry Conserve 370G,2,4.3,substituted,Follain Traditional Recipe Strawberry Jam 370G,2,3.1,6.20,check label (Tier C or unverified)
+2026-08-31,Substitution,food,Noel Spicy Cooking Chorizo 200G,1,2.69,substituted,Noel Mediterranean Barbecue Chorizo Mild 4 Pack 200G,1,2.69,2.69,do not reuse without GF label / check label (per instructions)
+2026-08-31,Substitution,food,Tesco Red Chillies 60G,1,1.09,substituted,Tesco Mixed Chillies 65G,1,0.7,0.70,plain/naturally GF
+2026-08-31,Unavailable,food,Birds Eye 12 Gluten Free Fish Finger 360G,2,,unavailable,,,,0.00,GF labelled in product name
+2026-08-31,Fridge,food,IRISH COUNTRY IRISH ROUND STEAK BEEF MINCE 10% FAT 350g,3,4.0,delivered,IRISH COUNTRY IRISH ROUND STEAK BEEF MINCE 10% FAT 350g,3,4.0,10.00,plain/naturally GF
+2026-08-31,Fridge,food,Kerrygold Butter 454 G,2,4.99,delivered,Kerrygold Butter 454 G,2,4.99,9.98,plain/naturally GF
+2026-08-31,Fridge,food,Tesco Fresh Milk 2 Litre,4,2.25,delivered,Tesco Fresh Milk 2 Litre,4,2.25,9.00,plain/naturally GF
+2026-08-31,Fridge,food,Yoplait Hazelnut Yoghurt 4X125g,2,2.99,delivered,Yoplait Hazelnut Yoghurt 4X125g,2,2.99,4.50,check label (Tier C or unverified)
+2026-08-31,Freezer,food,Birds Eye Gluten Free Breaded Fish Fillets 250G,1,4.29,delivered,Birds Eye Gluten Free Breaded Fish Fillets 250G,1,4.29,4.29,GF labelled in product name
+2026-08-31,Freezer,food,Goodfella's Pepperoni Pizza Gluten Free 317G,1,5.5,delivered,Goodfella's Pepperoni Pizza Gluten Free 317G,1,5.5,5.50,GF labelled in product name
+2026-08-31,Cupboard,alcohol,Barefoot Moscato 75Cl,1,10.5,delivered,Barefoot Moscato 75Cl,1,10.5,9.00,alcohol (beer is Tier A; not a meal ingredient)
+2026-08-31,Cupboard,food,Barilla Gluten Free Fusilli 400G,1,3.79,delivered,Barilla Gluten Free Fusilli 400G,1,3.79,3.18,GF labelled in product name
+2026-08-31,Cupboard,household/personal care,Cif Lemon Cream Cleaner 500Ml,1,3.0,delivered,Cif Lemon Cream Cleaner 500Ml,1,3.0,2.50,not food
+2026-08-31,Cupboard,household/personal care,Colgate Cavity Protection Pump Toothpaste 100Ml,2,5.0,delivered,Colgate Cavity Protection Pump Toothpaste 100Ml,2,5.0,10.00,not food
+2026-08-31,Cupboard,household/personal care,Finish Quantum All In One Lemon 64s Dishwasher Tablets 665.6g,1,17.0,delivered,Finish Quantum All In One Lemon 64s Dishwasher Tablets 665.6g,1,17.0,14.00,not food
+2026-08-31,Cupboard,food,John West Foods Tuna Chunks In Sunflower Oil 145G,4,2.8,delivered,John West Foods Tuna Chunks In Sunflower Oil 145G,4,2.8,11.20,plain/naturally GF
+2026-08-31,Cupboard,food,Knorr Rich Beef Stock Pot 4 X 28G,1,3.0,delivered,Knorr Rich Beef Stock Pot 4 X 28G,1,3.0,2.00,do not reuse without GF label / check label (per instructions)
+2026-08-31,Cupboard,food,Knorr Vegetable Stock Pot 4 X 28G,3,3.0,delivered,Knorr Vegetable Stock Pot 4 X 28G,3,3.0,7.00,do not reuse without GF label / check label (per instructions)
+2026-08-31,Cupboard,household/personal care,Mr Sheen M/Surf Polish Spring Fresh 250Ml,1,2.8,delivered,Mr Sheen M/Surf Polish Spring Fresh 250Ml,1,2.8,2.10,not food
+2026-08-31,Cupboard,food,Roma Chopped Tomatoes 3 X 400G,3,4.0,delivered,Roma Chopped Tomatoes 3 X 400G,3,4.0,12.00,check label (Tier C or unverified)
+2026-08-31,Cupboard,food,Tesco Family Pack Carrots 1Kg,1,1.45,delivered,Tesco Family Pack Carrots 1Kg,1,1.45,1.45,plain/naturally GF
+2026-08-31,Cupboard,food,Tesco Finest Cantabrian Anchovy Fillets 50G,2,2.4,delivered,Tesco Finest Cantabrian Anchovy Fillets 50G,2,2.4,4.80,check label (Tier C or unverified)
+2026-08-31,Cupboard,food,Tesco Finest Free From Rigatoni 500G,1,1.95,delivered,Tesco Finest Free From Rigatoni 500G,1,1.95,1.64,Free From range: confirm GF label
+2026-08-31,Cupboard,food,Tesco Finest* Omega 3 Free Range 10 Irish Eggs,1,4.79,delivered,Tesco Finest* Omega 3 Free Range 10 Irish Eggs,1,4.79,4.79,plain/naturally GF
+2026-08-31,Cupboard,household/personal care,Tesco Luxury Soft White Toilet tissue 9 Rolls,1,4.0,delivered,Tesco Luxury Soft White Toilet tissue 9 Rolls,1,4.0,4.00,not food
+2026-08-31,Cupboard,food,Tesco Red Kidney Beans In Water 400G,2,0.7,delivered,Tesco Red Kidney Beans In Water 400G,2,0.7,1.40,plain/naturally GF (haricot and kidney beans: check label)
+2026-05-14,Substitution,alcohol,Rye River Lil' Bangin' Session Ipa 500Ml,4,3.35,substituted,Rye River Big Bangin' Ipa 500Ml,4,4.09,15.00,alcohol (beer is Tier A; not a meal ingredient)
+2026-05-14,Unavailable,food,Biona Organic Mixed Beans 400g,2,,unavailable,,,,0.00,check label (Tier C or unverified)
+2026-05-14,Unavailable,household/personal care,Colgate Cavity Protection Pump Toothpaste 100Ml,1,,unavailable,,,,0.00,not food
+2026-05-14,Fridge,food,Clonakilty Pork Sausages 454G,1,3.9,delivered,Clonakilty Pork Sausages 454G,1,3.9,3.90,do not reuse without GF label / check label (per instructions)
+2026-05-14,Fridge,food,Cully And Sully Chicken & Vegetable Soup 750G,3,3.79,delivered,Cully And Sully Chicken & Vegetable Soup 750G,3,3.79,11.37,check label (Tier C or unverified)
+2026-05-14,Fridge,food,Galberts Sweet Pancake 6 Pack 450G,2,3.99,delivered,Galberts Sweet Pancake 6 Pack 450G,2,3.99,7.98,do not reuse without GF label / check label (per instructions)
+2026-05-14,Fridge,food,Kerrygold Butter 454 G,2,4.99,delivered,Kerrygold Butter 454 G,2,4.99,9.98,plain/naturally GF
+2026-05-14,Fridge,food,Noel Spicy Cooking Chorizo 200G,1,2.69,delivered,Noel Spicy Cooking Chorizo 200G,1,2.69,2.69,do not reuse without GF label / check label (per instructions)
+2026-05-14,Fridge,food,Tesco Finest Irish Angus Diced Beef 390G,2,6.5,delivered,Tesco Finest Irish Angus Diced Beef 390G,2,6.5,13.00,plain/naturally GF
+2026-05-14,Fridge,food,Tesco Fresh Milk 2 Litre,5,2.25,delivered,Tesco Fresh Milk 2 Litre,5,2.25,11.25,plain/naturally GF
+2026-05-14,Fridge,food,Tesco Irish Chestnut Mushrooms 250G,1,1.19,delivered,Tesco Irish Chestnut Mushrooms 250G,1,1.19,1.19,plain/naturally GF
+2026-05-14,Fridge,food,Tesco Spanish Chorizo Sausage Slices 150G,1,1.75,delivered,Tesco Spanish Chorizo Sausage Slices 150G,1,1.75,1.75,do not reuse without GF label / check label (per instructions)
+2026-05-14,Fridge,food,Yoplait Hazelnut Yoghurt 4X125g,2,2.99,delivered,Yoplait Hazelnut Yoghurt 4X125g,2,2.99,4.50,check label (Tier C or unverified)
+2026-05-14,Freezer,food,Goodfella's Pepperoni Pizza Gluten Free 317G,1,5.5,delivered,Goodfella's Pepperoni Pizza Gluten Free 317G,1,5.5,5.50,GF labelled in product name
+2026-05-14,Cupboard,household/personal care,Andrex Classic Clean Toilet Rolls X9,2,7.59,delivered,Andrex Classic Clean Toilet Rolls X9,2,7.59,11.00,not food
+2026-05-14,Cupboard,household/personal care,Ariel Laundry Detergent 4in1 Pods Original 60 Washes 1044g,1,20.0,delivered,Ariel Laundry Detergent 4in1 Pods Original 60 Washes 1044g,1,20.0,12.00,not food
+2026-05-14,Cupboard,alcohol,Barefoot Moscato 75Cl,1,10.5,delivered,Barefoot Moscato 75Cl,1,10.5,9.00,alcohol (beer is Tier A; not a meal ingredient)
+2026-05-14,Cupboard,food,Barilla Gluten Free Fusilli 400G,4,3.79,delivered,Barilla Gluten Free Fusilli 400G,4,3.79,15.16,GF labelled in product name
+2026-05-14,Cupboard,food,Bonne Maman Strawberry Conserve 370G,3,4.3,delivered,Bonne Maman Strawberry Conserve 370G,3,4.3,12.90,check label (Tier C or unverified)
+2026-05-14,Cupboard,food,Bunalun Organic Tomato Puree 130G,1,2.25,delivered,Bunalun Organic Tomato Puree 130G,1,2.25,1.75,check label (Tier C or unverified)
+2026-05-14,Cupboard,food,Dr.Oetker Madagascan Vanilla Extract 35Ml,1,2.35,delivered,Dr.Oetker Madagascan Vanilla Extract 35Ml,1,2.35,2.35,check label (Tier C or unverified)
+2026-05-14,Cupboard,household/personal care,Dylon Colour Catcher Colour Protection Sheets 40 Pack,1,6.5,delivered,Dylon Colour Catcher Colour Protection Sheets 40 Pack,1,6.5,6.50,not food
+2026-05-14,Cupboard,household/personal care,Finish Quantum All In One Lemon 64s Dishwasher Tablets 665.6g,1,15.5,delivered,Finish Quantum All In One Lemon 64s Dishwasher Tablets 665.6g,1,15.5,15.50,not food
+2026-05-14,Cupboard,food,Heinz Baked Beans In Tomato Sauce 4X415g,1,5.5,delivered,Heinz Baked Beans In Tomato Sauce 4X415g,1,5.5,5.50,do not reuse without GF label / check label (per instructions)
+2026-05-14,Cupboard,food,John West Foods Tuna Chunks In Sunflower Oil 145G,6,2.8,delivered,John West Foods Tuna Chunks In Sunflower Oil 145G,6,2.8,9.00,plain/naturally GF
+2026-05-14,Cupboard,food,Kellogg's Corn Flakes Breakfast Cereal 670g,1,4.5,delivered,Kellogg's Corn Flakes Breakfast Cereal 670g,1,4.5,4.50,do not reuse without GF label / check label (per instructions)
+2026-05-14,Cupboard,food,Keogh's Crinkle Cut Atlantic Sea Salt Crisps 125G,1,2.89,delivered,Keogh's Crinkle Cut Atlantic Sea Salt Crisps 125G,1,2.89,2.89,plain/naturally GF
+2026-05-14,Cupboard,food,Kikkoman Tamari Gluten Free Soy Sauce 250Ml,1,3.5,delivered,Kikkoman Tamari Gluten Free Soy Sauce 250Ml,1,3.5,3.50,GF labelled in product name
+2026-05-14,Cupboard,food,Knorr Vegetable Stock Pot 4 X 28G,3,2.8,delivered,Knorr Vegetable Stock Pot 4 X 28G,3,2.8,5.60,do not reuse without GF label / check label (per instructions)
+2026-05-14,Cupboard,food,Maldon Sea Salt 250G,1,4.65,delivered,Maldon Sea Salt 250G,1,4.65,4.65,plain/naturally GF
+2026-05-14,Cupboard,alcohol,Prosecco Frizzante Borsari 750Ml,1,12.0,delivered,Prosecco Frizzante Borsari 750Ml,1,12.0,10.00,alcohol (beer is Tier A; not a meal ingredient)
+2026-05-14,Cupboard,food,Roma Chopped Tomatoes 3 X 400G,3,4.0,delivered,Roma Chopped Tomatoes 3 X 400G,3,4.0,9.00,check label (Tier C or unverified)
+2026-05-14,Cupboard,food,Schar Sweet Brioche Rolls 200G,1,3.59,delivered,Schar Sweet Brioche Rolls 200G,1,3.59,2.90,check label (Tier C or unverified)
+2026-05-14,Cupboard,household/personal care,Sensodyne Clinical Repair Active White Toothpaste 75ml,1,14.0,delivered,Sensodyne Clinical Repair Active White Toothpaste 75ml,1,14.0,14.00,not food
+2026-05-14,Cupboard,food,Tesco Chargrilled Peppers 285g,2,2.95,delivered,Tesco Chargrilled Peppers 285g,2,2.95,5.90,check label (Tier C or unverified)
+2026-05-14,Cupboard,food,Tesco Chocolate Oaties Biscuits 300G,1,1.2,delivered,Tesco Chocolate Oaties Biscuits 300G,1,1.2,1.20,do not reuse without GF label / check label (per instructions)
+2026-05-14,Cupboard,food,Tesco Family Pack Carrots 1Kg,1,1.39,delivered,Tesco Family Pack Carrots 1Kg,1,1.39,1.39,plain/naturally GF
+2026-05-14,Cupboard,food,Tesco Finest Potatoes 2.5Kg,1,4.99,delivered,Tesco Finest Potatoes 2.5Kg,1,4.99,4.99,plain/naturally GF
+2026-05-14,Cupboard,food,Tesco Fruit And Nut Granola 1Kg,1,2.39,delivered,Tesco Fruit And Nut Granola 1Kg,1,2.39,2.39,do not reuse without GF label / check label (per instructions)
+2026-05-14,Cupboard,food,Tesco Haricot Beans In Water 400G,2,0.8,delivered,Tesco Haricot Beans In Water 400G,2,0.8,1.60,plain/naturally GF (haricot and kidney beans: check label)
+2026-05-14,Cupboard,food,Tesco Milk Chocolate Digestive 300G,1,0.89,delivered,Tesco Milk Chocolate Digestive 300G,1,0.89,0.89,do not reuse without GF label / check label (per instructions)
+2026-05-14,Cupboard,food,Tesco Pure Sunflower Oil 1L,1,1.59,delivered,Tesco Pure Sunflower Oil 1L,1,1.59,1.59,plain/naturally GF
+2026-05-14,Cupboard,food,Tesco Shallots 300G,1,1.09,delivered,Tesco Shallots 300G,1,1.09,1.09,plain/naturally GF
+2026-05-14,Cupboard,food,Tesco Whole Black Peppercorns 100G,1,1.5,delivered,Tesco Whole Black Peppercorns 100G,1,1.5,1.50,plain/naturally GF
