@@ -19,5 +19,5 @@ export async function GET(request: NextRequest) {
     ok = !(await supabase.auth.exchangeCodeForSession(code)).error;
   }
 
-  return NextResponse.redirect(new URL(ok ? "/history" : "/login?error=link", origin));
+  return NextResponse.redirect(new URL(ok ? "/week" : "/login?error=link", origin));
 }
