@@ -1,4 +1,4 @@
-import type { Verdict } from "@/lib/gluten/gate";
+import { STATUS_LABEL, type Verdict } from "@/lib/gluten/gate";
 import { GlutenBadge } from "@/components/gluten-badge";
 
 // The findings behind a verdict, worst first, plus the swap to write next to the meal.
@@ -6,6 +6,12 @@ export function VerdictDetails({ verdict }: { verdict: Verdict }) {
   const problems = verdict.findings.filter((f) => f.status !== "safe");
   return (
     <div className="flex flex-col gap-1 text-sm">
+      {verdict.confirmed && verdict.screened !== "safe" && (
+        <p className="text-muted-foreground">
+          You confirmed you cook this gluten-free. From the name alone the gate says{" "}
+          {STATUS_LABEL[verdict.screened!]}, so keep buying the GF versions below.
+        </p>
+      )}
       {verdict.swaps.length > 0 && (
         <p>
           <span className="font-semibold">GF swap: </span>
@@ -20,7 +26,7 @@ export function VerdictDetails({ verdict }: { verdict: Verdict }) {
           </span>
         </p>
       ))}
-      {problems.length === 0 && (
+      {problems.length === 0 && !verdict.confirmed && (
         <p className="text-muted-foreground">
           Only naturally gluten-free foods recognised ({verdict.findings.map((f) => f.term).join(", ")}).
         </p>

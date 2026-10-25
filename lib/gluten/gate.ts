@@ -293,6 +293,10 @@ export type Verdict = {
   status: Status;
   findings: Finding[];
   swaps: string[];
+  // Set when the household has confirmed they cook this meal gluten-free.
+  confirmed?: boolean;
+  // What the gate found before that confirmation.
+  screened?: Status;
 };
 
 export type ScreenInput = {
@@ -364,4 +368,11 @@ function dedupe(findings: Finding[]): Finding[] {
     seen.add(f.rule);
     return true;
   });
+}
+
+// The household knows how they cook a meal; the gate only reads its name.
+// A confirmed meal is Safe, but keeps its swaps so the shopping list still buys the GF products.
+export function applyConfirmation(verdict: Verdict, confirmed: boolean): Verdict {
+  if (!confirmed) return verdict;
+  return { ...verdict, status: "safe", confirmed: true, screened: verdict.status };
 }

@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { RULES, screenMeal } from "../lib/gluten/gate";
+import { RULES, applyConfirmation, screenMeal } from "../lib/gluten/gate";
 import { parseSeedData } from "../lib/seed/build";
 
 const root = join(__dirname, "..");
@@ -91,6 +91,15 @@ describe("gluten gate", () => {
     const v = screenMeal({ name: "Pizza y croquetas" });
     expect(v.status).toBe("blocked");
     expect(v.findings.map((f) => f.rule)).toEqual(["breaded", "pizza"]);
+  });
+
+  it("shows a household-confirmed meal as Safe but keeps its GF swap", () => {
+    const ramen = screenMeal({ name: "Ramen para vagos" });
+    const v = applyConfirmation(ramen, true);
+    expect(v.status).toBe("safe");
+    expect(v.screened).toBe("blocked");
+    expect(v.swaps[0]).toMatch(/rice noodles/i);
+    expect(applyConfirmation(ramen, false).status).toBe("blocked");
   });
 
   it("gives the same verdict for the same input", () => {
