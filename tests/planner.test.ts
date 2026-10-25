@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkWeek, suggestAlternatives, type Cell, type PlanMeal, type Use } from "../lib/planner/rules";
+import { checkWeek, suggestAlternatives, suggestForWeek, type Cell, type PlanMeal, type Use } from "../lib/planner/rules";
 import { guessTags, mealTags } from "../lib/planner/tags";
 
 const WEEK = "2026-10-26";
@@ -74,9 +74,8 @@ describe("week rules", () => {
     expect(rules([c("mon", "lunch", "fingers"), c("wed", "lunch", "sausages"), c("fri", "lunch", "tenders")])).toContain("processed");
   });
 
-  it("warns when a meal is in the week twice, counting a Sobras slot as a use", () => {
+  it("warns when a meal is in the week twice", () => {
     expect(rules([c("mon", "lunch", "salad"), c("thu", "dinner", "salad")])).toContain("repeat");
-    expect(rules([c("mon", "lunch", "stew"), c("tue", "sobras", "stew")])).toContain("repeat");
   });
 
   it("wants one meat or fish meal and one vegetarian meal each day", () => {
@@ -124,6 +123,41 @@ describe("week rules", () => {
     const full = days.flatMap((d, i) => [c(d, "lunch", veg[i]), c(d, "dinner", meat[i])]);
     expect(rules(full)).toContain("fish");
     expect(rules(full.slice(0, 13))).not.toContain("fish");
+  });
+
+  it("wants at least 2 pulse meals in a full week", () => {
+    expect(guessTags("Lentejas estofadas").isPulse).toBe(true);
+    expect(guessTags("Loaded black bean nachos").isPulse).toBe(true);
+    expect(guessTags("Ensalada verde").isPulse).toBe(false);
+    const veg = ["salad", "lentils", "soup", "tortilla", "risotto", "pasta1", "stew"];
+    const meat = ["chicken", "sausages", "pasta2", "salmon", "tenders", "pizza", "roast"];
+    const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+    const full = days.flatMap((d, i) => [c(d, "lunch", veg[i]), c(d, "dinner", meat[i])]);
+    // Lentil salad and lentil stew are two pulse meals.
+    expect(checkWeek({ weekStart: WEEK, cells: full, meals: MEALS, history: OLD }).counts.pulses).toBe(2);
+    expect(rules(full)).not.toContain("pulses");
+    const fewer = full.map((x) => (x.mealId === "stew" ? { ...x, mealId: "pasta3" } : x));
+    expect(rules(fewer)).toContain("pulses");
+  });
+});
+
+describe("week sidebar suggestions", () => {
+  it("leads with pulses and fish when the week has none, then mixes meat, veg and fish", () => {
+    const s = suggestForWeek({ weekStart: WEEK, cells: [], meals: MEALS, history: OLD, count: 6 });
+    expect(s).toHaveLength(6);
+    expect(s[0].meal.tags.isPulse).toBe(true);
+    expect(s[1].meal.tags.protein).toBe("fish");
+    expect(new Set(s.map((x) => x.meal.tags.protein))).toEqual(new Set(["meat", "veg", "fish"]));
+  });
+
+  it("leaves out meals already in the week, recent meals and blocked meals", () => {
+    const meals = new Map(MEALS);
+    meals.set("ramen", meal("ramen", "Ramen", { gluten: "blocked" }));
+    const history: Use[] = [...OLD, { mealId: "soup", date: "2026-10-20" }];
+    const ids = suggestForWeek({ weekStart: WEEK, cells: [c("mon", "lunch", "salad")], meals, history, count: 50 }).map((x) => x.meal.id);
+    expect(ids).not.toContain("salad");
+    expect(ids).not.toContain("soup");
+    expect(ids).not.toContain("ramen");
   });
 });
 

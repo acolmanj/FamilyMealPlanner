@@ -15,6 +15,7 @@ export type Tags = {
   effort: Effort | null;
   isRoast: boolean;
   isPizza: boolean;
+  isPulse: boolean;
   // True for each field that came from the name, not from the library.
   guessed: { protein: boolean; starch: boolean; isPasta: boolean; isProcessed: boolean; effort: boolean };
 };
@@ -48,6 +49,10 @@ const PROCESSED = ["fish fingers", "nuggets", "chicken tenders", "salchichas", "
 const QUICK = ["ensalada verde", "tostada", "tostadas", "tosatada", "tostis", "tosties", "fish fingers", "salchichas", "sausages", "chicken tenders", "nachos", "pesto"];
 const LONG = ["asado", "asada", "roast", "estofado", "estofadas", "bourginon", "bourguignon", "rogan josh", "chili", "pastel"];
 const ROAST = ["asado", "asada", "roast"];
+const PULSES = [
+  "lentejas", "lenteja", "lentils", "alubias", "alubia", "judias", "beans", "bean", "garbanzos", "chickpeas", "hummus", "humus", "edamame", "adamame",
+  "frijoles", "habas", "dal", "dhal", "pulses",
+];
 
 function has(text: string, terms: string[]) {
   return terms.some((t) => text.includes(normalise(t)));
@@ -66,6 +71,7 @@ export function guessTags(name: string): Omit<Tags, "guessed"> {
     effort,
     isRoast: has(t, ROAST),
     isPizza: has(t, ["pizza"]),
+    isPulse: has(t, PULSES),
   };
 }
 
@@ -85,6 +91,7 @@ export function mealTags(meal: MealAttrs): Tags {
     effort: effort ?? g.effort,
     isRoast: g.isRoast,
     isPizza: g.isPizza,
+    isPulse: g.isPulse,
     guessed: {
       protein: !protein,
       starch: !meal.starch,

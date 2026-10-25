@@ -6,14 +6,15 @@ import type { Tags } from "./tags";
 // Nothing here scores a meal: suggestions are ordered by plain facts only.
 
 export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
-export const SLOTS = ["lunch", "dinner", "sobras"] as const;
+// Sobras (leftovers) are not a meal, so the planner has no slot for them.
+export const SLOTS = ["lunch", "dinner"] as const;
 export type Day = (typeof DAYS)[number];
 export type Slot = (typeof SLOTS)[number];
 
 export const DAY_LABEL: Record<Day, string> = { mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat", sun: "Sun" };
-export const SLOT_LABEL: Record<Slot, string> = { lunch: "Lunch", dinner: "Dinner", sobras: "Sobras" };
+export const SLOT_LABEL: Record<Slot, string> = { lunch: "Lunch", dinner: "Dinner" };
 
-export const LIMITS = { pasta: 2, processed: 2, newMeals: 1, recencyDays: 21, recencyDaysPinned: 14, starchWindowDays: 3 };
+export const LIMITS = { pasta: 2, processed: 2, newMeals: 1, pulsesMin: 2, recencyDays: 21, recencyDaysPinned: 14, starchWindowDays: 3 };
 const SPACED_STARCHES = ["pasta", "potatoes", "rice", "noodles"];
 
 export type PlanMeal = {
@@ -39,12 +40,12 @@ export type Warning = {
 export type Counts = {
   filled: number;
   toFill: number;
-  sobras: number;
   fish: number;
   meat: number;
   veg: number;
   pasta: number;
   processed: number;
+  pulses: number;
   newMeals: number;
 };
 
@@ -87,7 +88,7 @@ function plural(n: number, word: string) {
 
 export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { counts: Counts; warnings: Warning[] } {
   const filled = cells.filter((c) => c.mealId && meals.has(c.mealId));
-  const main = filled.filter((c) => c.slot !== "sobras");
+  const main = filled;
   const mealOf = (c: Cell) => meals.get(c.mealId!)!;
   const warnings: Warning[] = [];
   const weekComplete = main.length === DAYS.length * 2;
@@ -97,12 +98,12 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
   const counts: Counts = {
     filled: main.length,
     toFill: DAYS.length * 2,
-    sobras: filled.length - main.length,
     fish: filled.filter((c) => mealOf(c).tags.protein === "fish").length,
     meat: filled.filter((c) => mealOf(c).tags.protein === "meat").length,
     veg: filled.filter((c) => mealOf(c).tags.protein === "veg").length,
     pasta: filled.filter((c) => mealOf(c).tags.isPasta).length,
     processed: filled.filter((c) => mealOf(c).tags.isProcessed).length,
+    pulses: filled.filter((c) => mealOf(c).tags.isPulse).length,
     newMeals: newIds.length,
   };
 
@@ -123,7 +124,11 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
   // Fish, once the week is complete (before that the count says how many so far).
   if (weekComplete && counts.fish === 0) warnings.push({ level: "hard", rule: "fish", text: "No fish meal this week", cells: [] });
 
-  // Once a week: a Sobras slot counts as a second use.
+  // Pulses (lentils, beans, chickpeas) are a regular part of the week.
+  if (weekComplete && counts.pulses < LIMITS.pulsesMin)
+    warnings.push({ level: "hard", rule: "pulses", text: `Pulses ${counts.pulses}, target at least ${LIMITS.pulsesMin}`, cells: [] });
+
+  // Once a week.
   const byMeal = new Map<string, Cell[]>();
   for (const c of filled) byMeal.set(c.mealId!, [...(byMeal.get(c.mealId!) ?? []), c]);
   for (const [id, cs] of byMeal)
@@ -205,8 +210,8 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
 
 export type Suggestion = { meal: PlanMeal; why: string };
 
-// Three meals that fit this cell, ordered by plain facts:
-// the day's tradition, the protein the cell or day needs, pinned, then longest since last planned.
+// Meals that fit this cell, ordered by plain facts: the day's tradition, the protein the
+// cell or day needs, pulses or fish the week is missing, pinned, then longest since last planned.
 export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: number }): Suggestion[] {
   const { weekStart, cells, meals, history, cell, count = 3 } = input;
   const inWeek = new Set(cells.filter((c) => c.mealId && cellKey(c) !== cellKey(cell)).map((c) => c.mealId));
@@ -214,12 +219,15 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
   const date = cellDate(weekStart, cell.day);
 
   let wantProtein: PlanMeal["tags"]["protein"][] | null = current ? [current.tags.protein] : null;
-  if (!current && cell.slot !== "sobras") {
+  if (!current) {
     const other = cells.find((c) => c.day === cell.day && c.slot === (cell.slot === "lunch" ? "dinner" : "lunch") && c.mealId);
     const p = other && meals.get(other.mealId!)?.tags.protein;
     if (p) wantProtein = p === "veg" ? ["meat", "fish"] : ["veg"];
   }
   const tradition = cell.day === "sun" && cell.slot === "lunch" ? "roast" : cell.day === "sat" && cell.slot === "dinner" ? "pizza" : null;
+  const others = cells.filter((c) => c.mealId && cellKey(c) !== cellKey(cell)).map((c) => meals.get(c.mealId!)).filter(Boolean) as PlanMeal[];
+  const needPulse = others.filter((m) => m.tags.isPulse).length < LIMITS.pulsesMin;
+  const needFish = !others.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
     .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && m.gluten !== "blocked")
@@ -233,6 +241,8 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
   const rank = ({ m, last }: (typeof pool)[number]) => [
     tradition === "roast" ? (m.tags.isRoast ? 0 : 1) : tradition === "pizza" ? (m.tags.isPizza ? 0 : 1) : 0,
     wantProtein && !wantProtein.includes(m.tags.protein) ? 1 : 0,
+    needPulse && !m.tags.isPulse ? 1 : 0,
+    needFish && m.tags.protein !== "fish" ? 1 : 0,
     m.pinned ? 0 : 1,
     last ? 0 : 1, // past meals before new ones (about 1 new a week)
   ];
@@ -248,6 +258,8 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
     const bits: string[] = [];
     if (m.pinned) bits.push("pinned");
     bits.push(gap === null ? "new to the plan" : `last planned ${weeksAgo(gap)}`);
+    if (needPulse && m.tags.isPulse) bits.push("pulses for the week");
+    else if (needFish && m.tags.protein === "fish") bits.push("fish for the week");
     if (wantProtein && wantProtein.includes(m.tags.protein) && !current) bits.push(m.tags.protein === "veg" ? "vegetarian for the day's mix" : `${m.tags.protein} for the day's mix`);
     return { meal: m, why: bits.join(", ") };
   });
@@ -256,4 +268,48 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
 function weeksAgo(days: number) {
   const w = Math.floor(days / 7);
   return w < 1 ? `${plural(days, "day")} ago` : `${plural(w, "week")} ago`;
+}
+
+// A spread of meals for the week's sidebar: what the week is missing first (pulses, fish),
+// then meat, vegetarian and fish in turn, each ordered pinned first and longest since last planned.
+export function suggestForWeek(input: WeekInput & { count?: number }): Suggestion[] {
+  const { weekStart, cells, meals, history, count = 10 } = input;
+  const inWeek = new Set(cells.map((c) => c.mealId).filter(Boolean));
+  const planned = [...inWeek].map((id) => meals.get(id!)).filter(Boolean) as PlanMeal[];
+  const needPulse = planned.filter((m) => m.tags.isPulse).length < LIMITS.pulsesMin;
+  const needFish = !planned.some((m) => m.tags.protein === "fish");
+
+  const pool = [...meals.values()]
+    .filter((m) => !inWeek.has(m.id) && m.gluten !== "blocked")
+    .map((m) => {
+      const last = lastUseBefore(history, m.id, weekStart);
+      return { m, last, gap: last ? daysBetween(last, weekStart) : null };
+    })
+    .filter(({ m, gap }) => gap === null || gap >= (m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays))
+    .sort(
+      (a, b) =>
+        Number(!a.m.pinned) - Number(!b.m.pinned) ||
+        Number(!a.last) - Number(!b.last) ||
+        (a.last ?? "").localeCompare(b.last ?? "") ||
+        a.m.name.localeCompare(b.m.name),
+    );
+
+  type Kind = "pulse" | "meat" | "veg" | "fish";
+  const kindOf = (m: PlanMeal): Kind => (m.tags.isPulse ? "pulse" : m.tags.protein);
+  const order: Kind[] = [...(needPulse ? ["pulse" as Kind] : []), ...(needFish ? ["fish" as Kind] : []), "meat", "veg", "fish", "pulse"];
+  const queues = new Map<Kind, typeof pool>();
+  for (const k of order) queues.set(k, pool.filter((p) => kindOf(p.m) === k));
+  const kinds = [...new Set(order)];
+  const picked: Suggestion[] = [];
+  for (let round = 0; picked.length < count && kinds.some((k) => queues.get(k)!.length); round++)
+    for (const k of kinds) {
+      const next = queues.get(k)!.shift();
+      if (!next || picked.length >= count) continue;
+      const bits = [next.gap === null ? "new to the plan" : `last planned ${weeksAgo(next.gap)}`];
+      if (needPulse && k === "pulse") bits.push("pulses for the week");
+      if (needFish && k === "fish") bits.push("fish for the week");
+      if (next.m.pinned) bits.unshift("pinned");
+      picked.push({ meal: next.m, why: bits.join(", ") });
+    }
+  return picked;
 }

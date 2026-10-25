@@ -189,6 +189,7 @@ export async function saveMealTags(mealId: string, tags: TagEdit): Promise<Resul
 export async function addNewMeal(week: string, day: string, slot: string, name: string): Promise<Result> {
   const clean = name.trim().replace(/\s+/g, " ");
   if (clean.length < 2 || clean.length > 120) return { ok: false, error: "Type the meal's name" };
+  if (/\b(sobras?|leftovers?)\b/i.test(clean)) return { ok: false, error: "Sobras are leftovers, not a meal" };
   const ctx = await context();
   const { data: existing } = await ctx.supabase
     .from("meals")
