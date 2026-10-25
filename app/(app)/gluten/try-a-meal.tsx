@@ -1,0 +1,28 @@
+"use client";
+
+import { useState } from "react";
+import { GlutenBadge } from "@/components/gluten-badge";
+import { VerdictDetails } from "@/components/verdict-details";
+import { Input } from "@/components/ui/input";
+import { screenMeal } from "@/lib/gluten/gate";
+
+export function TryAMeal() {
+  const [text, setText] = useState("");
+  const verdict = text.trim() ? screenMeal({ name: text }) : null;
+  return (
+    <div className="flex flex-col gap-3">
+      <Input
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Type a meal, e.g. Ramen de pollo"
+        aria-label="Meal to check"
+      />
+      {verdict && (
+        <div className="flex flex-col gap-2 rounded-md bg-muted p-3">
+          <GlutenBadge status={verdict.status} className="self-start" />
+          <VerdictDetails verdict={verdict} />
+        </div>
+      )}
+    </div>
+  );
+}
