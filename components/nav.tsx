@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
+  { href: "/week", label: "This week" },
   { href: "/history", label: "Past weeks" },
   { href: "/favourites", label: "Favourites" },
   { href: "/gluten", label: "Gluten" },
