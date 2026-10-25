@@ -118,6 +118,7 @@ export function WeekBoard({
             cells={shown}
             meals={mealMap}
             warningsFor={warningsFor}
+            openSlot={open?.day === day ? open.slot : null}
             onOpen={(slot) => {
               setError(null);
               setOpen({ day, slot });
@@ -159,6 +160,7 @@ function DayRow({
   cells,
   meals,
   warningsFor,
+  openSlot,
   onOpen,
 }: {
   day: Day;
@@ -166,6 +168,7 @@ function DayRow({
   cells: BoardCell[];
   meals: Map<string, PlanMeal>;
   warningsFor: (key: string) => Warning[];
+  openSlot: Slot | null;
   onOpen: (slot: Slot) => void;
 }) {
   return (
@@ -188,6 +191,7 @@ function DayRow({
               !c && "border-dashed bg-transparent text-muted-foreground",
               worst === "block" && "border-destructive bg-destructive/10",
               worst === "hard" && "border-warning",
+              openSlot === slot && "ring-2 ring-primary",
             )}
             aria-label={`${DAY_LABEL[day]} ${slot}: ${c?.text ?? m?.name ?? "empty"}`}
           >
@@ -307,26 +311,28 @@ function CellSheet({
   const [query, setQuery] = useState("");
   const meal = cell?.mealId ? mealMap.get(cell.mealId) : undefined;
   const here = { day, slot, mealId: meal?.id ?? null };
-  const suggestions = suggestAlternatives({ weekStart: week, cells: ruleCells, meals: mealMap, history, cell: here });
+  const suggestions = suggestAlternatives({ weekStart: week, cells: ruleCells, meals: mealMap, history, cell: here, count: 5 });
 
   const askReason = (id?: string) => {
     if (!id) return onClose();
     setAdjustmentId(id);
     setMode("reason");
   };
+  // Filling an empty slot is not a correction, so it needs no reason.
+  const afterFill = cell ? askReason : () => onClose();
   const pick = (m: BoardMeal) =>
-    run({ type: "set", day, slot, mealId: m.id, text: m.name }, () => setCellMeal(week, day, slot, m.id), askReason);
+    run({ type: "set", day, slot, mealId: m.id, text: m.name }, () => setCellMeal(week, day, slot, m.id), afterFill);
 
   const q = normalise(query).trim();
   const matches = q ? meals.filter((m) => normalise(m.name).includes(q)).slice(0, 8) : [];
   const exact = meals.some((m) => normalise(m.name).trim() === q);
 
   return (
-    <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/30" onClick={onClose}>
+    <div className="fixed inset-0 z-20" onClick={onClose}>
       <div
         role="dialog"
         aria-label={`${DAY_LABEL[day]} ${slot}`}
-        className="flex max-h-[85dvh] w-full max-w-3xl flex-col gap-3 overflow-y-auto rounded-t-2xl bg-background p-4 pb-8 shadow-xl"
+        className="fixed inset-y-0 left-0 flex w-[min(15rem,62vw)] flex-col gap-3 overflow-y-auto border-r bg-background p-3 pb-8 text-sm shadow-xl sm:w-80"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
@@ -437,7 +443,7 @@ function CellSheet({
                   size="sm"
                   disabled={pending}
                   onClick={() =>
-                    run({ type: "set", day, slot, mealId: `new:${query}`, text: query.trim() }, () => addNewMeal(week, day, slot, query), askReason)
+                    run({ type: "set", day, slot, mealId: `new:${query}`, text: query.trim() }, () => addNewMeal(week, day, slot, query), afterFill)
                   }
                 >
                   Add &ldquo;{query.trim()}&rdquo; as a new meal
