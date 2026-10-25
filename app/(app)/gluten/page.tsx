@@ -125,7 +125,8 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {slots
-              .filter((s) => s.as_written)
+              // Sobras (leftovers) are not a meal, so there is nothing to screen.
+              .filter((s) => s.as_written && !s.is_leftover && (s.slot === "lunch" || s.slot === "dinner"))
               .sort((a, b) => DAYS.indexOf(a.day) - DAYS.indexOf(b.day) || a.slot.localeCompare(b.slot))
               .map((s) => {
                 const v = applyConfirmation(
