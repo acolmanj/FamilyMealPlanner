@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { GlutenBadge } from "@/components/gluten-badge";
 import { useLang } from "@/components/lang";
@@ -23,8 +22,9 @@ import {
 } from "@/lib/planner/rules";
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
-import { addNewMeal, clearCell, moveCell, resolveMealImages, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
+import { addNewMeal, clearCell, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
 import type { BoardCell, BoardMeal } from "./load";
+import { useResolveImages } from "./resolve-images";
 
 type Change =
   | { type: "set"; day: Day; slot: Slot; mealId: string; text: string }
@@ -102,24 +102,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   const mealMap = useMemo(() => new Map<string, BoardMeal>(meals.map((m) => [m.id, m])), [meals]);
   const ruleCells: Cell[] = shown.map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId && mealMap.has(c.mealId) ? c.mealId : null }));
 
-  // Fetch photos for meals that have none checked yet, then redraw once they are saved.
-  const router = useRouter();
-  useEffect(() => {
-    let stop = false;
-    void (async () => {
-      let changed = false;
-      for (let round = 0; round < 8 && !stop; round++) {
-        const r = await resolveMealImages().catch(() => null);
-        if (!r?.ok) break;
-        changed ||= r.updated > 0;
-        if (!r.remaining) break;
-      }
-      if (changed && !stop) router.refresh();
-    })();
-    return () => {
-      stop = true;
-    };
-  }, [router]);
+  useResolveImages();
 
   const run: Run = (ch, action, after) => {
     setError(null);
@@ -673,10 +656,16 @@ function RecipeNote({ meal }: { meal: BoardMeal }) {
             </a>
           )
         )}
-        {image && <span className="text-[10px] text-muted-foreground">{t.board.photo(image.source === "wikimedia" ? "Wikimedia Commons" : "TheMealDB")}</span>}
+        {image && <span className="text-[10px] text-muted-foreground">{t.board.photo(photoSource(image))}</span>}
       </div>
     </div>
   );
+}
+
+function photoSource(image: NonNullable<BoardMeal["image"]>) {
+  if (image.source === "wikimedia") return "Wikimedia Commons";
+  if (image.source === "themealdb" || !image.page) return "TheMealDB";
+  return new URL(image.page).hostname.replace(/^www\./, "");
 }
 
 function MoveRow({
