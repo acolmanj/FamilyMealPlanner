@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { applyConfirmation, screenMeal } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
+import { getMessages } from "@/lib/i18n/server";
 import { resolveImage, type ImageMeal } from "@/lib/images/resolve";
 import { DAYS, SLOTS, type Day, type Slot } from "@/lib/planner/rules";
 
@@ -21,6 +22,9 @@ async function context() {
 }
 
 type Ctx = Awaited<ReturnType<typeof context>>;
+
+// Error messages in the language picked with the flags.
+const say = async () => (await getMessages()).t.actions;
 
 async function log(
   { supabase, householdId }: Ctx,
@@ -67,7 +71,7 @@ async function writeSlot(
 
 // Put a meal in a cell (fill or swap). Refused only when the meal is blocked for gluten.
 export async function setCellMeal(week: string, day: string, slot: string, mealId: string): Promise<Result> {
-  if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: "Unknown cell" };
+  if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: (await say()).unknownCell };
   const ctx = await context();
   const { data: meal } = await ctx.supabase
     .from("meals")
@@ -75,13 +79,13 @@ export async function setCellMeal(week: string, day: string, slot: string, mealI
     .eq("household_id", ctx.householdId)
     .eq("id", mealId)
     .maybeSingle();
-  if (!meal) return { ok: false, error: "Meal not found" };
+  if (!meal) return { ok: false, error: (await say()).mealNotFound };
   const verdict = applyConfirmation(
     screenMeal({ name: meal.name, variants: meal.variants_seen, ingredients: meal.ingredients_note }),
     Boolean(meal.gf_confirmed_at),
   );
   if (verdict.status === "blocked")
-    return { ok: false, error: `${meal.name} is blocked for gluten. Mark it as cooked gluten-free on the Gluten page first.` };
+    return { ok: false, error: (await say()).blocked(meal.name) };
 
   const before = await getSlot(ctx, week, day, slot);
   const slotId = await writeSlot(ctx, week, day, slot, { meal_id: meal.id, as_written: meal.name, status: "locked" });
@@ -97,11 +101,11 @@ export async function setCellMeal(week: string, day: string, slot: string, mealI
 
 // Move a cell's meal to another cell. If that cell has a meal, the two trade places.
 export async function moveCell(week: string, from: { day: string; slot: string }, to: { day: string; slot: string }): Promise<Result> {
-  if (!isWeek(week) || !isCell(from.day, from.slot) || !isCell(to.day, to.slot)) return { ok: false, error: "Unknown cell" };
+  if (!isWeek(week) || !isCell(from.day, from.slot) || !isCell(to.day, to.slot)) return { ok: false, error: (await say()).unknownCell };
   const ctx = await context();
   const a = await getSlot(ctx, week, from.day, from.slot);
   const b = await getSlot(ctx, week, to.day, to.slot);
-  if (!a?.meal_id && !a?.as_written) return { ok: false, error: "Nothing to move" };
+  if (!a?.meal_id && !a?.as_written) return { ok: false, error: (await say()).nothingToMove };
   const empty = { meal_id: null, as_written: null, is_takeaway: false, status: "proposed" };
   await writeSlot(ctx, week, to.day, to.slot, { meal_id: a.meal_id, as_written: a.as_written, is_takeaway: a.is_takeaway, status: "locked" });
   await writeSlot(
@@ -119,10 +123,10 @@ export async function moveCell(week: string, from: { day: string; slot: string }
 }
 
 export async function setLocked(week: string, day: string, slot: string, locked: boolean): Promise<Result> {
-  if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: "Unknown cell" };
+  if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: (await say()).unknownCell };
   const ctx = await context();
   const s = await getSlot(ctx, week, day, slot);
-  if (!s) return { ok: false, error: "Nothing to lock" };
+  if (!s) return { ok: false, error: (await say()).nothingToLock };
   const { error } = await ctx.supabase
     .from("plan_slots")
     .update({ status: locked ? "locked" : "proposed", changed_by_user: true })
@@ -134,7 +138,7 @@ export async function setLocked(week: string, day: string, slot: string, locked:
 }
 
 export async function clearCell(week: string, day: string, slot: string): Promise<Result> {
-  if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: "Unknown cell" };
+  if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: (await say()).unknownCell };
   const ctx = await context();
   const s = await getSlot(ctx, week, day, slot);
   if (!s) return { ok: true };
@@ -151,7 +155,7 @@ export async function clearCell(week: string, day: string, slot: string): Promis
 const REASONS = ["too much pasta", "not in the mood", "no time", "guests", "other"];
 
 export async function setReason(adjustmentId: string, reason: string): Promise<Result> {
-  if (!REASONS.includes(reason)) return { ok: false, error: "Unknown reason" };
+  if (!REASONS.includes(reason)) return { ok: false, error: (await say()).unknownReason };
   const ctx = await context();
   await ctx.supabase.from("adjustments").update({ reason_chip: reason }).eq("household_id", ctx.householdId).eq("id", adjustmentId);
   return { ok: true };
@@ -168,7 +172,7 @@ export type TagEdit = {
 // Correct a meal's facts in the library; the planner uses these over its guess.
 export async function saveMealTags(mealId: string, tags: TagEdit): Promise<Result> {
   const ctx = await context();
-  if (!["meat", "fish", "veg"].includes(tags.protein)) return { ok: false, error: "Pick meat, fish or veg" };
+  if (!["meat", "fish", "veg"].includes(tags.protein)) return { ok: false, error: (await say()).pickProtein };
   const { error } = await ctx.supabase
     .from("meals")
     .update({
@@ -189,8 +193,8 @@ export async function saveMealTags(mealId: string, tags: TagEdit): Promise<Resul
 // Add a meal the library does not have yet, then put it in the cell.
 export async function addNewMeal(week: string, day: string, slot: string, name: string): Promise<Result> {
   const clean = name.trim().replace(/\s+/g, " ");
-  if (clean.length < 2 || clean.length > 120) return { ok: false, error: "Type the meal's name" };
-  if (/\b(sobras?|leftovers?)\b/i.test(clean)) return { ok: false, error: "Sobras are leftovers, not a meal" };
+  if (clean.length < 2 || clean.length > 120) return { ok: false, error: (await say()).typeName };
+  if (/\b(sobras?|leftovers?)\b/i.test(clean)) return { ok: false, error: (await say()).sobras };
   const ctx = await context();
   const { data: existing } = await ctx.supabase
     .from("meals")

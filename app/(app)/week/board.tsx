@@ -3,14 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { GlutenBadge } from "@/components/gluten-badge";
+import { useLang } from "@/components/lang";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { STATUS_LABEL, normalise } from "@/lib/gluten/gate";
+import { normalise } from "@/lib/gluten/gate";
+import type { Messages } from "@/lib/i18n/messages";
 import {
   DAYS,
-  DAY_LABEL,
   SLOTS,
-  SLOT_LABEL,
   addDays,
   cellKey,
   suggestAlternatives,
@@ -46,7 +46,6 @@ const PROTEIN_STYLE: Record<Protein, string> = {
   fish: "border-l-[#1d5fb4] bg-[#e3eefb]",
   veg: "border-l-[#2e7d32] bg-[#e6f2e0]",
 };
-const PROTEIN_LABEL: Record<Protein, string> = { meat: "Meat", fish: "Fish", veg: "Vegetarian" };
 const PROTEIN_DOT: Record<Protein, string> = { meat: "bg-[#8b1a1a]", fish: "bg-[#1d5fb4]", veg: "bg-[#2e7d32]" };
 
 function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
@@ -71,11 +70,29 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
   }
 }
 
-function tagLine(t: Tags) {
-  return [t.isPulse ? "pulses" : null, t.isPasta ? "pasta" : t.starch, t.isProcessed ? "processed" : null].filter(Boolean).join(" · ");
+function tagLine(m: Messages, t: Tags) {
+  return [t.isPulse ? m.board.pulses : null, t.isPasta ? m.starch.pasta : t.starch && m.starch[t.starch], t.isProcessed ? m.board.processed : null]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+// A small photo, about a fifth of the tile. Hosted by TheMealDB or Wikimedia Commons.
+function Thumb({ meal }: { meal?: Pick<BoardMeal, "image"> }) {
+  if (!meal?.image) return null;
+  return (
+    <img
+      src={meal.image.url}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      draggable={false}
+      className="pointer-events-none aspect-square w-1/5 shrink-0 rounded object-cover"
+    />
+  );
 }
 
 export function WeekBoard({ week, cells, meals, history }: { week: string; cells: BoardCell[]; meals: BoardMeal[]; history: Use[] }) {
+  const { lang, t } = useLang();
   const [shown, change] = useOptimistic(cells, applyChange);
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState<Target | null>(null);
@@ -109,7 +126,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
     startTransition(async () => {
       change(ch);
       const r = await action();
-      if (!r.ok) setError(r.error ?? "That did not save");
+      if (!r.ok) setError(r.error ?? t.board.didNotSave);
       else after?.(r.adjustmentId);
     });
   };
@@ -214,7 +231,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
     };
 
   const openCell = open ? (shown.find((c) => c.day === open.day && c.slot === open.slot) ?? null) : null;
-  const weekSuggestions = suggestForWeek({ weekStart: week, cells: ruleCells, meals: mealMap, history, count: 10 });
+  const weekSuggestions = suggestForWeek({ weekStart: week, cells: ruleCells, meals: mealMap, history, count: 10, lang });
 
   return (
     <div className="flex items-start gap-2">
@@ -226,7 +243,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
           drag?.over === "remove" && "bg-destructive/10",
         )}
       >
-        {drag?.data.kind === "cell" && <p className="rounded bg-destructive/10 p-2 text-center font-medium text-destructive">Drop here to remove</p>}
+        {drag?.data.kind === "cell" && <p className="rounded bg-destructive/10 p-2 text-center font-medium text-destructive">{t.board.dropToRemove}</p>}
         {error && <p className="rounded-md bg-destructive/10 p-2 text-destructive">{error}</p>}
         {open ? (
           <CellPanel
@@ -260,7 +277,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
           <span />
           {SLOTS.map((s) => (
             <span key={s} className="px-1 font-semibold text-muted-foreground uppercase">
-              {SLOT_LABEL[s]}
+              {t.slots[s]}
             </span>
           ))}
           {DAYS.map((day, i) => (
@@ -287,7 +304,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
           {(["meat", "fish", "veg"] as Protein[]).map((p) => (
             <span key={p} className="flex items-center gap-1">
               <span className={cn("inline-block size-2.5 rounded-sm", PROTEIN_DOT[p])} />
-              {PROTEIN_LABEL[p]}
+              {t.protein[p]}
             </span>
           ))}
         </p>
@@ -324,17 +341,18 @@ function DayRow({
   dragProps: (d: DragData) => object;
   onTap: (slot: Slot) => void;
 }) {
+  const { t } = useLang();
   return (
     <>
       <span className="flex flex-col justify-center leading-tight">
-        <span className="font-semibold">{DAY_LABEL[day]}</span>
+        <span className="font-semibold">{t.days[day]}</span>
         <span className="text-muted-foreground">{Number(date.slice(8))}</span>
       </span>
       {SLOTS.map((slot) => {
         const key = cellKey({ day, slot });
         const c = cells.find((x) => x.day === day && x.slot === slot);
         const m = c?.mealId ? meals.get(c.mealId) : undefined;
-        const label = c?.text ?? m?.name ?? "";
+        const label = m?.name ?? c?.text ?? "";
         return (
           <button
             key={slot}
@@ -350,30 +368,20 @@ function DayRow({
               open?.day === day && open.slot === slot && "ring-2 ring-primary",
               over === key && "ring-2 ring-accent",
             )}
-            aria-label={`${DAY_LABEL[day]} ${slot}: ${label || "empty"}`}
+            aria-label={`${t.days[day]} ${t.slots[slot]}: ${label || t.board.emptyLabel}`}
           >
             {c ? (
               <>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
-                  <span className="line-clamp-3 font-medium break-words">{label}</span>
+                  <span className="line-clamp-3 font-medium break-words hyphens-auto">{label}</span>
                   <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
-                    {c.locked && <span title="Locked">🔒</span>}
-                    {m && <span>{tagLine(m.tags)}</span>}
-                    {m?.gluten === "blocked" && <span className="font-semibold text-destructive">Blocked</span>}
-                    {!m && <span>{c.leftover ? "leftovers" : "not in library"}</span>}
+                    {c.locked && <span title={t.board.locked}>🔒</span>}
+                    {m && <span>{tagLine(t, m.tags)}</span>}
+                    {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
+                    {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
                   </span>
                 </span>
-                {m?.image && (
-                  // A small thumbnail, about a fifth of the tile. Hosted by TheMealDB or Wikimedia Commons.
-                  <img
-                    src={m.image.url}
-                    alt=""
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    draggable={false}
-                    className="pointer-events-none aspect-square w-1/5 shrink-0 rounded object-cover"
-                  />
-                )}
+                <Thumb meal={m} />
               </>
             ) : (
               <span className="m-auto text-base">+</span>
@@ -385,22 +393,27 @@ function DayRow({
   );
 }
 
+// Suggestions come back from the rules as PlanMeal, but they are the board's meals, photo included.
 function MealTile({ meal, why, picked, onClick, extra }: { meal: PlanMeal; why?: string; picked?: boolean; onClick: () => void; extra?: object }) {
+  const { t } = useLang();
   return (
     <button
       onClick={onClick}
       {...extra}
       className={cn(
-        "flex touch-manipulation flex-col items-start gap-0.5 rounded-md border border-l-4 p-1.5 text-left select-none [-webkit-touch-callout:none]",
+        "flex touch-manipulation items-start gap-1 rounded-md border border-l-4 p-1.5 text-left select-none [-webkit-touch-callout:none]",
         PROTEIN_STYLE[meal.tags.protein],
         meal.gluten === "blocked" && "opacity-60",
         picked && "ring-2 ring-primary",
       )}
     >
-      <span className="font-medium break-words">{meal.name}</span>
-      <span className="text-[10px] text-muted-foreground">
-        {[tagLine(meal.tags), why, meal.gluten === "blocked" ? "blocked for gluten" : null].filter(Boolean).join(" · ")}
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="font-medium break-words hyphens-auto">{meal.name}</span>
+        <span className="text-[10px] text-muted-foreground">
+          {[tagLine(t, meal.tags), why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}
+        </span>
       </span>
+      <Thumb meal={meal as BoardMeal} />
     </button>
   );
 }
@@ -420,6 +433,7 @@ function WeekSuggestions({
   onPick: (id: string) => void;
   dragProps: (d: DragData) => object;
 }) {
+  const { t } = useLang();
   const [query, setQuery] = useState("");
   const q = normalise(query).trim();
   const inWeek = new Set(cells.map((c) => c.mealId));
@@ -427,15 +441,15 @@ function WeekSuggestions({
     ? meals
         .filter((m) => normalise(m.name).includes(q) && m.gluten !== "blocked")
         .slice(0, 10)
-        .map((m) => ({ meal: m as PlanMeal, why: inWeek.has(m.id) ? "already this week" : "" }))
+        .map((m) => ({ meal: m as PlanMeal, why: inWeek.has(m.id) ? t.board.alreadyThisWeek : "" }))
     : suggestions;
   return (
     <>
-      <h2 className="text-sm font-semibold">Suggested meals</h2>
+      <h2 className="text-sm font-semibold">{t.board.suggested}</h2>
       <p className="text-muted-foreground">
-        {picked ? "Now tap a slot to place it." : "Drag a meal onto a slot (on a phone, hold it first), or tap a meal and then a slot."}
+        {picked ? t.board.tapSlotNow : t.board.dragHelp}
       </p>
-      <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search all meals" aria-label="Search meals" className="h-9 text-sm" />
+      <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.board.search} aria-label={t.board.search} className="h-9 text-sm" />
       {list.map(({ meal, why }) => (
         <MealTile
           key={meal.id}
@@ -446,7 +460,7 @@ function WeekSuggestions({
           extra={dragProps({ kind: "meal", mealId: meal.id, label: meal.name })}
         />
       ))}
-      {q && list.length === 0 && <p className="text-muted-foreground">No meal matches. Tap a slot to add a new one there.</p>}
+      {q && list.length === 0 && <p className="text-muted-foreground">{t.board.noMatch}</p>}
     </>
   );
 }
@@ -477,12 +491,13 @@ function CellPanel({
   onClose: () => void;
 }) {
   const { day, slot } = target;
+  const { lang, t } = useLang();
   const [mode, setMode] = useState<"main" | "move" | "tags" | "reason">("main");
   const [adjustmentId, setAdjustmentId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const meal = cell?.mealId ? mealMap.get(cell.mealId) : undefined;
   const here = { day, slot, mealId: meal?.id ?? null };
-  const suggestions = suggestAlternatives({ weekStart: week, cells: ruleCells, meals: mealMap, history, cell: here, count: 5 });
+  const suggestions = suggestAlternatives({ weekStart: week, cells: ruleCells, meals: mealMap, history, cell: here, count: 5, lang });
 
   const askReason = (id?: string) => {
     if (!id) return onClose();
@@ -498,16 +513,15 @@ function CellPanel({
   const exact = meals.some((m) => normalise(m.name).trim() === q);
 
   return (
-    <div role="dialog" aria-label={`${DAY_LABEL[day]} ${slot}`} className="flex flex-col gap-2">
+    <div role="dialog" aria-label={`${t.days[day]} ${t.slots[slot]}`} className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-1">
         <div>
           <p className="font-semibold text-muted-foreground uppercase">
-            {DAY_LABEL[day]} {SLOT_LABEL[slot]}
+            {t.days[day]} {t.slots[slot]}
           </p>
-          <p className="text-sm font-semibold">{cell ? (cell.text ?? meal?.name) : "Empty"}</p>
-          {meal && cell?.text && cell.text !== meal.name && <p className="text-muted-foreground">Library: {meal.name}</p>}
+          <p className="text-sm font-semibold">{cell ? (meal?.name ?? cell.text) : t.board.empty}</p>
         </div>
-        <button onClick={onClose} className="rounded-full px-1.5 text-lg leading-none text-muted-foreground" aria-label="Close">
+        <button onClick={onClose} className="rounded-full px-1.5 text-lg leading-none text-muted-foreground" aria-label={t.board.close}>
           ×
         </button>
       </div>
@@ -516,8 +530,8 @@ function CellPanel({
         <div className="flex flex-wrap items-center gap-1">
           <GlutenBadge status={meal.gluten} />
           <span className="text-muted-foreground">
-            {PROTEIN_LABEL[meal.tags.protein]}
-            {tagLine(meal.tags) ? ` · ${tagLine(meal.tags)}` : ""}
+            {t.protein[meal.tags.protein]}
+            {tagLine(t, meal.tags) ? ` · ${tagLine(t, meal.tags)}` : ""}
           </span>
         </div>
       )}
@@ -526,7 +540,7 @@ function CellPanel({
 
       {mode === "reason" && (
         <div className="flex flex-col gap-1.5">
-          <p className="font-medium">Saved. Why the change? (optional)</p>
+          <p className="font-medium">{t.board.whyChange}</p>
           {REASONS.map((r) => (
             <button
               key={r}
@@ -536,23 +550,23 @@ function CellPanel({
                 onClose();
               }}
             >
-              {r}
+              {t.board.reasons[r] ?? r}
             </button>
           ))}
           <Button variant="ghost" size="sm" onClick={onClose} className="self-start">
-            Skip
+            {t.board.skip}
           </Button>
         </div>
       )}
 
       {mode === "main" && (
         <>
-          <h2 className="text-sm font-semibold">{cell ? "Swap for" : "Suggested"}</h2>
-          {suggestions.length === 0 && <p className="text-muted-foreground">No meal fits every rule here. Search below.</p>}
+          <h2 className="text-sm font-semibold">{cell ? t.board.swapFor : t.board.suggestedHere}</h2>
+          {suggestions.length === 0 && <p className="text-muted-foreground">{t.board.noFit}</p>}
           {suggestions.map(({ meal: m, why }) => (
             <MealTile key={m.id} meal={m} why={why} onClick={() => !pending && pick(m)} />
           ))}
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search all meals" aria-label="Search meals" className="h-9 text-sm" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.board.search} aria-label={t.board.search} className="h-9 text-sm" />
           {matches.map((m) => (
             <MealTile key={m.id} meal={m} onClick={() => !pending && m.gluten !== "blocked" && pick(m)} />
           ))}
@@ -564,13 +578,13 @@ function CellPanel({
               className="h-auto py-1.5 whitespace-normal"
               onClick={() => run({ type: "set", day, slot, mealId: `new:${query}`, text: query.trim() }, () => addNewMeal(week, day, slot, query), afterFill)}
             >
-              Add &ldquo;{query.trim()}&rdquo; as a new meal
+              {t.board.addNew(query.trim())}
             </Button>
           )}
           {cell && (
             <div className="flex flex-wrap gap-1.5">
               <Button variant="outline" size="sm" onClick={() => setMode("move")}>
-                Move
+                {t.board.move}
               </Button>
               <Button
                 variant="outline"
@@ -578,14 +592,14 @@ function CellPanel({
                 disabled={pending}
                 onClick={() => run({ type: "lock", day, slot, locked: !cell.locked }, () => setLocked(week, day, slot, !cell.locked))}
               >
-                {cell.locked ? "Unlock" : "Lock"}
+                {cell.locked ? t.board.unlock : t.board.lock}
               </Button>
               <Button variant="outline" size="sm" disabled={pending} onClick={() => run({ type: "clear", day, slot }, () => clearCell(week, day, slot), askReason)}>
-                Remove
+                {t.board.remove}
               </Button>
               {meal && (
                 <Button variant="ghost" size="sm" onClick={() => setMode("tags")}>
-                  Fix meal facts
+                  {t.board.fixFacts}
                 </Button>
               )}
             </div>
@@ -595,14 +609,14 @@ function CellPanel({
 
       {mode === "move" && cell && (
         <div className="flex flex-col gap-1.5">
-          <p className="font-medium">Move to which slot? A filled slot trades places. You can also drag it.</p>
+          <p className="font-medium">{t.board.moveWhere}</p>
           <div className="grid grid-cols-[1.75rem_repeat(2,minmax(0,1fr))] gap-1">
             {DAYS.map((d) => (
-              <MoveRow key={d} day={d} cells={cells} current={target} onPick={(to) => run({ type: "move", from: target, to }, () => moveCell(week, target, to), askReason)} />
+              <MoveRow key={d} day={d} cells={cells} meals={mealMap} current={target} onPick={(to) => run({ type: "move", from: target, to }, () => moveCell(week, target, to), askReason)} />
             ))}
           </div>
           <Button variant="ghost" size="sm" onClick={() => setMode("main")} className="self-start">
-            Back
+            {t.board.back}
           </Button>
         </div>
       )}
@@ -611,7 +625,7 @@ function CellPanel({
         <TagForm
           meal={meal}
           pending={pending}
-          onSave={(t) => run({ type: "lock", day, slot, locked: cell?.locked ?? false }, () => saveMealTags(meal.id, t), () => setMode("main"))}
+          onSave={(edit) => run({ type: "lock", day, slot, locked: cell?.locked ?? false }, () => saveMealTags(meal.id, edit), () => setMode("main"))}
           onBack={() => setMode("main")}
         />
       )}
@@ -622,6 +636,7 @@ function CellPanel({
 // The recipe idea and photo credit. A recipe is written for ordinary flour and sauces,
 // so it lists what the gluten gate finds and the swap to buy; the meal's own status above still rules.
 function RecipeNote({ meal }: { meal: BoardMeal }) {
+  const { t } = useLang();
   const { recipe, image } = meal;
   if (!recipe && !image) return null;
   return (
@@ -633,11 +648,11 @@ function RecipeNote({ meal }: { meal: BoardMeal }) {
         {recipe ? (
           <>
             <a href={recipe.url} target="_blank" rel="noreferrer" className="font-medium underline">
-              Recipe idea: {recipe.name}
+              {t.board.recipeIdea(recipe.name)}
             </a>
             {recipe.gluten.length > 0 ? (
               <>
-                <p className="text-muted-foreground">As written it has gluten. Cook it gluten-free:</p>
+                <p className="text-muted-foreground">{t.board.recipeHasGluten}</p>
                 <ul className="list-disc pl-4 text-muted-foreground">
                   {recipe.gluten.map((g) => (
                     <li key={g.term}>
@@ -648,26 +663,39 @@ function RecipeNote({ meal }: { meal: BoardMeal }) {
                 </ul>
               </>
             ) : (
-              <p className="text-muted-foreground">No gluten spotted in its ingredients. Still check the labels.</p>
+              <p className="text-muted-foreground">{t.board.recipeNoGluten}</p>
             )}
           </>
         ) : (
           image?.page && (
             <a href={image.page} target="_blank" rel="noreferrer" className="text-muted-foreground underline">
-              About this dish
+              {t.board.aboutDish}
             </a>
           )
         )}
-        {image && <span className="text-[10px] text-muted-foreground">Photo: {image.source === "wikimedia" ? "Wikimedia Commons" : "TheMealDB"}</span>}
+        {image && <span className="text-[10px] text-muted-foreground">{t.board.photo(image.source === "wikimedia" ? "Wikimedia Commons" : "TheMealDB")}</span>}
       </div>
     </div>
   );
 }
 
-function MoveRow({ day, cells, current, onPick }: { day: Day; cells: BoardCell[]; current: Target; onPick: (to: Target) => void }) {
+function MoveRow({
+  day,
+  cells,
+  meals,
+  current,
+  onPick,
+}: {
+  day: Day;
+  cells: BoardCell[];
+  meals: Map<string, BoardMeal>;
+  current: Target;
+  onPick: (to: Target) => void;
+}) {
+  const { t } = useLang();
   return (
     <>
-      <span className="self-center font-semibold">{DAY_LABEL[day]}</span>
+      <span className="self-center font-semibold">{t.days[day]}</span>
       {SLOTS.map((slot) => {
         const c = cells.find((x) => x.day === day && x.slot === slot);
         const isHere = day === current.day && slot === current.slot;
@@ -678,7 +706,7 @@ function MoveRow({ day, cells, current, onPick }: { day: Day; cells: BoardCell[]
             onClick={() => onPick({ day, slot })}
             className={cn("min-h-8 truncate rounded border bg-background px-1 text-left", isHere && "border-primary bg-primary/10", !c && "border-dashed")}
           >
-            {isHere ? "here" : (c?.text ?? "")}
+            {isHere ? t.board.here : ((c?.mealId && meals.get(c.mealId)?.name) || c?.text || "")}
           </button>
         );
       })}
@@ -686,8 +714,9 @@ function MoveRow({ day, cells, current, onPick }: { day: Day; cells: BoardCell[]
   );
 }
 
-function TagForm({ meal, pending, onSave, onBack }: { meal: PlanMeal; pending: boolean; onSave: (t: TagEdit) => void; onBack: () => void }) {
-  const [t, setT] = useState<TagEdit>({
+function TagForm({ meal, pending, onSave, onBack }: { meal: PlanMeal; pending: boolean; onSave: (edit: TagEdit) => void; onBack: () => void }) {
+  const { t } = useLang();
+  const [f, setF] = useState<TagEdit>({
     protein: meal.tags.protein,
     starch: meal.tags.starch ?? "none",
     is_pasta: meal.tags.isPasta,
@@ -699,8 +728,8 @@ function TagForm({ meal, pending, onSave, onBack }: { meal: PlanMeal; pending: b
       {options.map((o) => (
         <button
           key={String(o)}
-          onClick={() => setT({ ...t, [key]: o })}
-          className={cn("rounded-full border px-2 py-1", t[key] === o ? "border-primary bg-primary text-primary-foreground" : "bg-background")}
+          onClick={() => setF({ ...f, [key]: o })}
+          className={cn("rounded-full border px-2 py-1", f[key] === o ? "border-primary bg-primary text-primary-foreground" : "bg-background")}
         >
           {label(o)}
         </button>
@@ -711,31 +740,32 @@ function TagForm({ meal, pending, onSave, onBack }: { meal: PlanMeal; pending: b
   return (
     <div className="flex flex-col gap-2">
       <p className="text-muted-foreground">
-        These facts apply to {meal.name} everywhere.{guessed ? " Some were guessed from the name." : ""}
+        {t.board.factsApply(meal.name)}
+        {guessed ? t.board.someGuessed : ""}
       </p>
-      <span className="font-medium">Main protein</span>
-      {seg("protein", ["meat", "fish", "veg"], (o) => (o === "veg" ? "vegetarian" : o))}
-      <span className="font-medium">Main starch</span>
-      {seg("starch", STARCHES, (o) => o)}
-      <span className="font-medium">Effort</span>
-      {seg("effort", ["quick", "normal", "long", ""], (o) => (o ? o : "not sure"))}
+      <span className="font-medium">{t.board.mainProtein}</span>
+      {seg("protein", ["meat", "fish", "veg"], (o) => t.protein[o].toLowerCase())}
+      <span className="font-medium">{t.board.mainStarch}</span>
+      {seg("starch", STARCHES, (o) => t.starch[o as keyof Messages["starch"]] ?? o)}
+      <span className="font-medium">{t.board.effortLabel}</span>
+      {seg("effort", ["quick", "normal", "long", ""], (o) => (o ? t.effort[o] : t.effort.unsure))}
       <label className="flex items-center gap-2">
-        <input type="checkbox" checked={t.is_pasta} onChange={(e) => setT({ ...t, is_pasta: e.target.checked })} className="size-4" />
-        Pasta meal
+        <input type="checkbox" checked={f.is_pasta} onChange={(e) => setF({ ...f, is_pasta: e.target.checked })} className="size-4" />
+        {t.board.pastaMeal}
       </label>
       <label className="flex items-center gap-2">
-        <input type="checkbox" checked={t.is_processed} onChange={(e) => setT({ ...t, is_processed: e.target.checked })} className="size-4" />
-        Processed or ready-made
+        <input type="checkbox" checked={f.is_processed} onChange={(e) => setF({ ...f, is_processed: e.target.checked })} className="size-4" />
+        {t.board.processedMeal}
       </label>
       <div className="flex gap-1.5">
-        <Button size="sm" disabled={pending} onClick={() => onSave(t)}>
-          Save
+        <Button size="sm" disabled={pending} onClick={() => onSave(f)}>
+          {t.board.save}
         </Button>
         <Button variant="ghost" size="sm" onClick={onBack}>
-          Back
+          {t.board.back}
         </Button>
       </div>
-      <p className="text-muted-foreground">Gluten: {STATUS_LABEL[meal.gluten]}. Change that on the Gluten page.</p>
+      <p className="text-muted-foreground">{t.board.glutenHere(t.status[meal.gluten])}</p>
     </div>
   );
 }

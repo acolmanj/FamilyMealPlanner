@@ -1,4 +1,5 @@
 import type { Status } from "../gluten/gate";
+import { messages, type Lang, type Messages } from "../i18n/messages";
 import type { Tags } from "./tags";
 
 // The week rules from the build brief, as plain functions of the grid.
@@ -54,10 +55,12 @@ export type WeekInput = {
   cells: Cell[];
   meals: Map<string, PlanMeal>;
   history: Use[];
+  // Language for warning and suggestion text; English by default.
+  lang?: Lang;
 };
 
 export const cellKey = (c: { day: string; slot: string }) => `${c.day}-${c.slot}`;
-const cellName = (c: Cell) => `${DAY_LABEL[c.day]} ${c.slot}`;
+const cellName = (m: Messages, c: Cell) => `${m.days[c.day]} ${m.slots[c.slot].toLowerCase()}`;
 
 export function addDays(iso: string, n: number) {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -82,11 +85,10 @@ export function isNewMeal(history: Use[], mealId: string, weekStart: string) {
   return !history.some((u) => u.mealId === mealId && u.date < weekStart);
 }
 
-function plural(n: number, word: string) {
-  return `${n} ${word}${n === 1 ? "" : "s"}`;
-}
-
-export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { counts: Counts; warnings: Warning[] } {
+export function checkWeek({ weekStart, cells, meals, history, lang = "en" }: WeekInput): { counts: Counts; warnings: Warning[] } {
+  const msg = messages(lang);
+  const t = msg.rules;
+  const name = (c: Cell) => cellName(msg, c);
   const filled = cells.filter((c) => c.mealId && meals.has(c.mealId));
   const main = filled;
   const mealOf = (c: Cell) => meals.get(c.mealId!)!;
@@ -110,30 +112,30 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
   // Gluten: the only rule that blocks.
   for (const c of filled) {
     const g = mealOf(c).gluten;
-    if (g === "blocked") warnings.push({ level: "block", rule: "gluten", text: `${cellName(c)}: blocked for gluten`, cells: [cellKey(c)] });
+    if (g === "blocked") warnings.push({ level: "block", rule: "gluten", text: t.blockedCell(name(c)), cells: [cellKey(c)] });
   }
 
   // Traditions.
   const sunLunch = filled.find((c) => c.day === "sun" && c.slot === "lunch");
   if (sunLunch && !mealOf(sunLunch).tags.isRoast)
-    warnings.push({ level: "hard", rule: "tradition", text: "Sunday lunch is the roast", cells: [cellKey(sunLunch)] });
+    warnings.push({ level: "hard", rule: "tradition", text: t.sundayRoast, cells: [cellKey(sunLunch)] });
   const satDinner = filled.find((c) => c.day === "sat" && c.slot === "dinner");
   if (satDinner && !mealOf(satDinner).tags.isPizza)
-    warnings.push({ level: "hard", rule: "tradition", text: "Saturday dinner is pizza (GF base)", cells: [cellKey(satDinner)] });
+    warnings.push({ level: "hard", rule: "tradition", text: t.saturdayPizza, cells: [cellKey(satDinner)] });
 
   // Fish, once the week is complete (before that the count says how many so far).
-  if (weekComplete && counts.fish === 0) warnings.push({ level: "hard", rule: "fish", text: "No fish meal this week", cells: [] });
+  if (weekComplete && counts.fish === 0) warnings.push({ level: "hard", rule: "fish", text: t.noFish, cells: [] });
 
   // Pulses (lentils, beans, chickpeas) are a regular part of the week.
   if (weekComplete && counts.pulses < LIMITS.pulsesMin)
-    warnings.push({ level: "hard", rule: "pulses", text: `Pulses ${counts.pulses}, target at least ${LIMITS.pulsesMin}`, cells: [] });
+    warnings.push({ level: "hard", rule: "pulses", text: t.pulses(counts.pulses, LIMITS.pulsesMin), cells: [] });
 
   // Once a week.
   const byMeal = new Map<string, Cell[]>();
   for (const c of filled) byMeal.set(c.mealId!, [...(byMeal.get(c.mealId!) ?? []), c]);
   for (const [id, cs] of byMeal)
     if (cs.length > 1)
-      warnings.push({ level: "hard", rule: "repeat", text: `${meals.get(id)!.name} is in the week ${cs.length} times`, cells: cs.map(cellKey) });
+      warnings.push({ level: "hard", rule: "repeat", text: t.repeat(meals.get(id)!.name, cs.length), cells: cs.map(cellKey) });
 
   // Daily mix: one meat (or fish) meal and one vegetarian meal each day.
   for (const day of DAYS) {
@@ -141,9 +143,9 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
     if (dayCells.length < 2) continue;
     const proteins = dayCells.map((c) => mealOf(c).tags.protein);
     if (!proteins.includes("veg"))
-      warnings.push({ level: "hard", rule: "daily-mix", text: `${DAY_LABEL[day]}: no vegetarian meal`, cells: dayCells.map(cellKey) });
+      warnings.push({ level: "hard", rule: "daily-mix", text: t.noVeg(msg.days[day]), cells: dayCells.map(cellKey) });
     else if (proteins.every((p) => p === "veg"))
-      warnings.push({ level: "hard", rule: "daily-mix", text: `${DAY_LABEL[day]}: no meat or fish meal`, cells: dayCells.map(cellKey) });
+      warnings.push({ level: "hard", rule: "daily-mix", text: t.noMeat(msg.days[day]), cells: dayCells.map(cellKey) });
   }
 
   // Pasta and processed.
@@ -151,28 +153,28 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
     warnings.push({
       level: "hard",
       rule: "pasta",
-      text: `Pasta ${counts.pasta}, target ${LIMITS.pasta} or fewer`,
+      text: t.pasta(counts.pasta, LIMITS.pasta),
       cells: filled.filter((c) => mealOf(c).tags.isPasta).map(cellKey),
     });
   if (counts.processed > LIMITS.processed)
     warnings.push({
       level: "hard",
       rule: "processed",
-      text: `Processed ${counts.processed}, target ${LIMITS.processed} or fewer`,
+      text: t.processed(counts.processed, LIMITS.processed),
       cells: filled.filter((c) => mealOf(c).tags.isProcessed).map(cellKey),
     });
 
   // Effort: weeknight dinners are Quick.
   for (const c of main)
     if (c.slot === "dinner" && DAYS.indexOf(c.day) < 5 && mealOf(c).tags.effort === "long")
-      warnings.push({ level: "hard", rule: "effort", text: `${cellName(c)}: long cook on a weeknight`, cells: [cellKey(c)] });
+      warnings.push({ level: "hard", rule: "effort", text: t.longCook(name(c)), cells: [cellKey(c)] });
 
   // Old and new: about 1 new meal a week.
   if (counts.newMeals > LIMITS.newMeals)
     warnings.push({
       level: "hard",
       rule: "new",
-      text: `${plural(counts.newMeals, "new meal")}, target about ${LIMITS.newMeals}`,
+      text: t.newMeals(counts.newMeals, LIMITS.newMeals),
       cells: filled.filter((c) => newIds.includes(c.mealId!)).map(cellKey),
     });
 
@@ -185,7 +187,7 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
     const gap = daysBetween(last, date);
     const limit = m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays;
     if (gap < limit)
-      warnings.push({ level: "hard", rule: "recency", text: `${cellName(c)}: had it ${plural(gap, "day")} ago`, cells: [cellKey(c)] });
+      warnings.push({ level: "hard", rule: "recency", text: t.recency(name(c), gap), cells: [cellKey(c)] });
   }
 
   // Starch spacing (soft): not the same starch twice in any 3-day window.
@@ -200,7 +202,7 @@ export function checkWeek({ weekStart, cells, meals, history }: WeekInput): { co
         warnings.push({
           level: "soft",
           rule: "starch",
-          text: `${x.starch} twice within 3 days (${cellName(x.c)}, ${cellName(y.c)})`,
+          text: t.starch(msg.starch[x.starch!], name(x.c), name(y.c)),
           cells: [cellKey(x.c), cellKey(y.c)],
         });
     }
@@ -213,7 +215,9 @@ export type Suggestion = { meal: PlanMeal; why: string };
 // Meals that fit this cell, ordered by plain facts: the day's tradition, the protein the
 // cell or day needs, pulses or fish the week is missing, pinned, then longest since last planned.
 export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: number }): Suggestion[] {
-  const { weekStart, cells, meals, history, cell, count = 3 } = input;
+  const { weekStart, cells, meals, history, cell, count = 3, lang = "en" } = input;
+  const msg = messages(lang);
+  const t = msg.rules;
   const inWeek = new Set(cells.filter((c) => c.mealId && cellKey(c) !== cellKey(cell)).map((c) => c.mealId));
   const current = cell.mealId ? meals.get(cell.mealId) : undefined;
   const date = cellDate(weekStart, cell.day);
@@ -256,24 +260,27 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
 
   return pool.slice(0, count).map(({ m, gap }) => {
     const bits: string[] = [];
-    if (m.pinned) bits.push("pinned");
-    bits.push(gap === null ? "new to the plan" : `last planned ${weeksAgo(gap)}`);
-    if (needPulse && m.tags.isPulse) bits.push("pulses for the week");
-    else if (needFish && m.tags.protein === "fish") bits.push("fish for the week");
-    if (wantProtein && wantProtein.includes(m.tags.protein) && !current) bits.push(m.tags.protein === "veg" ? "vegetarian for the day's mix" : `${m.tags.protein} for the day's mix`);
+    if (m.pinned) bits.push(t.pinned);
+    bits.push(gap === null ? t.newToPlan : t.lastPlanned(weeksAgo(msg, gap)));
+    if (needPulse && m.tags.isPulse) bits.push(t.pulsesWhy);
+    else if (needFish && m.tags.protein === "fish") bits.push(t.fishWhy);
+    if (wantProtein && wantProtein.includes(m.tags.protein) && !current)
+      bits.push(m.tags.protein === "veg" ? t.vegForMix : t.proteinForMix(msg.protein[m.tags.protein].toLowerCase()));
     return { meal: m, why: bits.join(", ") };
   });
 }
 
-function weeksAgo(days: number) {
+function weeksAgo(msg: Messages, days: number) {
   const w = Math.floor(days / 7);
-  return w < 1 ? `${plural(days, "day")} ago` : `${plural(w, "week")} ago`;
+  return w < 1 ? msg.rules.daysAgo(days) : msg.rules.weeksAgo(w);
 }
 
 // A spread of meals for the week's sidebar: what the week is missing first (pulses, fish),
 // then meat, vegetarian and fish in turn, each ordered pinned first and longest since last planned.
 export function suggestForWeek(input: WeekInput & { count?: number }): Suggestion[] {
-  const { weekStart, cells, meals, history, count = 10 } = input;
+  const { weekStart, cells, meals, history, count = 10, lang = "en" } = input;
+  const msg = messages(lang);
+  const t = msg.rules;
   const inWeek = new Set(cells.map((c) => c.mealId).filter(Boolean));
   const planned = [...inWeek].map((id) => meals.get(id!)).filter(Boolean) as PlanMeal[];
   const needPulse = planned.filter((m) => m.tags.isPulse).length < LIMITS.pulsesMin;
@@ -305,10 +312,10 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
     for (const k of kinds) {
       const next = queues.get(k)!.shift();
       if (!next || picked.length >= count) continue;
-      const bits = [next.gap === null ? "new to the plan" : `last planned ${weeksAgo(next.gap)}`];
-      if (needPulse && k === "pulse") bits.push("pulses for the week");
-      if (needFish && k === "fish") bits.push("fish for the week");
-      if (next.m.pinned) bits.unshift("pinned");
+      const bits = [next.gap === null ? t.newToPlan : t.lastPlanned(weeksAgo(msg, next.gap))];
+      if (needPulse && k === "pulse") bits.push(t.pulsesWhy);
+      if (needFish && k === "fish") bits.push(t.fishWhy);
+      if (next.m.pinned) bits.unshift(t.pinned);
       picked.push({ meal: next.m, why: bits.join(", ") });
     }
   return picked;

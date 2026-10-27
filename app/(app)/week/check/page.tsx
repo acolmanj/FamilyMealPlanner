@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getMessages } from "@/lib/i18n/server";
 import { LIMITS, checkWeek, type Warning } from "@/lib/planner/rules";
 import { cn } from "@/lib/utils";
 import { formatDay, loadWeek, weekFromParam } from "../load";
@@ -8,36 +9,37 @@ import { formatDay, loadWeek, weekFromParam } from "../load";
 export default async function WeekCheckPage({ searchParams }: { searchParams: Promise<{ w?: string }> }) {
   const { w } = await searchParams;
   const week = weekFromParam(w);
-  const data = await loadWeek(week);
+  const { lang, t } = await getMessages();
+  const data = await loadWeek(week, lang);
   if (!data) return null;
-  if ("error" in data) return <p className="text-destructive">Could not load the week: {data.error}</p>;
+  if ("error" in data) return <p className="text-destructive">{t.week.couldNotLoad(data.error ?? "")}</p>;
 
   const meals = new Map(data.meals.map((m) => [m.id, m]));
   const cells = data.cells.map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId && meals.has(c.mealId) ? c.mealId : null }));
-  const { counts, warnings } = checkWeek({ weekStart: week, cells, meals, history: data.history });
+  const { counts, warnings } = checkWeek({ weekStart: week, cells, meals, history: data.history, lang });
 
   const items: [string, string, boolean][] = [
-    ["Filled", `${counts.filled} of ${counts.toFill}`, false],
-    ["Fish", `${counts.fish}`, counts.filled === counts.toFill && counts.fish === 0],
-    ["Pulses", `${counts.pulses} of ${LIMITS.pulsesMin}+`, counts.filled === counts.toFill && counts.pulses < LIMITS.pulsesMin],
-    ["Meat", `${counts.meat}`, false],
-    ["Vegetarian", `${counts.veg}`, false],
-    ["Pasta", `${counts.pasta} of ${LIMITS.pasta}`, counts.pasta > LIMITS.pasta],
-    ["Processed", `${counts.processed} of ${LIMITS.processed}`, counts.processed > LIMITS.processed],
-    ["New meals", `${counts.newMeals} of ~${LIMITS.newMeals}`, counts.newMeals > LIMITS.newMeals],
+    [t.check.filled, t.check.of(counts.filled, counts.toFill), false],
+    [t.protein.fish, `${counts.fish}`, counts.filled === counts.toFill && counts.fish === 0],
+    [t.check.pulses, t.check.of(counts.pulses, `${LIMITS.pulsesMin}+`), counts.filled === counts.toFill && counts.pulses < LIMITS.pulsesMin],
+    [t.protein.meat, `${counts.meat}`, false],
+    [t.protein.veg, `${counts.veg}`, false],
+    [t.check.pasta, t.check.of(counts.pasta, LIMITS.pasta), counts.pasta > LIMITS.pasta],
+    [t.check.processed, t.check.of(counts.processed, LIMITS.processed), counts.processed > LIMITS.processed],
+    [t.check.newMeals, t.check.of(counts.newMeals, `~${LIMITS.newMeals}`), counts.newMeals > LIMITS.newMeals],
   ];
   const groups: [Warning["level"], string][] = [
-    ["block", "Blocked for gluten"],
-    ["hard", "Rules to look at"],
-    ["soft", "Nice to have"],
+    ["block", t.check.blockGroup],
+    ["hard", t.check.hardGroup],
+    ["soft", t.check.softGroup],
   ];
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">Week check: {formatDay(week)}</h1>
+        <h1 className="text-xl font-bold">{t.check.title(formatDay(week, lang))}</h1>
         <Link href={`/week?w=${week}`} className="text-sm underline">
-          Back to the plan
+          {t.check.back}
         </Link>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -66,11 +68,8 @@ export default async function WeekCheckPage({ searchParams }: { searchParams: Pr
           </Card>
         );
       })}
-      {warnings.length === 0 && <p className="text-sm text-muted-foreground">Nothing to flag this week.</p>}
-      <p className="text-xs text-muted-foreground">
-        Plain counts, never a score. Only gluten blocks; everything else is for you to decide. Fish, meat, pulses and pasta
-        are guessed from each meal&apos;s name until you fix them in the planner.
-      </p>
+      {warnings.length === 0 && <p className="text-sm text-muted-foreground">{t.check.nothing}</p>}
+      <p className="text-xs text-muted-foreground">{t.check.footer}</p>
     </div>
   );
 }

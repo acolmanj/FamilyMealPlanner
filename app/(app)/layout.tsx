@@ -1,22 +1,27 @@
+import { LangSwitch } from "@/components/lang";
 import { Nav } from "@/components/nav";
 import { SetupNeeded } from "@/components/setup-needed";
 import { isSupabaseConfigured } from "@/lib/env";
 import { getHousehold } from "@/lib/household";
+import { getMessages } from "@/lib/i18n/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isSupabaseConfigured) return <SetupNeeded />;
-  const { user, household } = await getHousehold();
+  const [{ user, household }, { t }] = await Promise.all([getHousehold(), getMessages()]);
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-3xl flex-col">
       <header className="sticky top-0 z-10 flex flex-col gap-2 border-b bg-background/95 px-4 pt-3 pb-2 backdrop-blur">
         <div className="flex items-center justify-between gap-2">
-          <span className="font-bold">Family Meal Planner</span>
-          <form action="/auth/signout" method="post">
-            <button className="text-xs text-muted-foreground underline" title={user.email}>
-              Sign out
-            </button>
-          </form>
+          <span className="font-bold">{t.appName}</span>
+          <div className="flex items-center gap-3">
+            <LangSwitch />
+            <form action="/auth/signout" method="post">
+              <button className="text-xs text-muted-foreground underline" title={user.email}>
+                {t.signOut}
+              </button>
+            </form>
+          </div>
         </div>
         {household && <Nav />}
       </header>
@@ -25,10 +30,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           children
         ) : (
           <div className="rounded-lg border bg-card p-4 text-sm">
-            <p className="font-medium">You are signed in as {user.email}, but this email is not in a household yet.</p>
-            <p className="mt-2 text-muted-foreground">
-              Ask someone already in the household to add it on the Household page, then reload.
-            </p>
+            <p className="font-medium">{t.notInHousehold(user.email ?? "")}</p>
+            <p className="mt-2 text-muted-foreground">{t.askToAdd}</p>
           </div>
         )}
       </main>

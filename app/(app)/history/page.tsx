@@ -1,17 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getHousehold } from "@/lib/household";
+import { formatDate, mealName, type Lang, type Messages } from "@/lib/i18n/messages";
+import { getMessages } from "@/lib/i18n/server";
 import { cn } from "@/lib/utils";
 
-const DAYS = [
-  ["mon", "Mon"],
-  ["tue", "Tue"],
-  ["wed", "Wed"],
-  ["thu", "Thu"],
-  ["fri", "Fri"],
-  ["sat", "Sat"],
-  ["sun", "Sun"],
-] as const;
+const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
 type Slot = {
   id: string;
@@ -22,23 +16,20 @@ type Slot = {
   as_written: string | null;
   is_leftover: boolean;
   is_takeaway: boolean;
-  meals: { name: string; is_favourite: boolean; favourite_seen_count: number | null } | null;
+  meals: { name: string; name_en: string | null; name_es: string | null; is_favourite: boolean; favourite_seen_count: number | null } | null;
 };
-
-function formatWeek(iso: string) {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IE", { day: "numeric", month: "short", timeZone: "UTC" });
-}
 
 export default async function HistoryPage() {
   const { supabase } = await getHousehold();
+  const { lang, t } = await getMessages();
   const { data, error } = await supabase
     .from("plan_slots")
-    .select("id, week_start, week_no, day, slot, as_written, is_leftover, is_takeaway, meals(name, is_favourite, favourite_seen_count)")
+    .select("id, week_start, week_no, day, slot, as_written, is_leftover, is_takeaway, meals(name, name_en, name_es, is_favourite, favourite_seen_count)")
     .eq("status", "eaten")
     .order("week_start", { ascending: false })
     .returns<Slot[]>();
 
-  if (error) return <p className="text-destructive">Could not load past weeks: {error.message}</p>;
+  if (error) return <p className="text-destructive">{t.history.couldNotLoad(error.message)}</p>;
   const slots = data ?? [];
 
   const weeks = new Map<string, Slot[]>();
@@ -48,10 +39,8 @@ export default async function HistoryPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold">Past weeks</h1>
-        <p className="text-sm text-muted-foreground">
-          {slots.length} past slots over {weeks.size} weeks, loaded from the menu sheet ({blanks} left blank).
-        </p>
+        <h1 className="text-xl font-bold">{t.history.title}</h1>
+        <p className="text-sm text-muted-foreground">{t.history.intro(slots.length, weeks.size, blanks)}</p>
       </div>
 
       {[...weeks.entries()].map(([weekStart, ws]) => {
@@ -59,18 +48,16 @@ export default async function HistoryPage() {
         return (
           <Card key={weekStart}>
             <CardHeader>
-              <CardTitle>Week of {formatWeek(weekStart)}</CardTitle>
-              <CardDescription>
-                Week {ws[0]?.week_no} of the sheet · {ws.length} slots
-              </CardDescription>
+              <CardTitle>{t.week.weekOf(formatDate(weekStart, lang))}</CardTitle>
+              <CardDescription>{t.history.sheetWeek(ws[0]?.week_no ?? null, ws.length)}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-[2.5rem_1fr_1fr] gap-x-2 gap-y-1 text-sm">
                 <span />
-                <span className="text-xs font-semibold text-muted-foreground uppercase">Lunch</span>
-                <span className="text-xs font-semibold text-muted-foreground uppercase">Dinner</span>
-                {DAYS.map(([code, label]) => (
-                  <Row key={code} label={label} lunch={cell(code, "lunch")} dinner={cell(code, "dinner")} />
+                <span className="text-xs font-semibold text-muted-foreground uppercase">{t.slots.lunch}</span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase">{t.slots.dinner}</span>
+                {DAYS.map((code) => (
+                  <Row key={code} label={t.days[code]} lunch={cell(code, "lunch")} dinner={cell(code, "dinner")} lang={lang} t={t} />
                 ))}
               </div>
             </CardContent>
@@ -81,22 +68,24 @@ export default async function HistoryPage() {
   );
 }
 
-function Row({ label, lunch, dinner }: { label: string; lunch?: Slot; dinner?: Slot }) {
+type Lt = { lang: Lang; t: Messages };
+
+function Row({ label, lunch, dinner, ...lt }: { label: string; lunch?: Slot; dinner?: Slot } & Lt) {
   return (
     <>
       <span className="py-1.5 text-xs font-semibold text-muted-foreground">{label}</span>
-      <Cell slot={lunch} />
-      <Cell slot={dinner} />
+      <Cell slot={lunch} {...lt} />
+      <Cell slot={dinner} {...lt} />
     </>
   );
 }
 
-function Cell({ slot }: { slot?: Slot }) {
+function Cell({ slot, lang, t }: { slot?: Slot } & Lt) {
   if (!slot || !slot.as_written) {
-    return <span className="rounded-md bg-muted/60 px-2 py-1.5 text-xs text-muted-foreground italic">blank</span>;
+    return <span className="rounded-md bg-muted/60 px-2 py-1.5 text-xs text-muted-foreground italic">{t.history.blank}</span>;
   }
-  // Show the dish as written, without the ingredient list after the colon.
-  const text = slot.as_written.split(":")[0].trim();
+  // The library name in the chosen language, else the dish as written without the ingredient list after the colon.
+  const text = slot.meals ? mealName(slot.meals, lang) : slot.as_written.split(":")[0].trim();
   return (
     <span
       className={cn(
@@ -106,11 +95,11 @@ function Cell({ slot }: { slot?: Slot }) {
     >
       <span>{text}</span>
       <span className="flex flex-wrap gap-1">
-        {slot.is_leftover && <Badge variant="accent">Sobras</Badge>}
-        {slot.is_takeaway && <Badge variant="outline">Take-away</Badge>}
+        {slot.is_leftover && <Badge variant="accent">{t.history.leftovers}</Badge>}
+        {slot.is_takeaway && <Badge variant="outline">{t.history.takeaway}</Badge>}
         {slot.meals?.favourite_seen_count != null && (
           <Badge variant={slot.meals.is_favourite ? "default" : "outline"}>
-            {slot.meals.is_favourite ? "★ Favourite" : "Favourite?"}
+            {slot.meals.is_favourite ? t.history.favourite : t.history.favouriteQ}
           </Badge>
         )}
       </span>
