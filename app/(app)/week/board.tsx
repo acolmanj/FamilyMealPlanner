@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { GlutenBadge } from "@/components/gluten-badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import {
 } from "@/lib/planner/rules";
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
-import { addNewMeal, clearCell, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
+import { addNewMeal, clearCell, moveCell, resolveMealImages, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
 import type { BoardCell, BoardMeal } from "./load";
 
 type Change =
@@ -81,8 +82,27 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   const [picked, setPicked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const mealMap = useMemo(() => new Map<string, PlanMeal>(meals.map((m) => [m.id, m])), [meals]);
+  const mealMap = useMemo(() => new Map<string, BoardMeal>(meals.map((m) => [m.id, m])), [meals]);
   const ruleCells: Cell[] = shown.map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId && mealMap.has(c.mealId) ? c.mealId : null }));
+
+  // Fetch photos for meals that have none checked yet, then redraw once they are saved.
+  const router = useRouter();
+  useEffect(() => {
+    let stop = false;
+    void (async () => {
+      let changed = false;
+      for (let round = 0; round < 8 && !stop; round++) {
+        const r = await resolveMealImages().catch(() => null);
+        if (!r?.ok) break;
+        changed ||= r.updated > 0;
+        if (!r.remaining) break;
+      }
+      if (changed && !stop) router.refresh();
+    })();
+    return () => {
+      stop = true;
+    };
+  }, [router]);
 
   const run: Run = (ch, action, after) => {
     setError(null);
@@ -298,7 +318,7 @@ function DayRow({
   day: Day;
   date: string;
   cells: BoardCell[];
-  meals: Map<string, PlanMeal>;
+  meals: Map<string, BoardMeal>;
   open: Target | null;
   over: string | null;
   dragProps: (d: DragData) => object;
@@ -322,7 +342,7 @@ function DayRow({
             onClick={() => onTap(slot)}
             {...(c ? dragProps({ kind: "cell", day, slot, label }) : {})}
             className={cn(
-              "flex min-h-16 touch-manipulation flex-col items-start gap-0.5 rounded-md border border-l-4 bg-card p-1.5 text-left select-none [-webkit-touch-callout:none]",
+              "flex min-h-16 touch-manipulation items-start gap-1 rounded-md border border-l-4 bg-card p-1.5 text-left select-none [-webkit-touch-callout:none]",
               !c && "border-l border-dashed bg-transparent text-muted-foreground",
               m && PROTEIN_STYLE[m.tags.protein],
               c && !m && "bg-muted",
@@ -334,13 +354,26 @@ function DayRow({
           >
             {c ? (
               <>
-                <span className="line-clamp-3 font-medium break-words">{label}</span>
-                <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
-                  {c.locked && <span title="Locked">🔒</span>}
-                  {m && <span>{tagLine(m.tags)}</span>}
-                  {m?.gluten === "blocked" && <span className="font-semibold text-destructive">Blocked</span>}
-                  {!m && <span>{c.leftover ? "leftovers" : "not in library"}</span>}
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
+                  <span className="line-clamp-3 font-medium break-words">{label}</span>
+                  <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+                    {c.locked && <span title="Locked">🔒</span>}
+                    {m && <span>{tagLine(m.tags)}</span>}
+                    {m?.gluten === "blocked" && <span className="font-semibold text-destructive">Blocked</span>}
+                    {!m && <span>{c.leftover ? "leftovers" : "not in library"}</span>}
+                  </span>
                 </span>
+                {m?.image && (
+                  // A small thumbnail, about a fifth of the tile. Hosted by TheMealDB or Wikimedia Commons.
+                  <img
+                    src={m.image.url}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    draggable={false}
+                    className="pointer-events-none aspect-square w-1/5 shrink-0 rounded object-cover"
+                  />
+                )}
               </>
             ) : (
               <span className="m-auto text-base">+</span>
@@ -437,7 +470,7 @@ function CellPanel({
   cells: BoardCell[];
   ruleCells: Cell[];
   meals: BoardMeal[];
-  mealMap: Map<string, PlanMeal>;
+  mealMap: Map<string, BoardMeal>;
   history: Use[];
   pending: boolean;
   run: Run;
@@ -488,6 +521,8 @@ function CellPanel({
           </span>
         </div>
       )}
+
+      {meal && mode === "main" && <RecipeNote meal={meal} />}
 
       {mode === "reason" && (
         <div className="flex flex-col gap-1.5">
@@ -580,6 +615,51 @@ function CellPanel({
           onBack={() => setMode("main")}
         />
       )}
+    </div>
+  );
+}
+
+// The recipe idea and photo credit. A recipe is written for ordinary flour and sauces,
+// so it lists what the gluten gate finds and the swap to buy; the meal's own status above still rules.
+function RecipeNote({ meal }: { meal: BoardMeal }) {
+  const { recipe, image } = meal;
+  if (!recipe && !image) return null;
+  return (
+    <div className="flex gap-2 rounded-md border bg-background p-1.5">
+      {image && (
+        <img src={image.url} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-12 shrink-0 rounded object-cover" />
+      )}
+      <div className="flex min-w-0 flex-col gap-0.5">
+        {recipe ? (
+          <>
+            <a href={recipe.url} target="_blank" rel="noreferrer" className="font-medium underline">
+              Recipe idea: {recipe.name}
+            </a>
+            {recipe.gluten.length > 0 ? (
+              <>
+                <p className="text-muted-foreground">As written it has gluten. Cook it gluten-free:</p>
+                <ul className="list-disc pl-4 text-muted-foreground">
+                  {recipe.gluten.map((g) => (
+                    <li key={g.term}>
+                      <span className="font-medium text-foreground">{g.term}</span>
+                      {g.swap ? `: ${g.swap}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="text-muted-foreground">No gluten spotted in its ingredients. Still check the labels.</p>
+            )}
+          </>
+        ) : (
+          image?.page && (
+            <a href={image.page} target="_blank" rel="noreferrer" className="text-muted-foreground underline">
+              About this dish
+            </a>
+          )
+        )}
+        {image && <span className="text-[10px] text-muted-foreground">Photo: {image.source === "wikimedia" ? "Wikimedia Commons" : "TheMealDB"}</span>}
+      </div>
     </div>
   );
 }

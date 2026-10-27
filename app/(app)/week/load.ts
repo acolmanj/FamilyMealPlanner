@@ -4,7 +4,10 @@ import { addDays, cellDate, type Day, type Slot, type Use } from "@/lib/planner/
 import { mealTags, type Tags } from "@/lib/planner/tags";
 import type { Status } from "@/lib/gluten/gate";
 
-export type BoardMeal = { id: string; name: string; pinned: boolean; tags: Tags; gluten: Status };
+export type MealImage = { url: string; source: string | null; page: string | null };
+// A recipe idea from TheMealDB, with what the gluten gate finds in its ingredient list as written.
+export type RecipeIdea = { name: string; url: string; gluten: { term: string; swap?: string }[] };
+export type BoardMeal = { id: string; name: string; pinned: boolean; tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null };
 export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; locked: boolean; leftover: boolean };
 
 type MealRow = {
@@ -19,6 +22,11 @@ type MealRow = {
   effort: string | null;
   pinned: boolean;
   gf_confirmed_at: string | null;
+  image_url: string | null;
+  image_source: string | null;
+  image_page_url: string | null;
+  mealdb_name: string | null;
+  mealdb_ingredients: string[] | null;
 };
 
 type SlotRow = {
@@ -51,6 +59,13 @@ export function formatDay(iso: string) {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IE", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
+function recipeIdea(m: MealRow): RecipeIdea | null {
+  if (!m.mealdb_name || !m.image_page_url?.includes("themealdb.com")) return null;
+  const verdict = screenMeal({ name: m.mealdb_name, ingredients: (m.mealdb_ingredients ?? []).join(" · ") });
+  const gluten = verdict.findings.filter((f) => f.rule !== "unknown" && f.status !== "safe").map((f) => ({ term: f.term, swap: f.swap }));
+  return { name: m.mealdb_name, url: m.image_page_url, gluten };
+}
+
 // Everything the planner needs for one week: the meal library (with gluten status and tags),
 // the week's cells, and every other week's plan for recency and "new meal".
 export async function loadWeek(week: string) {
@@ -59,7 +74,7 @@ export async function loadWeek(week: string) {
   const [{ data: meals, error }, { data: slots }] = await Promise.all([
     supabase
       .from("meals")
-      .select("id, name, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, pinned, gf_confirmed_at")
+      .select("id, name, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, pinned, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_name, mealdb_ingredients")
       .eq("retired", false)
       .eq("blacklisted", false)
       .order("name")
@@ -77,6 +92,8 @@ export async function loadWeek(week: string) {
       screenMeal({ name: m.name, variants: m.variants_seen, ingredients: m.ingredients_note }),
       Boolean(m.gf_confirmed_at),
     ).status,
+    image: m.image_url ? { url: m.image_url, source: m.image_source, page: m.image_page_url } : null,
+    recipe: recipeIdea(m),
   }));
 
   // Lunch and dinner only: Sobras (leftovers) are not a meal.
