@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { applyConfirmation, screenMeal } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
+import { resolveImage, type ImageMeal } from "@/lib/images/resolve";
 import { DAYS, SLOTS, type Day, type Slot } from "@/lib/planner/rules";
 
 // Every correction on the grid. Anything the owner touches becomes locked, and
@@ -205,4 +206,51 @@ export async function addNewMeal(week: string, day: string, slot: string, name: 
     .single();
   if (error) return { ok: false, error: error.message };
   return setCellMeal(week, day, slot, data.id);
+}
+
+const IMAGE_BATCH = 12;
+
+async function getJson(url: string, failed: { yes: boolean }) {
+  try {
+    const res = await fetch(url, {
+      headers: { "Api-User-Agent": "FamilyMealPlanner/1.0 (https://familymealplanner-inky.vercel.app)" },
+      signal: AbortSignal.timeout(6000),
+      cache: "no-store",
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(String(res.status));
+    return await res.json();
+  } catch (e) {
+    failed.yes = true;
+    throw e;
+  }
+}
+
+// Look up photos and recipe ideas for meals not checked yet, a few at a time.
+// A meal is only marked checked when every lookup answered, so a network blip is retried later.
+export async function resolveMealImages(): Promise<{ ok: true; updated: number; remaining: boolean } | { ok: false; error: string }> {
+  const ctx = await context();
+  const { data, error } = await ctx.supabase
+    .from("meals")
+    .select("id, name, image_query, image_url, mealdb_id")
+    .eq("household_id", ctx.householdId)
+    .is("image_checked_at", null)
+    .eq("retired", false)
+    .limit(IMAGE_BATCH)
+    .returns<ImageMeal[]>();
+  if (error) return { ok: false, error: error.message };
+  const meals = data ?? [];
+  const results = await Promise.all(
+    meals.map(async (m) => {
+      const failed = { yes: false };
+      const facts = await resolveImage(m, (url) => getJson(url, failed)).catch(() => null);
+      if (!facts && failed.yes) return false;
+      const update = facts
+        ? { ...facts, image_url: facts.image_url ?? m.image_url, image_checked_at: new Date().toISOString() }
+        : { image_checked_at: new Date().toISOString() };
+      const { error } = await ctx.supabase.from("meals").update(update).eq("household_id", ctx.householdId).eq("id", m.id);
+      return !error && Boolean(facts);
+    }),
+  );
+  return { ok: true, updated: results.filter(Boolean).length, remaining: meals.length === IMAGE_BATCH };
 }
