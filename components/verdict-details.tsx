@@ -1,20 +1,23 @@
-import { STATUS_LABEL, type Verdict } from "@/lib/gluten/gate";
+"use client";
+
 import { GlutenBadge } from "@/components/gluten-badge";
+import { useLang } from "@/components/lang";
+import { localiseVerdict } from "@/lib/gluten/es";
+import type { Verdict } from "@/lib/gluten/gate";
 
 // The findings behind a verdict, worst first, plus the swap to write next to the meal.
-export function VerdictDetails({ verdict }: { verdict: Verdict }) {
+export function VerdictDetails({ verdict: raw }: { verdict: Verdict }) {
+  const { lang, t } = useLang();
+  const verdict = localiseVerdict(raw, lang);
   const problems = verdict.findings.filter((f) => f.status !== "safe");
   return (
     <div className="flex flex-col gap-1 text-sm">
       {verdict.confirmed && verdict.screened !== "safe" && (
-        <p className="text-muted-foreground">
-          You confirmed you cook this gluten-free. From the name alone the gate says{" "}
-          {STATUS_LABEL[verdict.screened!]}, so keep buying the GF versions below.
-        </p>
+        <p className="text-muted-foreground">{t.gluten.confirmedNote(t.status[verdict.screened!])}</p>
       )}
       {verdict.swaps.length > 0 && (
         <p>
-          <span className="font-semibold">GF swap: </span>
+          <span className="font-semibold">{t.gluten.swap}</span>
           {verdict.swaps.join(". ")}.
         </p>
       )}
@@ -27,9 +30,7 @@ export function VerdictDetails({ verdict }: { verdict: Verdict }) {
         </p>
       ))}
       {problems.length === 0 && !verdict.confirmed && (
-        <p className="text-muted-foreground">
-          Only naturally gluten-free foods recognised ({verdict.findings.map((f) => f.term).join(", ")}).
-        </p>
+        <p className="text-muted-foreground">{t.gluten.onlyNatural(verdict.findings.map((f) => f.term).join(", "))}</p>
       )}
     </div>
   );

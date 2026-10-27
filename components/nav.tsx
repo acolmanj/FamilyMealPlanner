@@ -2,18 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useLang } from "@/components/lang";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/week", label: "This week" },
-  { href: "/history", label: "Past weeks" },
-  { href: "/favourites", label: "Favourites" },
-  { href: "/gluten", label: "Gluten" },
-  { href: "/household", label: "Household" },
-];
+  { href: "/week", key: "week" },
+  { href: "/history", key: "history" },
+  { href: "/favourites", key: "favourites" },
+  { href: "/gluten", key: "gluten" },
+  { href: "/household", key: "household" },
+] as const;
 
 export function Nav() {
   const path = usePathname();
+  const { t } = useLang();
   return (
     <nav className="flex gap-1 overflow-x-auto">
       {LINKS.map((l) => (
@@ -25,7 +27,7 @@ export function Nav() {
             path.startsWith(l.href) ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
           )}
         >
-          {l.label}
+          {t.nav[l.key]}
         </Link>
       ))}
     </nav>

@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
+import { useLang } from "@/components/lang";
 
 export function LoginForm() {
+  const { t } = useLang();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -29,7 +31,7 @@ export function LoginForm() {
   if (state === "sent") {
     return (
       <p className="w-full rounded-md bg-secondary p-4 text-sm">
-        Check your email at <strong>{email}</strong> and tap the sign-in link. You can open it on any device.
+        {t.login.checkEmail} <strong>{email}</strong>
       </p>
     );
   }
@@ -37,7 +39,7 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="flex w-full flex-col gap-3 text-left">
       <label htmlFor="email" className="text-sm font-medium">
-        Your email
+        {t.login.yourEmail}
       </label>
       <Input
         id="email"
@@ -50,7 +52,7 @@ export function LoginForm() {
         placeholder="you@example.com"
       />
       <Button type="submit" disabled={state === "sending"}>
-        {state === "sending" ? "Sending…" : "Email me a sign-in link"}
+        {state === "sending" ? t.login.sending : t.login.send}
       </Button>
       {state === "error" && <p className="text-sm text-destructive">{message}</p>}
     </form>

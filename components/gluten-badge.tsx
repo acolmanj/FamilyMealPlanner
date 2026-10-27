@@ -1,5 +1,8 @@
+"use client";
+
 import { cn } from "@/lib/utils";
-import { STATUS_LABEL, type Status } from "@/lib/gluten/gate";
+import { useLang } from "@/components/lang";
+import type { Status } from "@/lib/gluten/gate";
 
 const STYLE: Record<Status, string> = {
   safe: "bg-primary/15 text-primary",
@@ -9,6 +12,7 @@ const STYLE: Record<Status, string> = {
 };
 
 export function GlutenBadge({ status, className }: { status: Status; className?: string }) {
+  const { t } = useLang();
   return (
     <span
       className={cn(
@@ -17,7 +21,7 @@ export function GlutenBadge({ status, className }: { status: Status; className?:
         className,
       )}
     >
-      {STATUS_LABEL[status]}
+      {t.status[status]}
     </span>
   );
 }

@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { LangProvider } from "@/components/lang";
+import { getLang } from "@/lib/i18n/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,10 +14,13 @@ export const viewport: Viewport = {
   themeColor: "#f6f9f1",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const lang = await getLang();
   return (
-    <html lang="en">
-      <body className="min-h-dvh antialiased">{children}</body>
+    <html lang={lang}>
+      <body className="min-h-dvh antialiased">
+        <LangProvider lang={lang}>{children}</LangProvider>
+      </body>
     </html>
   );
 }
