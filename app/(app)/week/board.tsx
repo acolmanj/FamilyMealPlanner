@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
+import { FoodIcons } from "@/components/food-icons";
 import { GlutenBadge } from "@/components/gluten-badge";
 import { useLang } from "@/components/lang";
 import { Button } from "@/components/ui/button";
@@ -359,7 +360,8 @@ function DayRow({
                   <span className="line-clamp-3 font-medium break-words hyphens-auto">{label}</span>
                   <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
                     {c.locked && <span title={t.board.locked}>🔒</span>}
-                    {m && <span>{tagLine(t, m.tags)}</span>}
+                    {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} className="text-sm" />}
+                    {m?.tags.isProcessed && <span>{t.board.processed}</span>}
                     {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
                     {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
                   </span>
@@ -392,8 +394,9 @@ function MealTile({ meal, why, picked, onClick, extra }: { meal: PlanMeal; why?:
     >
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="font-medium break-words hyphens-auto">{meal.name}</span>
-        <span className="text-[10px] text-muted-foreground">
-          {[tagLine(t, meal.tags), why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}
+        <span className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+          <FoodIcons starch={meal.tags.starch} isPasta={meal.tags.isPasta} isPulse={meal.tags.isPulse} className="text-sm" />
+          <span>{[meal.tags.isProcessed ? t.board.processed : null, why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}</span>
         </span>
       </span>
       <Thumb meal={meal as BoardMeal} />
