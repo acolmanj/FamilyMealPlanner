@@ -43,13 +43,16 @@ export default async function MealsPage() {
   const meals: LibraryMeal[] = (data ?? [])
     // Sobras (leftovers) are not a meal.
     .filter((m) => !/\b(sobras?|leftovers?)\b/i.test(m.name))
-    .map((m) => ({
+    .map((m) => ({ m, tags: mealTags(m) }))
+    .map(({ m, tags }) => ({
       id: m.id,
       name: mealName(m, lang),
       // A meal added before it had translations shows how it was typed, to correct.
       name_en: m.name_en ?? (m.name_es ? "" : m.name),
       name_es: m.name_es ?? "",
-      protein: mealTags(m).protein,
+      protein: tags.protein,
+      starch: tags.isPasta ? "pasta" : tags.starch,
+      isPulse: tags.isPulse,
       ingredients: splitIngredients(m.ingredients_note),
       recipeIngredients: m.mealdb_ingredients?.length ? m.mealdb_ingredients : null,
       gluten: applyConfirmation(

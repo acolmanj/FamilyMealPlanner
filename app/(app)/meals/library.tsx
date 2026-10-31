@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { FoodIcons } from "@/components/food-icons";
 import { GlutenBadge } from "@/components/gluten-badge";
 import { useLang } from "@/components/lang";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalise, type Status } from "@/lib/gluten/gate";
-import type { Protein } from "@/lib/planner/tags";
+import type { Protein, Starch } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
 import { useResolveImages } from "../week/resolve-images";
 import { createMeal, importRecipe, updateMeal, type MealEdit } from "./actions";
@@ -17,6 +18,8 @@ export type LibraryMeal = {
   name_en: string;
   name_es: string;
   protein: Protein;
+  starch: Starch | null;
+  isPulse: boolean;
   ingredients: string[];
   recipeIngredients: string[] | null;
   gluten: Status;
@@ -105,7 +108,10 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
         ) : (
           <span className="size-10 shrink-0 rounded bg-background/60" />
         )}
-        <span className="min-w-0 flex-1 font-medium break-words hyphens-auto">{meal.name}</span>
+        <span className="flex min-w-0 flex-1 flex-col gap-1">
+          <span className="font-medium break-words hyphens-auto">{meal.name}</span>
+          <FoodIcons starch={meal.starch} isPulse={meal.isPulse} className="text-base" />
+        </span>
         <GlutenBadge status={meal.gluten} />
       </button>
       {open && (
