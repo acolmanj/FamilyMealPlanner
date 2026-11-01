@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
+import { PasswordForm } from "./password-form";
 
 async function addMember(formData: FormData) {
   "use server";
@@ -64,6 +65,14 @@ export default async function HouseholdPage() {
           <p className="text-xs text-muted-foreground">
             {t.household.help}
           </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.household.passwordTitle}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PasswordForm />
         </CardContent>
       </Card>
     </div>
