@@ -39,7 +39,7 @@ export default async function HistoryPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold">{t.history.title}</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight">{t.history.title}</h1>
         <p className="text-sm text-muted-foreground">{t.history.intro(slots.length, weeks.size, blanks)}</p>
       </div>
 

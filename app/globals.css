@@ -1,25 +1,29 @@
 @import "tailwindcss";
 
 /* shadcn/ui tokens, tuned to the original page's greens */
+/* iOS-style tokens: grouped grey background, white cards, soft separators, green accent */
 :root {
-  --background: #f6f9f1;
-  --foreground: #2f4a2b;
+  --background: #f2f2f7;
+  --foreground: #1c1c1e;
   --card: #ffffff;
-  --card-foreground: #2f4a2b;
-  --primary: #388e3c;
+  --card-foreground: #1c1c1e;
+  --primary: #2e9e4f;
   --primary-foreground: #ffffff;
-  --secondary: #e8f0dd;
-  --secondary-foreground: #2f4a2b;
-  --muted: #eef3e7;
-  --muted-foreground: #5f7357;
-  --accent: #fdd835;
-  --accent-foreground: #2f4a2b;
-  --destructive: #c62828;
-  --warning: #f57c00;
-  --border: #d9e3cc;
-  --input: #d9e3cc;
-  --ring: #43a047;
-  --radius: 0.75rem;
+  --secondary: #e9f5ec;
+  --secondary-foreground: #1c1c1e;
+  --muted: #eeeef3;
+  --muted-foreground: #6e6e73;
+  --accent: #ffcc00;
+  --accent-foreground: #1c1c1e;
+  --destructive: #ff3b30;
+  --warning: #e07800;
+  --border: #e3e3e8;
+  --input: #dcdce1;
+  --ring: #34c759;
+  --radius: 1rem;
+  /* A card lifted slightly off the page. */
+  --elev-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 4px 14px rgb(0 0 0 / 0.07);
+  --elev-lift: 0 2px 4px rgb(0 0 0 / 0.06), 0 10px 28px rgb(0 0 0 / 0.12);
 }
 
 @theme inline {
@@ -43,16 +47,24 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --shadow-card: var(--elev-card);
+  --shadow-lift: var(--elev-lift);
 }
 
 @layer base {
   * {
     border-color: var(--border);
   }
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     background: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
   }
 }

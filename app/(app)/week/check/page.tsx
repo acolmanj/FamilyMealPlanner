@@ -37,14 +37,14 @@ export default async function WeekCheckPage({ searchParams }: { searchParams: Pr
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-xl font-bold">{t.check.title(formatDay(week, lang))}</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight">{t.check.title(formatDay(week, lang))}</h1>
         <Link href={`/week?w=${week}`} className="text-sm underline">
           {t.check.back}
         </Link>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {items.map(([label, value, over]) => (
-          <div key={label} className={cn("rounded-md border bg-card px-3 py-2", over && "border-warning bg-warning/10")}>
+          <div key={label} className={cn("rounded-2xl bg-card px-3.5 py-2.5 shadow-card", over && "bg-warning/10 ring-1 ring-warning")}>
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className={cn("text-lg font-semibold", over && "text-warning")}>{value}</div>
           </div>

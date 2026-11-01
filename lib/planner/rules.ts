@@ -261,18 +261,12 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
   return pool.slice(0, count).map(({ m, gap }) => {
     const bits: string[] = [];
     if (m.pinned) bits.push(t.pinned);
-    bits.push(gap === null ? t.newToPlan : t.lastPlanned(weeksAgo(msg, gap)));
     if (needPulse && m.tags.isPulse) bits.push(t.pulsesWhy);
     else if (needFish && m.tags.protein === "fish") bits.push(t.fishWhy);
     if (wantProtein && wantProtein.includes(m.tags.protein) && !current)
       bits.push(m.tags.protein === "veg" ? t.vegForMix : t.proteinForMix(msg.protein[m.tags.protein].toLowerCase()));
     return { meal: m, why: bits.join(", ") };
   });
-}
-
-function weeksAgo(msg: Messages, days: number) {
-  const w = Math.floor(days / 7);
-  return w < 1 ? msg.rules.daysAgo(days) : msg.rules.weeksAgo(w);
 }
 
 // A spread of meals for the week's sidebar: what the week is missing first (pulses, fish),
@@ -312,7 +306,7 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
     for (const k of kinds) {
       const next = queues.get(k)!.shift();
       if (!next || picked.length >= count) continue;
-      const bits = [next.gap === null ? t.newToPlan : t.lastPlanned(weeksAgo(msg, next.gap))];
+      const bits: string[] = [];
       if (needPulse && k === "pulse") bits.push(t.pulsesWhy);
       if (needFish && k === "fish") bits.push(t.fishWhy);
       if (next.m.pinned) bits.unshift(t.pinned);

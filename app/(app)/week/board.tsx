@@ -43,10 +43,12 @@ const STARCHES = ["pasta", "potatoes", "rice", "noodles", "bread", "none"];
 
 // Meat dark red, fish blue, vegetarian green.
 const PROTEIN_STYLE: Record<Protein, string> = {
-  meat: "border-l-[#8b1a1a] bg-[#f6e4e4]",
-  fish: "border-l-[#1d5fb4] bg-[#e3eefb]",
-  veg: "border-l-[#2e7d32] bg-[#e6f2e0]",
+  meat: "border-l-[#8b1a1a] bg-[#fbeeee]",
+  fish: "border-l-[#1d5fb4] bg-[#edf4fd]",
+  veg: "border-l-[#2e7d32] bg-[#eef7ea]",
 };
+// Below the sm breakpoint the side panel becomes a bottom sheet.
+const isWide = () => typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
 const PROTEIN_DOT: Record<Protein, string> = { meat: "bg-[#8b1a1a]", fish: "bg-[#1d5fb4]", veg: "bg-[#2e7d32]" };
 
 function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
@@ -87,7 +89,7 @@ function Thumb({ meal }: { meal?: Pick<BoardMeal, "image"> }) {
       loading="lazy"
       referrerPolicy="no-referrer"
       draggable={false}
-      className="pointer-events-none aspect-square w-1/5 shrink-0 rounded object-cover"
+      className="pointer-events-none aspect-square w-1/5 max-w-14 min-w-8 shrink-0 rounded-lg object-cover"
     />
   );
 }
@@ -98,6 +100,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState<Target | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const [sheet, setSheet] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const mealMap = useMemo(() => new Map<string, BoardMeal>(meals.map((m) => [m.id, m])), [meals]);
@@ -214,20 +217,34 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
       if (!suppressClick.current) fn(...a);
     };
 
+  const sheetUp = Boolean(open) || sheet;
+  const closeSheet = () => {
+    setOpen(null);
+    setSheet(false);
+  };
+  const pickedMeal = picked ? mealMap.get(picked) : undefined;
+
   const openCell = open ? (shown.find((c) => c.day === open.day && c.slot === open.slot) ?? null) : null;
   const weekSuggestions = suggestForWeek({ weekStart: week, cells: ruleCells, meals: mealMap, history, count: 10, lang });
 
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-3">
+      {/* On a phone the panel is a sheet over the week; tapping outside closes it. */}
+      {sheetUp && !drag && <div className="fixed inset-0 z-40 bg-black/25 sm:hidden" onClick={closeSheet} aria-hidden="true" />}
       <aside
         data-drop={drag?.data.kind === "cell" ? "remove" : undefined}
         className={cn(
-          "sticky top-28 flex max-h-[calc(100dvh-8rem)] w-[40%] max-w-72 shrink-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded-lg border bg-card p-2 text-xs",
-          drag?.data.kind === "cell" && "border-destructive",
-          drag?.over === "remove" && "bg-destructive/10",
+          "fixed inset-x-0 bottom-0 z-50 flex max-h-[70dvh] flex-col [&>*]:shrink-0 gap-2.5 overflow-y-auto overscroll-contain rounded-t-3xl bg-card px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))] text-sm shadow-lift transition",
+          "sm:sticky sm:top-16 sm:z-auto sm:flex sm:max-h-[calc(100dvh-9rem)] sm:w-[40%] sm:max-w-72 sm:shrink-0 sm:rounded-2xl sm:p-3 sm:text-xs sm:shadow-card",
+          !sheetUp && "hidden",
+          // While a meal is being dragged from the sheet, let the finger reach the week underneath.
+          drag?.data.kind === "meal" && "pointer-events-none opacity-30 sm:pointer-events-auto sm:opacity-100",
+          drag?.data.kind === "cell" && "ring-2 ring-destructive",
+          drag?.over === "remove" && "bg-[#fff0ef]",
         )}
       >
-        {drag?.data.kind === "cell" && <p className="rounded bg-destructive/10 p-2 text-center font-medium text-destructive">{t.board.dropToRemove}</p>}
+        <span className="mx-auto mb-1 h-1.5 w-10 shrink-0 rounded-full bg-black/15 sm:hidden" aria-hidden="true" />
+        {drag?.data.kind === "cell" && <p className="rounded-xl bg-destructive/10 p-2 text-center font-medium text-destructive">{t.board.dropToRemove}</p>}
         {error && <p className="rounded-md bg-destructive/10 p-2 text-destructive">{error}</p>}
         {open ? (
           <CellPanel
@@ -242,7 +259,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
             history={history}
             pending={pending}
             run={run}
-            onClose={() => setOpen(null)}
+            onClose={closeSheet}
           />
         ) : (
           <WeekSuggestions
@@ -250,17 +267,55 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
             meals={meals}
             cells={shown}
             picked={picked}
-            onPick={tapped((id: string) => setPicked((p) => (p === id ? null : id)))}
+            onPick={tapped((id: string) => {
+              setPicked((p) => (p === id ? null : id));
+              // On a phone, get the sheet out of the way so the week can be tapped.
+              if (!isWide()) setSheet(false);
+            })}
+            onClose={closeSheet}
             dragProps={dragProps}
           />
         )}
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="grid grid-cols-[2rem_repeat(2,minmax(0,1fr))] gap-1.5 text-xs" aria-busy={pending}>
+      {/* Phone only: dragging a planned meal here removes it. */}
+      {drag?.data.kind === "cell" && (
+        <div
+          data-drop="remove"
+          className={cn(
+            "fixed inset-x-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 rounded-2xl bg-card p-4 text-center text-sm font-semibold text-destructive shadow-lift sm:hidden",
+            drag.over === "remove" && "bg-destructive text-white",
+          )}
+        >
+          {t.board.dropToRemove}
+        </div>
+      )}
+
+      {pickedMeal && !drag && (
+        <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-2xl bg-foreground/90 px-4 py-3 text-sm text-white shadow-lift backdrop-blur-xl sm:hidden">
+          <span className="min-w-0 flex-1 truncate">{t.board.tapSlotFor(pickedMeal.name)}</span>
+          <button className="shrink-0 font-semibold text-[#7ee08f]" onClick={() => setPicked(null)}>
+            {t.board.cancel}
+          </button>
+        </div>
+      )}
+
+      {!sheetUp && !pickedMeal && !drag && (
+        <button
+          onClick={() => setSheet(true)}
+          className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex h-12 items-center gap-1.5 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground shadow-lift active:scale-95 sm:hidden"
+        >
+          <span aria-hidden="true">✨</span>
+          {t.board.suggestions}
+        </button>
+      )}
+
+      <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
+        {error && !sheetUp && <p className="rounded-xl bg-destructive/10 p-2 text-sm text-destructive sm:hidden">{error}</p>}
+        <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs" aria-busy={pending}>
           <span />
           {SLOTS.map((s) => (
-            <span key={s} className="px-1 font-semibold text-muted-foreground uppercase">
+            <span key={s} className="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
               {t.slots[s]}
             </span>
           ))}
@@ -279,12 +334,15 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
                 if (picked) {
                   place(picked, { day, slot });
                   setPicked(null);
-                } else setOpen((o) => (o?.day === day && o.slot === slot ? null : { day, slot }));
+                } else {
+                  setSheet(false);
+                  setOpen((o) => (o?.day === day && o.slot === slot ? null : { day, slot }));
+                }
               })}
             />
           ))}
         </div>
-        <p className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <p className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[11px] text-muted-foreground">
           {(["meat", "fish", "veg"] as Protein[]).map((p) => (
             <span key={p} className="flex items-center gap-1">
               <span className={cn("inline-block size-2.5 rounded-sm", PROTEIN_DOT[p])} />
@@ -296,7 +354,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
 
       {drag && (
         <div
-          className="pointer-events-none fixed z-50 max-w-40 -translate-x-1/2 -translate-y-[130%] rounded-md border bg-card px-2 py-1 text-xs font-medium shadow-lg"
+          className="pointer-events-none fixed z-[60] max-w-44 -translate-x-1/2 -translate-y-[130%] rounded-xl bg-card px-3 py-1.5 text-xs font-semibold shadow-lift"
           style={{ left: drag.x, top: drag.y }}
         >
           {drag.data.label}
@@ -329,8 +387,8 @@ function DayRow({
   return (
     <>
       <span className="flex flex-col justify-center leading-tight">
-        <span className="font-semibold">{t.days[day]}</span>
-        <span className="text-muted-foreground">{Number(date.slice(8))}</span>
+        <span className="text-[11px] font-semibold text-muted-foreground uppercase">{t.days[day]}</span>
+        <span className="text-lg font-semibold">{Number(date.slice(8))}</span>
       </span>
       {SLOTS.map((slot) => {
         const key = cellKey({ day, slot });
@@ -344,20 +402,20 @@ function DayRow({
             onClick={() => onTap(slot)}
             {...(c ? dragProps({ kind: "cell", day, slot, label }) : {})}
             className={cn(
-              "flex min-h-16 touch-manipulation items-start gap-1 rounded-md border border-l-4 bg-card p-1.5 text-left select-none [-webkit-touch-callout:none]",
-              !c && "border-l border-dashed bg-transparent text-muted-foreground",
+              "flex min-h-[4.5rem] touch-manipulation items-start gap-1.5 rounded-xl border-l-4 border-l-transparent bg-card p-2 text-left shadow-card transition select-none active:scale-[0.98] [-webkit-touch-callout:none]",
+              !c && "border-2 border-dashed border-black/10 bg-transparent text-muted-foreground shadow-none",
               m && PROTEIN_STYLE[m.tags.protein],
-              c && !m && "bg-muted",
-              m?.gluten === "blocked" && "border-destructive ring-1 ring-destructive",
+              c && !m && "bg-card",
+              m?.gluten === "blocked" && "ring-2 ring-destructive",
               open?.day === day && open.slot === slot && "ring-2 ring-primary",
-              over === key && "ring-2 ring-accent",
+              over === key && "ring-2 ring-primary/60 shadow-lift",
             )}
             aria-label={`${t.days[day]} ${t.slots[slot]}: ${label || t.board.emptyLabel}`}
           >
             {c ? (
               <>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
-                  <span className="line-clamp-3 font-medium break-words hyphens-auto">{label}</span>
+                  <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
                   <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
                     {c.locked && <span title={t.board.locked}>🔒</span>}
                     {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} className="text-sm" />}
@@ -369,7 +427,7 @@ function DayRow({
                 <Thumb meal={m} />
               </>
             ) : (
-              <span className="m-auto text-base">+</span>
+              <span className="m-auto text-xl font-light">+</span>
             )}
           </button>
         );
@@ -386,14 +444,14 @@ function MealTile({ meal, why, picked, onClick, extra }: { meal: PlanMeal; why?:
       onClick={onClick}
       {...extra}
       className={cn(
-        "flex touch-manipulation items-start gap-1 rounded-md border border-l-4 p-1.5 text-left select-none [-webkit-touch-callout:none]",
+        "flex shrink-0 touch-manipulation items-start gap-1.5 rounded-xl border-l-4 p-2 text-left shadow-card transition select-none active:scale-[0.98] [-webkit-touch-callout:none]",
         PROTEIN_STYLE[meal.tags.protein],
         meal.gluten === "blocked" && "opacity-60",
         picked && "ring-2 ring-primary",
       )}
     >
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium break-words hyphens-auto">{meal.name}</span>
+        <span className="leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
         <span className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
           <FoodIcons starch={meal.tags.starch} isPasta={meal.tags.isPasta} isPulse={meal.tags.isPulse} className="text-sm" />
           <span>{[meal.tags.isProcessed ? t.board.processed : null, why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}</span>
@@ -410,6 +468,7 @@ function WeekSuggestions({
   cells,
   picked,
   onPick,
+  onClose,
   dragProps,
 }: {
   suggestions: { meal: PlanMeal; why: string }[];
@@ -417,6 +476,7 @@ function WeekSuggestions({
   cells: BoardCell[];
   picked: string | null;
   onPick: (id: string) => void;
+  onClose: () => void;
   dragProps: (d: DragData) => object;
 }) {
   const { t } = useLang();
@@ -431,11 +491,16 @@ function WeekSuggestions({
     : suggestions;
   return (
     <>
-      <h2 className="text-sm font-semibold">{t.board.suggested}</h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-[17px] font-semibold sm:text-sm">{t.board.suggested}</h2>
+        <button onClick={onClose} className="text-[15px] font-semibold text-primary sm:hidden">
+          {t.board.done}
+        </button>
+      </div>
       <p className="text-muted-foreground">
         {picked ? t.board.tapSlotNow : t.board.dragHelp}
       </p>
-      <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.board.search} aria-label={t.board.search} className="h-9 text-sm" />
+      <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.board.search} aria-label={t.board.search} className="h-10 text-[15px] sm:h-9 sm:text-sm" />
       {list.map(({ meal, why }) => (
         <MealTile
           key={meal.id}
@@ -502,12 +567,12 @@ function CellPanel({
     <div role="dialog" aria-label={`${t.days[day]} ${t.slots[slot]}`} className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-1">
         <div>
-          <p className="font-semibold text-muted-foreground uppercase">
+          <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
             {t.days[day]} {t.slots[slot]}
           </p>
-          <p className="text-sm font-semibold">{cell ? (meal?.name ?? cell.text) : t.board.empty}</p>
+          <p className="text-[17px] leading-snug font-semibold sm:text-sm">{cell ? (meal?.name ?? cell.text) : t.board.empty}</p>
         </div>
-        <button onClick={onClose} className="rounded-full px-1.5 text-lg leading-none text-muted-foreground" aria-label={t.board.close}>
+        <button onClick={onClose} className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-lg leading-none text-muted-foreground" aria-label={t.board.close}>
           ×
         </button>
       </div>
@@ -530,7 +595,7 @@ function CellPanel({
           {REASONS.map((r) => (
             <button
               key={r}
-              className="rounded-full border bg-background px-2.5 py-1.5 text-left"
+              className="rounded-xl bg-muted px-3 py-2.5 text-left font-medium active:bg-black/10"
               onClick={() => {
                 if (adjustmentId) void setReason(adjustmentId, r);
                 onClose();
@@ -547,12 +612,12 @@ function CellPanel({
 
       {mode === "main" && (
         <>
-          <h2 className="text-sm font-semibold">{cell ? t.board.swapFor : t.board.suggestedHere}</h2>
+          <h2 className="mt-1 text-sm font-semibold">{cell ? t.board.swapFor : t.board.suggestedHere}</h2>
           {suggestions.length === 0 && <p className="text-muted-foreground">{t.board.noFit}</p>}
           {suggestions.map(({ meal: m, why }) => (
             <MealTile key={m.id} meal={m} why={why} onClick={() => !pending && pick(m)} />
           ))}
-          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.board.search} aria-label={t.board.search} className="h-9 text-sm" />
+          <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.board.search} aria-label={t.board.search} className="h-10 text-[15px] sm:h-9 sm:text-sm" />
           {matches.map((m) => (
             <MealTile key={m.id} meal={m} onClick={() => !pending && m.gluten !== "blocked" && pick(m)} />
           ))}
@@ -596,7 +661,7 @@ function CellPanel({
       {mode === "move" && cell && (
         <div className="flex flex-col gap-1.5">
           <p className="font-medium">{t.board.moveWhere}</p>
-          <div className="grid grid-cols-[1.75rem_repeat(2,minmax(0,1fr))] gap-1">
+          <div className="grid grid-cols-[2rem_repeat(2,minmax(0,1fr))] gap-1.5">
             {DAYS.map((d) => (
               <MoveRow key={d} day={d} cells={cells} meals={mealMap} current={target} onPick={(to) => run({ type: "move", from: target, to }, () => moveCell(week, target, to), askReason)} />
             ))}
@@ -626,9 +691,9 @@ function RecipeNote({ meal }: { meal: BoardMeal }) {
   const { recipe, image } = meal;
   if (!recipe && !image) return null;
   return (
-    <div className="flex gap-2 rounded-md border bg-background p-1.5">
+    <div className="flex gap-2 rounded-xl bg-muted p-2">
       {image && (
-        <img src={image.url} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-12 shrink-0 rounded object-cover" />
+        <img src={image.url} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-12 shrink-0 rounded-lg object-cover" />
       )}
       <div className="flex min-w-0 flex-col gap-0.5">
         {recipe ? (
@@ -696,7 +761,7 @@ function MoveRow({
             key={slot}
             disabled={isHere}
             onClick={() => onPick({ day, slot })}
-            className={cn("min-h-8 truncate rounded border bg-background px-1 text-left", isHere && "border-primary bg-primary/10", !c && "border-dashed")}
+            className={cn("min-h-10 truncate rounded-lg bg-muted px-1.5 text-left", isHere && "bg-primary/15 font-semibold text-primary", !c && "border border-dashed border-black/15 bg-transparent")}
           >
             {isHere ? t.board.here : ((c?.mealId && meals.get(c.mealId)?.name) || c?.text || "")}
           </button>
@@ -721,7 +786,7 @@ function TagForm({ meal, pending, onSave, onBack }: { meal: PlanMeal; pending: b
         <button
           key={String(o)}
           onClick={() => setF({ ...f, [key]: o })}
-          className={cn("rounded-full border px-2 py-1", f[key] === o ? "border-primary bg-primary text-primary-foreground" : "bg-background")}
+          className={cn("rounded-full px-3 py-1.5 font-medium", f[key] === o ? "bg-primary text-primary-foreground" : "bg-muted")}
         >
           {label(o)}
         </button>

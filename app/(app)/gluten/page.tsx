@@ -105,11 +105,11 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold">{t.gluten.title}</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight">{t.gluten.title}</h1>
         <p className="text-sm text-muted-foreground">{t.gluten.intro}</p>
       </div>
 
-      <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+      <div className="rounded-2xl bg-warning/10 p-3.5 text-sm">
         <strong>{t.gluten.openDecision}</strong> {t.gluten.openText}
       </div>
 
@@ -178,8 +178,8 @@ function FilterChip({ href, active, label }: { href: string; active: boolean; la
     <Link
       href={href}
       className={cn(
-        "rounded-full border px-3 py-1.5 text-sm whitespace-nowrap",
-        active ? "border-primary bg-primary text-primary-foreground" : "bg-card text-muted-foreground",
+        "rounded-full px-3.5 py-1.5 text-sm font-medium whitespace-nowrap",
+        active ? "bg-primary text-primary-foreground shadow-card" : "bg-card text-muted-foreground shadow-card",
       )}
     >
       {label}

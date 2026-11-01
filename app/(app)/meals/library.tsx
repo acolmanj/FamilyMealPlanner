@@ -31,9 +31,9 @@ export type LibraryMeal = {
 const GROUPS: Protein[] = ["meat", "fish", "veg"];
 // The planner's colours: meat dark red, fish blue, vegetarian green.
 const GROUP_STYLE: Record<Protein, string> = {
-  meat: "border-l-[#8b1a1a] bg-[#f6e4e4]",
-  fish: "border-l-[#1d5fb4] bg-[#e3eefb]",
-  veg: "border-l-[#2e7d32] bg-[#e6f2e0]",
+  meat: "border-l-[#8b1a1a] bg-[#fbeeee]",
+  fish: "border-l-[#1d5fb4] bg-[#edf4fd]",
+  veg: "border-l-[#2e7d32] bg-[#eef7ea]",
 };
 const GROUP_DOT: Record<Protein, string> = { meat: "bg-[#8b1a1a]", fish: "bg-[#1d5fb4]", veg: "bg-[#2e7d32]" };
 
@@ -54,7 +54,7 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-xl font-bold">{t.meals.title}</h1>
+          <h1 className="text-[28px] leading-tight font-bold tracking-tight">{t.meals.title}</h1>
           <p className="text-sm text-muted-foreground">{t.meals.intro(meals.length)}</p>
         </div>
         {!adding && (
@@ -64,7 +64,7 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
         )}
       </div>
 
-      {notice && <p className="rounded-md bg-primary/10 p-2 text-sm text-primary">{notice}</p>}
+      {notice && <p className="rounded-xl bg-primary/10 p-3 text-sm text-primary">{notice}</p>}
       {adding && (
         <AddMeal
           onDone={(name) => {
@@ -80,12 +80,12 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
         const list = shown.filter((m) => m.protein === g);
         return (
           <section key={g} className="flex flex-col gap-2">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <h2 className="flex items-center gap-2 px-1 text-xl font-semibold tracking-tight">
               <span className={cn("inline-block size-3 rounded-sm", GROUP_DOT[g])} />
               {t.protein[g]} <span className="text-sm font-normal text-muted-foreground">{list.length}</span>
             </h2>
             {list.length === 0 && <p className="text-sm text-muted-foreground">{t.meals.empty}</p>}
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2.5 sm:grid-cols-2">
               {list.map((m) => (
                 <MealCard key={m.id} meal={m} open={open === m.id} onToggle={() => setOpen((o) => (o === m.id ? null : m.id))} />
               ))}
@@ -101,21 +101,21 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
   const { t } = useLang();
   const [editing, setEditing] = useState(false);
   return (
-    <div className={cn("flex flex-col rounded-md border border-l-4 text-sm", GROUP_STYLE[meal.protein], open && "sm:col-span-2")}>
-      <button onClick={onToggle} aria-expanded={open} className="flex items-center gap-2 p-2 text-left">
+    <div className={cn("flex flex-col overflow-hidden rounded-2xl border-l-4 text-sm shadow-card", GROUP_STYLE[meal.protein], open && "sm:col-span-2")}>
+      <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 items-center gap-3 p-2.5 text-left active:bg-black/5">
         {meal.image ? (
-          <img src={meal.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-10 shrink-0 rounded object-cover" />
+          <img src={meal.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-12 shrink-0 rounded-xl object-cover" />
         ) : (
-          <span className="size-10 shrink-0 rounded bg-background/60" />
+          <span className="size-12 shrink-0 rounded-xl bg-white/60" />
         )}
         <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="font-medium break-words hyphens-auto">{meal.name}</span>
+          <span className="text-[15px] leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
           <FoodIcons starch={meal.starch} isPulse={meal.isPulse} className="text-base" />
         </span>
         <GlutenBadge status={meal.gluten} />
       </button>
       {open && (
-        <div className="flex flex-col gap-2 border-t bg-card/70 p-2">
+        <div className="flex flex-col gap-2 bg-card p-3">
           {editing ? (
             <MealForm
               initial={{ name_en: meal.name_en, name_es: meal.name_es, protein: meal.protein, ingredients: meal.ingredients }}
@@ -207,7 +207,7 @@ function MealForm({
             type="button"
             onClick={() => setF({ ...f, protein: g })}
             aria-pressed={f.protein === g}
-            className={cn("rounded-full border px-3 py-1", f.protein === g ? "border-primary bg-primary text-primary-foreground" : "bg-background")}
+            className={cn("rounded-full px-3.5 py-1.5 font-medium", f.protein === g ? "bg-primary text-primary-foreground" : "bg-muted")}
           >
             {t.protein[g]}
           </button>
@@ -221,11 +221,11 @@ function MealForm({
           value={f.text}
           onChange={(e) => setF({ ...f, text: e.target.value })}
           rows={Math.min(14, Math.max(5, f.text.split("\n").length + 1))}
-          className="rounded-md border bg-background px-3 py-2 text-sm"
+          className="rounded-xl bg-muted px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </label>
       {suggested && suggested.length > 0 && !f.text.trim() && (
-        <div className="flex flex-col gap-1 rounded-md bg-muted p-2 text-xs">
+        <div className="flex flex-col gap-1 rounded-xl bg-muted p-2.5 text-xs">
           <span>
             {t.meals.recipeIngredients(suggestedFrom ?? "")} {suggested.join(", ")}
           </span>
@@ -270,13 +270,13 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
     });
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-card p-3 text-sm">
-      <div className="flex gap-1">
+    <div className="flex flex-col gap-3 rounded-2xl bg-card p-4 text-sm shadow-card">
+      <div className="flex gap-1 self-start rounded-xl bg-muted p-1">
         {(["link", "hand"] as const).map((m) => (
           <button
             key={m}
             onClick={() => (setMode(m), setFound(null), setError(null))}
-            className={cn("rounded-full border px-3 py-1", mode === m ? "border-primary bg-primary text-primary-foreground" : "bg-background")}
+            className={cn("rounded-lg px-3.5 py-1.5 font-medium", mode === m ? "bg-card shadow-card" : "text-muted-foreground")}
           >
             {m === "link" ? t.meals.fromLink : t.meals.byHand}
           </button>
@@ -309,7 +309,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
 
       {mode === "link" && found && (
         <>
-          {found.image && <img src={found.image} alt="" referrerPolicy="no-referrer" className="h-28 w-28 rounded object-cover" />}
+          {found.image && <img src={found.image} alt="" referrerPolicy="no-referrer" className="h-28 w-28 rounded-xl object-cover" />}
           <MealForm
             initial={found.initial}
             onSave={(edit) => createMeal({ ...edit, image: found.image, url: found.url })}
