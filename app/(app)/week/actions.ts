@@ -5,7 +5,9 @@ import { applyConfirmation, screenMeal } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import { resolveImage, type ImageMeal } from "@/lib/images/resolve";
-import { DAYS, SLOTS, type Day, type Slot } from "@/lib/planner/rules";
+import { generateWeek, type Relaxed } from "@/lib/planner/generate";
+import { DAYS, SLOTS, type Day, type PlanMeal, type Slot } from "@/lib/planner/rules";
+import { loadWeek } from "./load";
 
 // Every correction on the grid. Anything the owner touches becomes locked, and
 // each action is logged in adjustments so the learning phase can count them.
@@ -60,7 +62,7 @@ async function writeSlot(
   const { data, error } = await supabase
     .from("plan_slots")
     .upsert(
-      { household_id: householdId, week_start: week, day, slot, changed_by_user: true, is_takeaway: false, ...values },
+      { household_id: householdId, week_start: week, day, slot, changed_by_user: true, is_takeaway: false, why_line: null, ...values },
       { onConflict: "household_id,week_start,day,slot" },
     )
     .select("id")
@@ -144,12 +146,50 @@ export async function clearCell(week: string, day: string, slot: string): Promis
   if (!s) return { ok: true };
   const { error } = await ctx.supabase
     .from("plan_slots")
-    .update({ meal_id: null, as_written: null, is_takeaway: false, status: "proposed", changed_by_user: true })
+    .update({ meal_id: null, as_written: null, is_takeaway: false, status: "proposed", changed_by_user: true, why_line: null })
     .eq("id", s.id);
   if (error) return { ok: false, error: error.message };
   const adjustmentId = await log(ctx, { slot_id: s.id, action: "remove", from_meal: s.meal_id });
   revalidatePath("/week");
   return { ok: true, adjustmentId };
+}
+
+// Suggest a whole week: every slot that is not locked gets a meal that keeps the rules.
+// Each press sends a new seed, so pressing again gives a different week.
+export async function generatePlan(
+  week: string,
+  seed: number,
+): Promise<{ ok: true; filled: number; relaxed: Relaxed[] } | { ok: false; error: string }> {
+  const { lang, t } = await getMessages();
+  if (!isWeek(week) || !Number.isInteger(seed)) return { ok: false, error: t.actions.unknownCell };
+  const ctx = await context();
+  const data = await loadWeek(week, lang);
+  if (!data || "error" in data) return { ok: false, error: data?.error ?? "No household" };
+  const meals = new Map<string, PlanMeal>(data.meals.map((m) => [m.id, m]));
+  const keep = data.cells.filter((c) => c.locked).map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId }));
+  if (keep.length === DAYS.length * SLOTS.length) return { ok: false, error: t.gen.allLocked };
+  const result = generateWeek({ weekStart: week, meals, history: data.history, keep, seed, lang });
+  if (result.unfilled.length) return { ok: false, error: t.gen.failed };
+
+  const { error } = await ctx.supabase.from("plan_slots").upsert(
+    result.cells.map((c) => ({
+      household_id: ctx.householdId,
+      week_start: week,
+      day: c.day,
+      slot: c.slot,
+      meal_id: c.mealId,
+      as_written: meals.get(c.mealId)!.name,
+      status: "proposed",
+      is_leftover: false,
+      is_takeaway: false,
+      changed_by_user: false,
+      why_line: c.why,
+    })),
+    { onConflict: "household_id,week_start,day,slot" },
+  );
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/week");
+  return { ok: true, filled: result.cells.length, relaxed: result.relaxed };
 }
 
 const REASONS = ["too much pasta", "not in the mood", "no time", "guests", "other"];

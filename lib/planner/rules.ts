@@ -81,6 +81,10 @@ function lastUseBefore(history: Use[], mealId: string, date: string): string | n
   return last;
 }
 
+// Pizza on Saturday dinner or a roast on Sunday lunch.
+export const isTraditionCell = (c: { day: string; slot: string }, m: PlanMeal) =>
+  (c.day === "sun" && c.slot === "lunch" && m.tags.isRoast) || (c.day === "sat" && c.slot === "dinner" && m.tags.isPizza);
+
 export function isNewMeal(history: Use[], mealId: string, weekStart: string) {
   return !history.some((u) => u.mealId === mealId && u.date < weekStart);
 }
@@ -178,9 +182,11 @@ export function checkWeek({ weekStart, cells, meals, history, lang = "en" }: Wee
       cells: filled.filter((c) => newIds.includes(c.mealId!)).map(cellKey),
     });
 
-  // Recency: not within 3 weeks (2 if pinned).
+  // Recency: not within 3 weeks (2 if pinned). The weekly traditions are exempt:
+  // pizza every Saturday night and the Sunday roast are the point.
   for (const c of filled) {
     const m = mealOf(c);
+    if (isTraditionCell(c, m)) continue;
     const date = cellDate(weekStart, c.day);
     const last = lastUseBefore(history, m.id, weekStart);
     if (!last) continue;
@@ -240,7 +246,7 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
       const gap = last ? daysBetween(last, date) : null;
       return { m, last, gap };
     })
-    .filter(({ m, gap }) => gap === null || gap >= (m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays));
+    .filter(({ m, gap }) => gap === null || isTraditionCell(cell, m) || gap >= (m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays));
 
   const rank = ({ m, last }: (typeof pool)[number]) => [
     tradition === "roast" ? (m.tags.isRoast ? 0 : 1) : tradition === "pizza" ? (m.tags.isPizza ? 0 : 1) : 0,
