@@ -36,7 +36,7 @@ export default async function HouseholdPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-bold">{t.household.title}</h1>
+      <h1 className="text-[28px] leading-tight font-bold tracking-tight">{t.household.title}</h1>
       <Card>
         <CardHeader>
           <CardTitle>{t.household.who}</CardTitle>

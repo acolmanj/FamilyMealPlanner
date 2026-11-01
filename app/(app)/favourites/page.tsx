@@ -34,12 +34,12 @@ export default async function FavouritesPage() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold">{t.favourites.title}</h1>
+        <h1 className="text-[28px] leading-tight font-bold tracking-tight">{t.favourites.title}</h1>
         <p className="text-sm text-muted-foreground">{t.favourites.intro(meals.length, confirmed)}</p>
       </div>
 
       {confirmed === 0 && (
-        <div className="rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+        <div className="rounded-2xl bg-warning/10 p-3.5 text-sm">
           <strong>{t.gluten.openDecision}</strong> {t.favourites.openText}
         </div>
       )}

@@ -15,19 +15,19 @@ export default async function WeekPage({ searchParams }: { searchParams: Promise
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-2">
-        <Link href={`/week?w=${addDays(week, -7)}`} className="rounded-full px-2 py-1.5 text-sm whitespace-nowrap text-muted-foreground hover:bg-muted" aria-label={t.week.prevLabel}>
+        <Link href={`/week?w=${addDays(week, -7)}`} className="flex h-10 min-w-10 items-center justify-center rounded-full bg-card px-3 text-[15px] font-medium whitespace-nowrap text-primary shadow-card active:scale-95" aria-label={t.week.prevLabel}>
           {t.week.prev}
         </Link>
         <div className="text-center">
-          <h1 className="text-lg font-bold">{t.week.weekOf(formatDay(week, lang))}</h1>
+          <h1 className="text-xl font-bold tracking-tight">{t.week.weekOf(formatDay(week, lang))}</h1>
           <p className="text-xs text-muted-foreground">
             {t.week.range(formatDay(week, lang), formatDay(addDays(week, DAYS.length - 1), lang))} ·{" "}
-            <Link href={`/week/check?w=${week}`} className="underline">
+            <Link href={`/week/check?w=${week}`} className="font-medium whitespace-nowrap text-primary">
               {t.week.check}
             </Link>
           </p>
         </div>
-        <Link href={`/week?w=${addDays(week, 7)}`} className="rounded-full px-2 py-1.5 text-sm whitespace-nowrap text-muted-foreground hover:bg-muted" aria-label={t.week.nextLabel}>
+        <Link href={`/week?w=${addDays(week, 7)}`} className="flex h-10 min-w-10 items-center justify-center rounded-full bg-card px-3 text-[15px] font-medium whitespace-nowrap text-primary shadow-card active:scale-95" aria-label={t.week.nextLabel}>
           {t.week.next}
         </Link>
       </div>

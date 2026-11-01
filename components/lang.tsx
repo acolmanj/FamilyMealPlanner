@@ -59,7 +59,7 @@ export function LangSwitch() {
     ["es", <EsFlag key="es" />, t.spanish],
   ];
   return (
-    <div role="group" aria-label={t.language} className={cn("flex items-center gap-1", pending && "opacity-60")}>
+    <div role="group" aria-label={t.language} className={cn("flex items-center gap-0.5 rounded-lg bg-black/5 p-0.5", pending && "opacity-60")}>
       {flags.map(([l, flag, label]) => (
         <button
           key={l}
@@ -68,8 +68,8 @@ export function LangSwitch() {
           aria-label={label}
           title={label}
           className={cn(
-            "flex items-center rounded-md border p-1",
-            lang === l ? "border-primary bg-primary/10" : "border-transparent opacity-60 hover:opacity-100",
+            "flex items-center rounded-md px-1.5 py-1 transition",
+            lang === l ? "bg-card shadow-card" : "opacity-50 hover:opacity-100",
           )}
         >
           {flag}
