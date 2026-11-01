@@ -23,7 +23,7 @@ import {
 } from "@/lib/planner/rules";
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
-import { addNewMeal, clearCell, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
+import { addNewMeal, clearCell, generatePlan, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
 import type { BoardCell, BoardMeal } from "./load";
 import { useResolveImages } from "./resolve-images";
 
@@ -57,7 +57,7 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
     case "set":
       return [
         ...cells.filter((c) => !same(c, ch)),
-        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, locked: true, leftover: false },
+        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, locked: true, leftover: false, why: null },
       ];
     case "clear":
       return cells.filter((c) => !same(c, ch));
@@ -68,7 +68,7 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
       const b = cells.find((c) => same(c, ch.to));
       if (!a) return cells;
       const rest = cells.filter((c) => c !== a && c !== b);
-      return [...rest, { ...a, ...ch.to, locked: true }, ...(b ? [{ ...b, ...ch.from, locked: true }] : [])];
+      return [...rest, { ...a, ...ch.to, locked: true, why: null }, ...(b ? [{ ...b, ...ch.from, locked: true, why: null }] : [])];
     }
   }
 }
@@ -311,6 +311,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
       )}
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
+        <GenerateBar week={week} cells={shown} busy={pending} />
         {error && !sheetUp && <p className="rounded-xl bg-destructive/10 p-2 text-sm text-destructive sm:hidden">{error}</p>}
         <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs" aria-busy={pending}>
           <span />
@@ -360,6 +361,43 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
           {drag.data.label}
         </div>
       )}
+    </div>
+  );
+}
+
+// Suggest a whole week, as often as wanted. Locked meals stay; everything else is refilled.
+function GenerateBar({ week, cells, busy }: { week: string; cells: BoardCell[]; busy: boolean }) {
+  const { t } = useLang();
+  const [working, startWorking] = useTransition();
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const hasSuggestion = cells.some((c) => c.why && !c.locked);
+  // Meals the owner put in by hand (or imported) but did not lock would be replaced.
+  const handMade = cells.filter((c) => !c.locked && !c.why).length;
+
+  const go = () => {
+    if (handMade && !window.confirm(t.gen.confirmReplace(handMade))) return;
+    setNote(null);
+    startWorking(async () => {
+      const r = await generatePlan(week, Math.floor(Math.random() * 2 ** 31));
+      if (!r.ok) return setNote({ ok: false, text: r.error });
+      const extra = [r.relaxed.includes("starch") ? t.gen.relaxedStarch : null, r.relaxed.some((x) => x.startsWith("recency")) ? t.gen.relaxedRecency : null];
+      setNote({ ok: true, text: [t.gen.done(r.filled), ...extra].filter(Boolean).join(" ") });
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        onClick={go}
+        disabled={working || busy}
+        className="flex h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-full bg-primary px-5 text-[17px] font-semibold text-primary-foreground shadow-card transition active:scale-[0.98] disabled:opacity-60 sm:h-10 sm:w-auto sm:self-start sm:text-[15px]"
+      >
+        <span aria-hidden="true" className={cn(working && "animate-spin")}>{hasSuggestion ? "↻" : "✨"}</span>
+        {working ? t.gen.working : hasSuggestion ? t.gen.regenerate : t.gen.generate}
+      </button>
+      <p role="status" className={cn("px-1 text-xs", note && !note.ok ? "text-destructive" : "text-muted-foreground")}>
+        {note?.text ?? t.gen.help}
+      </p>
     </div>
   );
 }
@@ -585,6 +623,8 @@ function CellPanel({
           </span>
         </div>
       )}
+
+      {cell?.why && mode === "main" && <p className="text-muted-foreground">{t.gen.why(cell.why)}</p>}
 
       {meal && mode === "main" && <RecipeNote meal={meal} />}
 

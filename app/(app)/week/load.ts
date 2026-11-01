@@ -11,7 +11,7 @@ export type MealImage = { url: string; source: string | null; page: string | nul
 // A recipe idea from TheMealDB, with what the gluten gate finds in its ingredient list as written.
 export type RecipeIdea = { name: string; url: string; gluten: { term: string; swap?: string }[] };
 export type BoardMeal = { id: string; name: string; pinned: boolean; tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null };
-export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; locked: boolean; leftover: boolean };
+export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; locked: boolean; leftover: boolean; why: string | null };
 
 type MealRow = {
   id: string;
@@ -42,6 +42,7 @@ type SlotRow = {
   as_written: string | null;
   status: string;
   is_leftover: boolean;
+  why_line: string | null;
 };
 
 export function weekFromParam(w?: string) {
@@ -72,7 +73,7 @@ export async function loadWeek(week: string, lang: Lang = "en") {
       .eq("blacklisted", false)
       .order("name")
       .returns<MealRow[]>(),
-    supabase.from("plan_slots").select("week_start, day, slot, meal_id, as_written, status, is_leftover").returns<SlotRow[]>(),
+    supabase.from("plan_slots").select("week_start, day, slot, meal_id, as_written, status, is_leftover, why_line").returns<SlotRow[]>(),
   ]);
   if (error) return { error: error.message } as const;
 
@@ -99,6 +100,7 @@ export async function loadWeek(week: string, lang: Lang = "en") {
       text: s.as_written ? s.as_written.split(/:\s|: ?https?:/)[0].trim() : null,
       locked: s.status === "locked",
       leftover: s.is_leftover,
+      why: s.why_line,
     }));
 
   const history: Use[] = (slots ?? [])
