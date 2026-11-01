@@ -63,15 +63,18 @@ describe("seed data parsing", () => {
     expect(data.slots.filter((s) => s.isLeftover || s.isTakeaway).every((s) => s.nameGroup === null)).toBe(true);
   });
 
-  it("loads favourite counts but marks none as favourite until the owner confirms", () => {
+  it("loads favourite counts and marks the ones the owner confirmed", () => {
     const withCount = data.meals.filter((m) => m.favouriteSeenCount !== null);
     expect(withCount).toHaveLength(11);
-    expect(data.meals.some((m) => m.isFavourite)).toBe(false);
+    // John confirmed all 11 in Seed/favourites_seed.csv.
+    expect(data.meals.filter((m) => m.isFavourite)).toHaveLength(11);
   });
 
-  it("marks a favourite when the owner confirms it in the CSV", () => {
-    const confirmed = files.favouritesCsv.replace("Pizza,8,Pizza | Pizza y croquetas | Pizza y nuggets,", "Pizza,8,Pizza | Pizza y croquetas | Pizza y nuggets,yes");
-    const d = parseSeedData({ ...files, favouritesCsv: confirmed });
+  it("marks a favourite only when the owner confirms it in the CSV", () => {
+    const one = files.favouritesCsv
+      .replace(/,yes(\r?\n|$)/g, ",$1")
+      .replace("Pizza,8,Pizza | Pizza y croquetas | Pizza y nuggets,", "Pizza,8,Pizza | Pizza y croquetas | Pizza y nuggets,yes");
+    const d = parseSeedData({ ...files, favouritesCsv: one });
     expect(d.meals.filter((m) => m.isFavourite).map((m) => m.nameGroup)).toEqual(["Pizza"]);
   });
 
