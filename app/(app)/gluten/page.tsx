@@ -5,7 +5,7 @@ import { GlutenBadge } from "@/components/gluten-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerdictDetails } from "@/components/verdict-details";
 import { getMessages } from "@/lib/i18n/server";
-import { formatDate, mealName, type Messages } from "@/lib/i18n/messages";
+import { cleanTitle, formatDate, mealName, type Messages } from "@/lib/i18n/messages";
 import { applyConfirmation, screenMeal, type Status, type Verdict } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
 import { cn } from "@/lib/utils";
@@ -136,7 +136,7 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
                           {t.days[s.day as keyof Messages["days"]]} {t.slots[s.slot as keyof Messages["slots"]]}
                         </span>
                         <br />
-                        {s.meals ? mealName(s.meals, lang) : s.as_written!.split(/:\s|: ?https?:/)[0]}
+                        {s.meals ? mealName(s.meals, lang) : cleanTitle(s.as_written!.split(/:\s|: ?https?:/)[0])}
                       </span>
                       <GlutenBadge status={v.status} />
                     </div>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { localiseVerdict } from "../lib/gluten/es";
 import { RULES, screenMeal } from "../lib/gluten/gate";
-import { MESSAGES, mealName } from "../lib/i18n/messages";
+import { MESSAGES, cleanTitle, mealName } from "../lib/i18n/messages";
 import { checkWeek, type PlanMeal } from "../lib/planner/rules";
 import { mealTags } from "../lib/planner/tags";
 
@@ -43,5 +43,14 @@ describe("English and Spanish", () => {
     ];
     const { warnings } = checkWeek({ weekStart: "2026-11-02", cells, meals, history: [], lang: "es" });
     expect(warnings.map((w) => w.text)).toContain("Pasta con pollo está 2 veces en la semana");
+  });
+});
+
+describe("meal titles", () => {
+  it("drops notes in brackets", () => {
+    expect(cleanTitle("Crab curry (Jamie)")).toBe("Crab curry");
+    expect(cleanTitle("Smash burgers (Alex) with salad")).toBe("Smash burgers with salad");
+    expect(cleanTitle("Lentejas estofadas")).toBe("Lentejas estofadas");
+    expect(cleanTitle("(Alex)")).toBe("(Alex)");
   });
 });

@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getHousehold } from "@/lib/household";
-import { formatDate, mealName, type Lang, type Messages } from "@/lib/i18n/messages";
+import { cleanTitle, formatDate, mealName, type Lang, type Messages } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
 import { cn } from "@/lib/utils";
 
@@ -85,7 +85,7 @@ function Cell({ slot, lang, t }: { slot?: Slot } & Lt) {
     return <span className="rounded-md bg-muted/60 px-2 py-1.5 text-xs text-muted-foreground italic">{t.history.blank}</span>;
   }
   // The library name in the chosen language, else the dish as written without the ingredient list after the colon.
-  const text = slot.meals ? mealName(slot.meals, lang) : slot.as_written.split(":")[0].trim();
+  const text = slot.meals ? mealName(slot.meals, lang) : cleanTitle(slot.as_written.split(":")[0].trim());
   return (
     <span
       className={cn(
