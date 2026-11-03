@@ -7,7 +7,7 @@ import { useLang } from "@/components/lang";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalise } from "@/lib/gluten/gate";
-import type { Messages } from "@/lib/i18n/messages";
+import { cleanTitle, type Messages } from "@/lib/i18n/messages";
 import {
   DAYS,
   SLOTS,
@@ -394,7 +394,7 @@ function DayRow({
         const key = cellKey({ day, slot });
         const c = cells.find((x) => x.day === day && x.slot === slot);
         const m = c?.mealId ? meals.get(c.mealId) : undefined;
-        const label = m?.name ?? c?.text ?? "";
+        const label = m?.name ?? cleanTitle(c?.text ?? "");
         return (
           <button
             key={slot}
@@ -417,7 +417,6 @@ function DayRow({
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
                   <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
                   <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
-                    {c.locked && <span title={t.board.locked}>🔒</span>}
                     {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} className="text-sm" />}
                     {m?.tags.isProcessed && <span>{t.board.processed}</span>}
                     {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
@@ -570,7 +569,7 @@ function CellPanel({
           <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
             {t.days[day]} {t.slots[slot]}
           </p>
-          <p className="text-[17px] leading-snug font-semibold sm:text-sm">{cell ? (meal?.name ?? cell.text) : t.board.empty}</p>
+          <p className="text-[17px] leading-snug font-semibold sm:text-sm">{cell ? (meal?.name ?? cleanTitle(cell.text ?? "")) : t.board.empty}</p>
         </div>
         <button onClick={onClose} className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-lg leading-none text-muted-foreground" aria-label={t.board.close}>
           ×
@@ -763,7 +762,7 @@ function MoveRow({
             onClick={() => onPick({ day, slot })}
             className={cn("min-h-10 truncate rounded-lg bg-muted px-1.5 text-left", isHere && "bg-primary/15 font-semibold text-primary", !c && "border border-dashed border-black/15 bg-transparent")}
           >
-            {isHere ? t.board.here : ((c?.mealId && meals.get(c.mealId)?.name) || c?.text || "")}
+            {isHere ? t.board.here : ((c?.mealId && meals.get(c.mealId)?.name) || cleanTitle(c?.text ?? ""))}
           </button>
         );
       })}

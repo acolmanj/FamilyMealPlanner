@@ -181,13 +181,16 @@ const en = {
     couldNotLoad: (e: string) => `Could not load favourites: ${e}`,
     intro: (n: number, c: number) => `${n} meal groups eaten 3 or more times in the last 8 weeks. ${c} confirmed as favourite.`,
     openText:
-      "none of these are marked as favourites yet. Put yes in the confirm_as_favourite column of Seed/favourites_seed.csv for the ones you want, and they will be marked the next time the seed runs.",
+      "none of these are marked as favourites yet. Tap “Mark as favourite” on the ones you want.",
     favourite: "★ Favourite",
     awaiting: "Awaiting your yes",
+    markFavourite: "☆ Mark as favourite",
+    unmark: "Not a favourite",
+    unmarkLabel: (name: string) => `Remove ${name} from favourites`,
+    markLabel: (name: string) => `Mark ${name} as favourite`,
     eaten: (n: number) => `Eaten ${n} times in the last 8 weeks`,
     lastOn: (d: string) => `, last on ${d}`,
     writtenAs: (t: string) => `Written as: ${t}`,
-    hint: (h: string) => `Gluten hint (not a check yet): ${h}`,
   },
 
   history: {
@@ -444,13 +447,16 @@ const es: Messages = {
     couldNotLoad: (e: string) => `No se pudieron cargar las favoritas: ${e}`,
     intro: (n: number, c: number) => `${n} grupos de comidas tomados 3 o más veces en las últimas 8 semanas. ${c} confirmadas como favoritas.`,
     openText:
-      "ninguna está marcada como favorita todavía. Pon yes en la columna confirm_as_favourite de Seed/favourites_seed.csv para las que quieras, y se marcarán la próxima vez que se cargue la semilla.",
+      "ninguna está marcada como favorita todavía. Pulsa “Marcar como favorita” en las que quieras.",
     favourite: "★ Favorita",
     awaiting: "Esperando tu sí",
+    markFavourite: "☆ Marcar como favorita",
+    unmark: "No es favorita",
+    unmarkLabel: (name: string) => `Quitar ${name} de favoritas`,
+    markLabel: (name: string) => `Marcar ${name} como favorita`,
     eaten: (n: number) => `Tomada ${n} veces en las últimas 8 semanas`,
     lastOn: (d: string) => `, la última el ${d}`,
     writtenAs: (t: string) => `Escrita como: ${t}`,
-    hint: (h: string) => `Pista de gluten (aún no es una revisión): ${h}`,
   },
 
   history: {
@@ -536,8 +542,13 @@ export const MESSAGES: Record<Lang, Messages> = { en, es };
 export const messages = (lang: Lang) => MESSAGES[lang];
 
 // The meal's name in the chosen language, falling back to the name it was written with.
+// Notes in brackets, like "(Jamie)" or "(One Pot Book)", stay in the data but are not shown.
+export function cleanTitle(name: string) {
+  return name.replace(/\s*\([^)]*\)/g, "").replace(/\s+/g, " ").trim() || name;
+}
+
 export function mealName(m: { name: string; name_en?: string | null; name_es?: string | null }, lang: Lang) {
-  return (lang === "es" ? m.name_es : m.name_en) || m.name;
+  return cleanTitle((lang === "es" ? m.name_es : m.name_en) || m.name);
 }
 
 export function formatDate(iso: string, lang: Lang) {
