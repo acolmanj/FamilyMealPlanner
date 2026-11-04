@@ -16,6 +16,8 @@ export type Tags = {
   isRoast: boolean;
   isPizza: boolean;
   isPulse: boolean;
+  // Rice anywhere in the meal: its name, ingredient notes or recipe ingredients.
+  hasRice: boolean;
   // True for each field that came from the name, not from the library.
   guessed: { protein: boolean; starch: boolean; isPasta: boolean; isProcessed: boolean; effort: boolean };
 };
@@ -27,6 +29,8 @@ export type MealAttrs = {
   is_pasta?: boolean | null;
   is_processed?: boolean | null;
   effort?: string | null;
+  ingredients_note?: string | null;
+  mealdb_ingredients?: string[] | null;
 };
 
 const FISH = [
@@ -54,6 +58,15 @@ const PULSES = [
   "frijoles", "habas", "dal", "dhal", "pulses",
 ];
 
+const RICE = ["arroz", "rice", "risotto", "risoto", "paella", "basmati", "biryani"];
+// Rice products that are not a plate of rice.
+const NOT_RICE = /\brice (noodles?|vermicelli|vinegar|wine|flour|paper|cakes?|krispies|milk|syrup)\b/g;
+
+export function containsRice(...texts: (string | null | undefined)[]) {
+  const t = normalise(texts.filter(Boolean).join(" · ")).replace(NOT_RICE, "");
+  return has(t, RICE);
+}
+
 function has(text: string, terms: string[]) {
   return terms.some((t) => text.includes(normalise(t)));
 }
@@ -72,6 +85,7 @@ export function guessTags(name: string): Omit<Tags, "guessed"> {
     isRoast: has(t, ROAST),
     isPizza: has(t, ["pizza"]),
     isPulse: has(t, PULSES),
+    hasRice: containsRice(name),
   };
 }
 
@@ -92,6 +106,7 @@ export function mealTags(meal: MealAttrs): Tags {
     isRoast: g.isRoast,
     isPizza: g.isPizza,
     isPulse: g.isPulse,
+    hasRice: (starch === undefined ? g.starch : starch) === "rice" || containsRice(meal.name, meal.ingredients_note, ...(meal.mealdb_ingredients ?? [])),
     guessed: {
       protein: !protein,
       starch: !meal.starch,

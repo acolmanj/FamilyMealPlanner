@@ -417,7 +417,7 @@ function DayRow({
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
                   <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
                   <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
-                    {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} className="text-sm" />}
+                    {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} hasRice={m.tags.hasRice} className="text-sm" />}
                     {m?.tags.isProcessed && <span>{t.board.processed}</span>}
                     {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
                     {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
@@ -452,7 +452,7 @@ function MealTile({ meal, why, picked, onClick, extra }: { meal: PlanMeal; why?:
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
         <span className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
-          <FoodIcons starch={meal.tags.starch} isPasta={meal.tags.isPasta} isPulse={meal.tags.isPulse} className="text-sm" />
+          <FoodIcons starch={meal.tags.starch} isPasta={meal.tags.isPasta} isPulse={meal.tags.isPulse} hasRice={meal.tags.hasRice} className="text-sm" />
           <span>{[meal.tags.isProcessed ? t.board.processed : null, why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}</span>
         </span>
       </span>
