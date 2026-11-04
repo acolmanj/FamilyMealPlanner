@@ -53,6 +53,7 @@ export default async function MealsPage() {
       protein: tags.protein,
       starch: tags.isPasta ? "pasta" : tags.starch,
       isPulse: tags.isPulse,
+      hasRice: tags.hasRice,
       ingredients: splitIngredients(m.ingredients_note),
       recipeIngredients: m.mealdb_ingredients?.length ? m.mealdb_ingredients : null,
       gluten: applyConfirmation(

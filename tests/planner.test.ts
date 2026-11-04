@@ -190,3 +190,15 @@ describe("swap suggestions", () => {
     expect(suggestAlternatives(args)).toEqual(suggestAlternatives(args));
   });
 });
+
+describe("rice", () => {
+  it("spots rice in the name, notes or recipe ingredients", () => {
+    expect(guessTags("Salmón con arroz").hasRice).toBe(true);
+    expect(guessTags("Risotto").hasRice).toBe(true);
+    expect(guessTags("Pasta pesto").hasRice).toBe(false);
+    expect(mealTags({ name: "Pisto", ingredients_note: "pisto, arroz blanco" }).hasRice).toBe(true);
+    expect(mealTags({ name: "Chicken curry", mealdb_ingredients: ["Chicken", "Basmati Rice"] }).hasRice).toBe(true);
+    expect(mealTags({ name: "Stir fry", mealdb_ingredients: ["Rice Noodles", "Rice Vinegar"] }).hasRice).toBe(false);
+    expect(mealTags({ name: "Bowl", starch: "rice" }).hasRice).toBe(true);
+  });
+});

@@ -20,6 +20,7 @@ export type LibraryMeal = {
   protein: Protein;
   starch: Starch | null;
   isPulse: boolean;
+  hasRice: boolean;
   ingredients: string[];
   recipeIngredients: string[] | null;
   gluten: Status;
@@ -110,7 +111,7 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
         )}
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-[15px] leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
-          <FoodIcons starch={meal.starch} isPulse={meal.isPulse} className="text-base" />
+          <FoodIcons starch={meal.starch} isPulse={meal.isPulse} hasRice={meal.hasRice} className="text-base" />
         </span>
         <GlutenBadge status={meal.gluten} />
       </button>
