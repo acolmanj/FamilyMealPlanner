@@ -2,7 +2,7 @@ import { localiseFinding } from "@/lib/gluten/es";
 import { applyConfirmation, screenMeal } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
 import { mealName, type Lang } from "@/lib/i18n/messages";
-import { addDays, cellDate, type Day, type Slot, type Use } from "@/lib/planner/rules";
+import { cellDate, type Day, type Slot, type Use } from "@/lib/planner/rules";
 import { mealTags, type Tags } from "@/lib/planner/tags";
 import { defaultWeek, mondayOf } from "@/lib/planner/week";
 import type { Status } from "@/lib/gluten/gate";
@@ -43,8 +43,6 @@ type SlotRow = {
   status: string;
   is_leftover: boolean;
 };
-
-export { defaultWeek, mondayOf } from "@/lib/planner/week";
 
 export function weekFromParam(w?: string) {
   return w && /^\d{4}-\d{2}-\d{2}$/.test(w) ? mondayOf(new Date(`${w}T00:00:00Z`)) : defaultWeek();
