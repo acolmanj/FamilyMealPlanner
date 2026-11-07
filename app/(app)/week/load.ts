@@ -4,6 +4,7 @@ import { getHousehold } from "@/lib/household";
 import { mealName, type Lang } from "@/lib/i18n/messages";
 import { addDays, cellDate, type Day, type Slot, type Use } from "@/lib/planner/rules";
 import { mealTags, type Tags } from "@/lib/planner/tags";
+import { defaultWeek, mondayOf } from "@/lib/planner/week";
 import type { Status } from "@/lib/gluten/gate";
 
 export type MealImage = { url: string; source: string | null; page: string | null };
@@ -43,17 +44,7 @@ type SlotRow = {
   is_leftover: boolean;
 };
 
-export function mondayOf(d: Date) {
-  const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7));
-  return x.toISOString().slice(0, 10);
-}
-
-// The week being planned: this week, or next week from Saturday on.
-export function defaultWeek(now = new Date()) {
-  const monday = mondayOf(now);
-  return now.getUTCDay() === 6 || now.getUTCDay() === 0 ? addDays(monday, 7) : monday;
-}
+export { defaultWeek, mondayOf } from "@/lib/planner/week";
 
 export function weekFromParam(w?: string) {
   return w && /^\d{4}-\d{2}-\d{2}$/.test(w) ? mondayOf(new Date(`${w}T00:00:00Z`)) : defaultWeek();
