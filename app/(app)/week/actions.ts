@@ -5,14 +5,11 @@ import { mealStatus } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import { resolveImage, type ImageMeal } from "@/lib/images/resolve";
-import { generateWeek, type Relaxed } from "@/lib/planner/generate";
-import { DAYS, SLOTS, type Day, type PlanMeal, type Slot } from "@/lib/planner/rules";
-import { passedDays, rerollKeep } from "@/lib/planner/plan";
-import { dublinToday } from "@/lib/planner/week";
-import { loadWeek } from "./load";
+import { DAYS, SLOTS, type Day, type Slot } from "@/lib/planner/rules";
 
-// Every correction on the grid. Anything the owner touches becomes locked, and
-// each action is logged in adjustments so the learning phase can count them.
+// Every correction on the grid. Anything the owner touches is marked as changed by
+// them, so Plan week's Undo leaves it alone. Each action is logged in adjustments
+// so the learning phase can count them.
 
 type Result = { ok: true; adjustmentId?: string } | { ok: false; error: string };
 
@@ -88,7 +85,7 @@ export async function setCellMeal(week: string, day: string, slot: string, mealI
     return { ok: false, error: (await say()).blocked(meal.name) };
 
   const before = await getSlot(ctx, week, day, slot);
-  const slotId = await writeSlot(ctx, week, day, slot, { meal_id: meal.id, as_written: meal.name, status: "locked" });
+  const slotId = await writeSlot(ctx, week, day, slot, { meal_id: meal.id, as_written: meal.name, status: "proposed" });
   const adjustmentId = await log(ctx, {
     slot_id: slotId,
     action: before?.meal_id ? "swap" : "add",
@@ -107,34 +104,19 @@ export async function moveCell(week: string, from: { day: string; slot: string }
   const b = await getSlot(ctx, week, to.day, to.slot);
   if (!a?.meal_id && !a?.as_written) return { ok: false, error: (await say()).nothingToMove };
   const empty = { meal_id: null, as_written: null, is_takeaway: false, status: "proposed" };
-  await writeSlot(ctx, week, to.day, to.slot, { meal_id: a.meal_id, as_written: a.as_written, is_takeaway: a.is_takeaway, status: "locked" });
+  await writeSlot(ctx, week, to.day, to.slot, { meal_id: a.meal_id, as_written: a.as_written, is_takeaway: a.is_takeaway, status: "proposed" });
   await writeSlot(
     ctx,
     week,
     from.day,
     from.slot,
     b && (b.meal_id || b.as_written)
-      ? { meal_id: b.meal_id, as_written: b.as_written, is_takeaway: b.is_takeaway, status: "locked" }
+      ? { meal_id: b.meal_id, as_written: b.as_written, is_takeaway: b.is_takeaway, status: "proposed" }
       : empty,
   );
   const adjustmentId = await log(ctx, { slot_id: a.id, action: "move", from_meal: a.meal_id, to_meal: b?.meal_id ?? null });
   revalidatePath("/week");
   return { ok: true, adjustmentId };
-}
-
-export async function setLocked(week: string, day: string, slot: string, locked: boolean): Promise<Result> {
-  if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: (await say()).unknownCell };
-  const ctx = await context();
-  const s = await getSlot(ctx, week, day, slot);
-  if (!s) return { ok: false, error: (await say()).nothingToLock };
-  const { error } = await ctx.supabase
-    .from("plan_slots")
-    .update({ status: locked ? "locked" : "proposed", changed_by_user: true })
-    .eq("id", s.id);
-  if (error) return { ok: false, error: error.message };
-  await log(ctx, { slot_id: s.id, action: locked ? "lock" : "unlock", from_meal: s.meal_id });
-  revalidatePath("/week");
-  return { ok: true };
 }
 
 export async function clearCell(week: string, day: string, slot: string): Promise<Result> {
@@ -150,46 +132,6 @@ export async function clearCell(week: string, day: string, slot: string): Promis
   const adjustmentId = await log(ctx, { slot_id: s.id, action: "remove", from_meal: s.meal_id });
   revalidatePath("/week");
   return { ok: true, adjustmentId };
-}
-
-// Try other suggestions: re-roll only the meals the planner proposed (not locked, with a
-// why line) on days still to come. Meals the owner chose, locked or ate stay, and so does
-// every day that has passed. Empty slots are for "Plan week".
-export async function generatePlan(
-  week: string,
-  seed: number,
-): Promise<{ ok: true; filled: number; relaxed: Relaxed[] } | { ok: false; error: string }> {
-  const { lang, t } = await getMessages();
-  if (!isWeek(week) || !Number.isInteger(seed)) return { ok: false, error: t.actions.unknownCell };
-  const ctx = await context();
-  const data = await loadWeek(week, lang);
-  if (!data || "error" in data) return { ok: false, error: data?.error ?? "No household" };
-  const meals = new Map<string, PlanMeal>(data.meals.map((m) => [m.id, m]));
-  // Days before today (Europe/Dublin) stay as they are, like Plan week.
-  const { keep, rerolled } = rerollKeep(data.cells, passedDays(week, dublinToday()));
-  if (!rerolled) return { ok: false, error: t.gen.allLocked };
-  const result = generateWeek({ weekStart: week, meals, history: data.history, keep, seed, lang });
-  if (result.unfilled.length) return { ok: false, error: t.gen.failed };
-
-  const { error } = await ctx.supabase.from("plan_slots").upsert(
-    result.cells.map((c) => ({
-      household_id: ctx.householdId,
-      week_start: week,
-      day: c.day,
-      slot: c.slot,
-      meal_id: c.mealId,
-      as_written: meals.get(c.mealId)!.name,
-      status: "proposed",
-      is_leftover: false,
-      is_takeaway: false,
-      changed_by_user: false,
-      why_line: c.why,
-    })),
-    { onConflict: "household_id,week_start,day,slot" },
-  );
-  if (error) return { ok: false, error: error.message };
-  revalidatePath("/week");
-  return { ok: true, filled: result.cells.length, relaxed: result.relaxed };
 }
 
 const REASONS = ["too much pasta", "not in the mood", "no time", "guests", "other"];
