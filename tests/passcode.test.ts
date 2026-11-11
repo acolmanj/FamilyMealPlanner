@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { passcodeMatches } from "@/lib/auth/passcode";
+import { passcodeMatches } from "../lib/auth/passcode";
 
 describe("family passcode", () => {
   it("accepts the passcode, ignoring capitals and spaces", () => {
