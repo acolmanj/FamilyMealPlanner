@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import { fetchRecipe } from "@/lib/recipes/fetch";
+import { isSobras, isTakeaway } from "@/lib/planner/not-a-meal";
 import { isSlotPref, type SlotPref } from "@/lib/planner/slot-pref";
 import type { ParsedRecipe } from "@/lib/recipes/parse";
 
@@ -23,8 +24,6 @@ export type NewMeal = MealEdit & { image: string | null; url: string | null };
 
 const clean = (s: string) => s.trim().replace(/\s+/g, " ").slice(0, 120);
 const PROTEINS = ["meat", "fish", "veg"];
-// Sobras (leftovers) are not a meal.
-const isSobras = (s: string) => /\b(sobras?|leftovers?)\b/i.test(s);
 
 async function context() {
   const { supabase, household } = await getHousehold();
@@ -39,7 +38,9 @@ function fields(e: MealEdit, t: Awaited<ReturnType<typeof context>>["t"]): { err
   const name_en = clean(e.name_en);
   const name_es = clean(e.name_es);
   if (!name_en && !name_es) return { error: t.meals.needName };
+  // Sobras (leftovers), take-away and eating out are not meals.
   if (isSobras(name_en) || isSobras(name_es)) return { error: t.actions.sobras };
+  if (isTakeaway(name_en) || isTakeaway(name_es)) return { error: t.actions.takeaway };
   if (!PROTEINS.includes(e.protein)) return { error: t.actions.pickProtein };
   const lines = e.ingredients.map(clean).filter(Boolean).slice(0, 60);
   return {

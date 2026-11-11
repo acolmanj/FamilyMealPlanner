@@ -213,8 +213,9 @@ const en = {
     title: "Gluten check",
     intro: "Every meal screened against the gluten list. Only gluten blocks; everything else is for you to check.",
     openDecision: "Open decision:",
+    answered: "Gluten list:",
     openText:
-      "the gluten list is still the draft in gluten_list_for_review.md, and its 7 questions are unanswered. Until you answer them the gate uses the strictest reading: tinned beans, tortilla chips, fish pie, stews, soups, pisto and take-aways all go to “Needs your check”. Meals you have confirmed you cook gluten-free show as Safe, with the GF products to buy still listed.",
+      "you answered its questions on 11 Nov 2026. Tinned food, nachos and tortilla chips need a label check; tinned fish, fish pie and anything labelled gluten free (Tesco Free From counts) are Safe; take-away and eating out are not meals, so they are not listed. Meals you have confirmed you cook gluten-free show as Safe, with the GF products to buy still listed.",
     couldNotLoad: (e: string) => `Could not load meals: ${e}`,
     tryMeal: "Check any meal",
     tryPlaceholder: "Type a meal, e.g. Chicken ramen",
@@ -333,6 +334,7 @@ const en = {
     pickProtein: "Pick meat, fish or veg",
     typeName: "Type the meal's name",
     sobras: "Leftovers are not a meal",
+    takeaway: "Take-away and eating out are not meals",
   },
 };
 
@@ -542,8 +544,9 @@ const es: Messages = {
     title: "Revisión de gluten",
     intro: "Cada comida revisada con la lista de gluten. Solo el gluten bloquea; todo lo demás lo revisas tú.",
     openDecision: "Decisión pendiente:",
+    answered: "Lista de gluten:",
     openText:
-      "la lista de gluten sigue siendo el borrador de gluten_list_for_review.md, y sus 7 preguntas están sin responder. Hasta que las respondas se usa la lectura más estricta: alubias de bote, nachos, pastel de pescado, guisos, sopas, pisto y comida para llevar van a “Revísala tú”. Las comidas que has confirmado que cocinas sin gluten aparecen como Seguras, con los productos sin gluten que comprar.",
+      "respondiste sus preguntas el 11 nov 2026. La comida en lata, los nachos y los totopos necesitan mirar la etiqueta; el pescado en lata, el pastel de pescado y todo lo etiquetado sin gluten (Tesco Free From cuenta) son Seguros; la comida para llevar y comer fuera no son comidas, así que no aparecen. Las comidas que has confirmado que cocinas sin gluten aparecen como Seguras, con los productos sin gluten que comprar.",
     couldNotLoad: (e: string) => `No se pudieron cargar las comidas: ${e}`,
     tryMeal: "Revisar cualquier comida",
     tryPlaceholder: "Escribe una comida, p. ej. Ramen de pollo",
@@ -662,6 +665,7 @@ const es: Messages = {
     pickProtein: "Elige carne, pescado o vegetariano",
     typeName: "Escribe el nombre de la comida",
     sobras: "Las sobras no son una comida",
+    takeaway: "La comida para llevar y comer fuera no son comidas",
   },
 };
 

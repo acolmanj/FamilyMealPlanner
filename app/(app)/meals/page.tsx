@@ -3,6 +3,7 @@ import { needsGfStock, outsideNoPlan } from "@/lib/gluten/outside";
 import { getHousehold } from "@/lib/household";
 import { mealName } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
+import { isNotAMeal } from "@/lib/planner/not-a-meal";
 import { isSlotPref } from "@/lib/planner/slot-pref";
 import { mealTags } from "@/lib/planner/tags";
 import { splitIngredients } from "@/lib/recipes/parse";
@@ -47,8 +48,8 @@ export default async function MealsPage() {
   if (error) return <p className="text-destructive">{t.gluten.couldNotLoad(error.message)}</p>;
 
   const meals: LibraryMeal[] = (data ?? [])
-    // Sobras (leftovers) are not a meal.
-    .filter((m) => !/\b(sobras?|leftovers?)\b/i.test(m.name))
+    // Sobras (leftovers), take-away and eating out are not meals.
+    .filter((m) => !isNotAMeal(m.name))
     .map((m) => ({ m, tags: mealTags(m) }))
     .map(({ m, tags }) => ({
       id: m.id,

@@ -2,6 +2,18 @@
 
 Copied unchanged from section 3 of "Weekly Meal Agent Instructions". This list is a starting point, not medical advice. Please review it once against Coeliac Society of Ireland guidance and edit it before the agent runs for real. Whatever you confirm here becomes the rule set for the gluten gate in the app.
 
+## Your answers (11 November 2026)
+
+John's reply: "Generally use as described." The list below is used as written, with these answers to the questions at the end:
+
+- **Q1. Tinned items:** all tinned food is "check the label" (Tier C). That includes tinned beans.
+- **Q2. Tinned fish:** all tinned fish is safe (Tier D), for example John West tuna in sunflower oil and Parmentier sardines in olive oil.
+- **Q3. Tesco Free From:** everything in the Tesco Free From range is safe, and so is anything else labelled gluten free. No separate gluten-free statement is needed.
+- **Q4. Fish pie:** safe. Thicken the sauce with cornflour and use a potato topping, no pastry.
+- **Q5. Pisto, lentil stews, soups and curries:** no separate answer, so they stay as described: use a GF-labelled stock and check the label on any paste or spice mix.
+- **Q6. Nachos and tortilla chips:** check the label.
+- **Q7. Take-away and eating out:** these are not meals and have no recipe. The app does not plan them, add them to the meal list or screen them, the same as Sobras (leftovers).
+
 | Tier | Rule | Items |
 | --- | --- | --- |
 | A. Never | Do not use, even in small amounts | Wheat, spelt, kamut, farro, durum, semolina, bulgur, couscous, barley, malt and malt extract, malt vinegar, rye, triticale, seitan; regular pasta, fideos and noodles (including ramen); gnocchi; breadcrumbs, batter and panko; regular bread, rolls, wraps, tortillas, pizza bases, pancakes, pastry, pies and cakes; beer, lager, ale and stout |
@@ -18,7 +30,7 @@ Copied unchanged from section 3 of "Weekly Meal Agent Instructions". This list i
 - Dried lentils, beans and rice: buy labelled GF if the pack is not clearly labelled.
 - Cross-contact: do not add advice about toasters, pasta water or chopping boards unless the person asks.
 
-## Questions to settle while you review
+## Questions to settle while you review (answered above)
 
 These come from what is in your own menu and receipts. They are questions, not answers.
 
