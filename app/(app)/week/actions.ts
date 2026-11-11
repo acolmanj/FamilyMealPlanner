@@ -7,6 +7,8 @@ import { getMessages } from "@/lib/i18n/server";
 import { resolveImage, type ImageMeal } from "@/lib/images/resolve";
 import { generateWeek, type Relaxed } from "@/lib/planner/generate";
 import { DAYS, SLOTS, type Day, type PlanMeal, type Slot } from "@/lib/planner/rules";
+import { passedDays, rerollKeep } from "@/lib/planner/plan";
+import { dublinToday } from "@/lib/planner/week";
 import { loadWeek } from "./load";
 
 // Every correction on the grid. Anything the owner touches becomes locked, and
@@ -151,7 +153,8 @@ export async function clearCell(week: string, day: string, slot: string): Promis
 }
 
 // Try other suggestions: re-roll only the meals the planner proposed (not locked, with a
-// why line). Meals the owner chose, locked or ate stay. Empty slots are for "Plan week".
+// why line) on days still to come. Meals the owner chose, locked or ate stay, and so does
+// every day that has passed. Empty slots are for "Plan week".
 export async function generatePlan(
   week: string,
   seed: number,
@@ -162,12 +165,9 @@ export async function generatePlan(
   const data = await loadWeek(week, lang);
   if (!data || "error" in data) return { ok: false, error: data?.error ?? "No household" };
   const meals = new Map<string, PlanMeal>(data.meals.map((m) => [m.id, m]));
-  const proposed = (c: (typeof data.cells)[number]) => !c.locked && Boolean(c.why);
-  if (!data.cells.some(proposed)) return { ok: false, error: t.gen.allLocked };
-  const keep = data.cells.filter((c) => !proposed(c)).map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId }));
-  // Empty slots stay empty: treat them as taken for this re-roll.
-  const taken = new Set(data.cells.map((c) => `${c.day}-${c.slot}`));
-  for (const day of DAYS) for (const slot of SLOTS) if (!taken.has(`${day}-${slot}`)) keep.push({ day, slot, mealId: null });
+  // Days before today (Europe/Dublin) stay as they are, like Plan week.
+  const { keep, rerolled } = rerollKeep(data.cells, passedDays(week, dublinToday()));
+  if (!rerolled) return { ok: false, error: t.gen.allLocked };
   const result = generateWeek({ weekStart: week, meals, history: data.history, keep, seed, lang });
   if (result.unfilled.length) return { ok: false, error: t.gen.failed };
 

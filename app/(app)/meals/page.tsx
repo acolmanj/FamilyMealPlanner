@@ -1,5 +1,5 @@
 import { mealStatus } from "@/lib/gluten/gate";
-import { outsideNoPlan } from "@/lib/gluten/outside";
+import { needsGfStock, outsideNoPlan } from "@/lib/gluten/outside";
 import { getHousehold } from "@/lib/household";
 import { mealName } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
@@ -68,6 +68,7 @@ export default async function MealsPage() {
       fromElPais: m.source === "elpais",
       newIdea: m.source === "elpais" && !m.gf_confirmed_at,
       noPlan: outsideNoPlan(m),
+      gfStock: m.source === "elpais" && needsGfStock(m.name_es ?? m.name, m.ingredients_note),
       image: m.image_url,
       imageSource: m.image_source,
       recipeUrl: m.source_url ?? (m.recipe_source && /^https?:\/\//.test(m.recipe_source) ? m.recipe_source : m.image_page_url),

@@ -69,6 +69,20 @@ const WORDS = [
   "flour",
   "breadcrumbs",
   "soy sauce",
+  "semola",
+  "worcestershire",
+  "perrins",
+  "obleas?",
+  "wonton",
+  "gyozas?",
+  "bao",
+  "miso",
+  // Dough of any kind, except corn dough.
+  "masas?(?! de maiz)",
+  "tortillas? de harina",
+  // A pastel is usually pastry or flour-thickened: left out rather than guessed.
+  "pasteles",
+  "pastel",
 ];
 const COVERED = new Set(["gf-flour", "pasta"]);
 const GLUTEN = new RegExp(`(?<= )(${WORDS.join("|")})(?= )`);
@@ -91,4 +105,12 @@ export function outsideNoPlan(m: { source: string | null; gf_confirmed_at: strin
   if (m.source !== "elpais" || m.gf_confirmed_at) return false;
   const lines = (m.ingredients_note ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
   return outsideVerdict(m.name_es ?? m.name, lines) !== "ok";
+}
+
+// Stock (caldo, a stock cube, Avecrem) is too common to leave a recipe out for, but the
+// cube or carton must be a gluten-free one: the meal and its cell say so.
+const STOCK = /(?<= )(caldos?|pastillas? de caldo|avecrem|stock|stock cubes?|bouillon)(?= )/;
+export function needsGfStock(name: string, ingredients: string | string[] | null) {
+  const text = [name, ...(Array.isArray(ingredients) ? ingredients : [ingredients ?? ""])].join(" · ");
+  return STOCK.test(normalise(text));
 }

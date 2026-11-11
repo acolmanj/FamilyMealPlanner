@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FAVOURITE_WEIGHT, generateWeek, rng, weightedShuffle } from "../lib/planner/generate";
-import { emptySlots, passedDays, planWeeks } from "../lib/planner/plan";
+import { emptySlots, passedDays, planWeeks, rerollKeep } from "../lib/planner/plan";
 import { DAYS, addDays, cellDate, checkWeek, slotFits, suggestAlternatives, type Cell, type PlanMeal, type Use } from "../lib/planner/rules";
 import { mealTags } from "../lib/planner/tags";
 import { parseSeedData } from "../lib/seed/build";
@@ -243,6 +243,22 @@ describe("plan week: this week and next", () => {
     expect(planWeeks({ weeks: [{ weekStart: A, cells: [] }], meals: MEALS, history: OLD, seed: 1, today: "2026-11-16" })[0]).toMatchObject({ empty: 0, cells: [] });
   });
 
+  it("Try other suggestions keeps days that have passed, like Plan week", () => {
+    const cells = [
+      { day: "mon" as const, slot: "lunch" as const, mealId: "a", locked: false, why: "pulses" },
+      { day: "tue" as const, slot: "dinner" as const, mealId: "b", locked: false, why: "new to the plan" },
+      { day: "wed" as const, slot: "lunch" as const, mealId: "c", locked: false, why: "the week's fish" },
+      { day: "thu" as const, slot: "lunch" as const, mealId: "d", locked: true, why: "pinned" },
+      { day: "fri" as const, slot: "dinner" as const, mealId: "e", locked: false, why: null },
+    ];
+    const { keep, rerolled } = rerollKeep(cells, passedDays(A, "2026-11-11"));
+    expect(rerolled).toBe(1); // only Wednesday's proposed lunch
+    expect(keep.filter((c) => c.mealId).map((c) => c.mealId).sort()).toEqual(["a", "b", "d", "e"]);
+    expect(keep).toHaveLength(13); // 14 slots less the one to re-roll
+    expect(rerollKeep(cells.slice(0, 2), ["mon", "tue"]).rerolled).toBe(0);
+    expect(rerollKeep(cells).rerolled).toBe(3);
+  });
+
   it("plans at most one new El País idea a week, never one blocked for gluten, and flags it", () => {
     const ideas: PlanMeal[] = [
       { id: "idea-1", name: "Garbanzos con espinacas", tags: mealTags({ name: "Garbanzos con espinacas" }), gluten: "needs_check", pinned: false, idea: true, slotPref: "either" },
@@ -262,7 +278,7 @@ describe("plan week: this week and next", () => {
         expect(used.map((c) => c.mealId)).not.toContain("idea-3");
         expect(used.map((c) => c.mealId)).not.toContain("idea-4");
         expect(used.map((c) => c.mealId)).not.toContain("idea-5");
-        for (const c of used) expect(c.why).toMatch(/El País \(New · check gluten\)/);
+        for (const c of used) expect(c.why).toMatch(/from El País$/);
         planned += used.length;
       }
     }

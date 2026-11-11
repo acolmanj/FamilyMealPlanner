@@ -36,6 +36,8 @@ export type LibraryMeal = {
   newIdea: boolean;
   // Never planned until checked (no ingredient list from the recipe page, or a sign of gluten).
   noPlan: boolean;
+  // An El País recipe that uses stock: the stock must be gluten-free.
+  gfStock: boolean;
 };
 
 const GROUPS: Protein[] = ["meat", "fish", "veg"];
@@ -153,7 +155,8 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
           ) : (
             <>
               <p className="text-muted-foreground">{t.meals.usually(t.meals.slotPrefs[meal.slotPref])}</p>
-              {meal.newIdea && meal.noPlan && <p className="rounded-xl bg-warning/10 px-3 py-2 text-warning">{t.meals.notPlanned}</p>}
+              {meal.newIdea && meal.noPlan && <p className="rounded-xl bg-warning/10 px-3 py-2 text-[#9a4f00]">{t.meals.notPlanned}</p>}
+              {meal.gfStock && <p className="rounded-xl bg-warning/10 px-3 py-2 font-medium text-[#9a4f00]">{t.board.gfStock}</p>}
               <span className="font-medium">{t.meals.ingredients}</span>
               {meal.ingredients.length > 0 ? (
                 <ul className="list-disc pl-5">

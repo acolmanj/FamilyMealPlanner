@@ -637,6 +637,7 @@ function CellPanel({
         </div>
       )}
 
+      {meal?.gfStock && <p className="rounded-xl bg-warning/10 px-3 py-2 font-medium text-[#9a4f00]">{t.board.gfStock}</p>}
       {cell?.why && mode === "main" && <p className="text-muted-foreground">{t.gen.why(cell.why)}</p>}
 
       {meal && mode === "main" && <RecipeNote meal={meal} />}

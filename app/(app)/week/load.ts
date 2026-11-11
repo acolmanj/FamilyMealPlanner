@@ -1,6 +1,6 @@
 import { localiseFinding } from "@/lib/gluten/es";
 import { mealStatus, screenMeal } from "@/lib/gluten/gate";
-import { outsideNoPlan } from "@/lib/gluten/outside";
+import { needsGfStock, outsideNoPlan } from "@/lib/gluten/outside";
 import { getHousehold } from "@/lib/household";
 import { mealName, type Lang } from "@/lib/i18n/messages";
 import { cellDate, type Day, type PlanMeal, type Slot, type Use } from "@/lib/planner/rules";
@@ -12,7 +12,8 @@ import type { Status } from "@/lib/gluten/gate";
 export type MealImage = { url: string; source: string | null; page: string | null };
 // A recipe idea from TheMealDB, with what the gluten gate finds in its ingredient list as written.
 export type RecipeIdea = { name: string; url: string; gluten: { term: string; swap?: string }[] };
-export type BoardMeal = PlanMeal & { tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null };
+// gfStock: an El País recipe that uses stock, so the stock must be a gluten-free one.
+export type BoardMeal = PlanMeal & { tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null; gfStock?: boolean };
 export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; locked: boolean; leftover: boolean; why: string | null };
 
 type MealRow = {
@@ -100,6 +101,7 @@ export async function loadWeeks(weeks: string[], lang: Lang = "en") {
     slotPref: isSlotPref(m.slot_preference) ? m.slot_preference : "either",
     idea: m.source === "elpais" && !m.gf_confirmed_at,
     noPlan: outsideNoPlan(m),
+    gfStock: m.source === "elpais" && needsGfStock(m.name_es ?? m.name, m.ingredients_note),
     tags: mealTags(m),
     gluten: mealStatus(m),
     image: m.image_url ? { url: m.image_url, source: m.image_source, page: m.image_page_url } : null,

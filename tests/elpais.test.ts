@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { normalise } from "../lib/gluten/gate";
-import { outsideNoPlan, outsideVerdict } from "../lib/gluten/outside";
+import { needsGfStock, outsideNoPlan, outsideVerdict } from "../lib/gluten/outside";
 import { ELPAIS_FEED, cleanName, decode, defaultFetchText, fetchElPaisIdeas, fixtureFetchText, isElPaisUrl, isMeal, parseRss, slotFromText } from "../lib/recipes/elpais";
 import { englishName } from "../lib/recipes/name-en";
 
@@ -184,18 +184,39 @@ describe("gluten in outside recipes", () => {
     "200 g de macarrones",
     "Espaguetis",
     "Canelones",
+    "100 g de sémola de trigo",
+    "1 cucharada de salsa Worcestershire",
+    "Unas gotas de Lea & Perrins",
+    "4 obleas de empanadilla",
+    "12 obleas",
+    "Masa de wonton",
+    "16 gyozas congeladas",
+    "4 panecillos bao",
+    "1 cucharada de miso blanco",
+    "1 masa para tarta",
+    "4 tortillas de harina",
+    "Pastel de carne",
   ])("leaves out a recipe with %s", (line) => {
     expect(withIngredient(line)).toBe("gluten");
   });
 
-  it.each(["2 cucharadas de harina de maíz", "Harina de arroz", "harina de garbanzo", "Harina de almendra", "Harina de garbanzos", "Pasta de tomate", "Una pizca de pimentón", "Panceta"])(
+  it.each(["2 cucharadas de harina de maíz", "Harina de arroz", "harina de garbanzo", "Harina de almendra", "Harina de garbanzos", "Pasta de tomate", "Una pizca de pimentón", "Panceta", "200 g de masa de maíz", "1 l de caldo de pollo", "1 pastilla de caldo", "Avecrem"])(
     "keeps a recipe with %s",
     (line) => {
       expect(withIngredient(line)).toBe("ok");
     },
   );
 
+  it("keeps a recipe with stock but says to use a gluten-free one", () => {
+    expect(needsGfStock("Lentejas", ["1 l de caldo de verduras"])).toBe(true);
+    expect(needsGfStock("Arroz", "1 pastilla de caldo\n300 g de arroz")).toBe(true);
+    expect(needsGfStock("Crema", ["Avecrem"])).toBe(true);
+    expect(needsGfStock("Caldo gallego", null)).toBe(true);
+    expect(needsGfStock("Pollo al ajillo", ["1 pollo", "6 dientes de ajo"])).toBe(false);
+  });
+
   it("looks at the name too, and needs the recipe's own ingredient list", () => {
+    expect(outsideVerdict("Pastel de pescado", ["Merluza", "Huevos"])).toBe("gluten");
     expect(outsideVerdict("Lasaña de verduras", [])).toBe("gluten");
     expect(outsideVerdict("Fideuá de marisco", ["Gambas"])).toBe("gluten");
     expect(outsideVerdict("Crema de calabaza asada", [])).toBe("unchecked");

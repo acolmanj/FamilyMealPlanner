@@ -255,6 +255,23 @@ function PlanToast({
     ...relaxedNotes(t, [...new Set(summary.weeks.flatMap((w) => w.relaxed))]),
   ].filter((x): x is string => Boolean(x));
   const next = summary.weeks[1];
+
+  // While the summary shows, the page gets extra room at the bottom (its height plus a gap),
+  // so Sunday's row can always be scrolled clear of it.
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const set = () => root.style.setProperty("--plan-bar", `${el.offsetHeight + 12}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty("--plan-bar");
+    };
+  });
   const shell = "fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-xl rounded-2xl bg-foreground text-[14px] text-white shadow-lift";
 
   const undoButton = summary.filled > 0 && (
@@ -275,7 +292,7 @@ function PlanToast({
 
   if (toast.undone !== undefined)
     return (
-      <div role="status" aria-live="polite" className={cn(shell, "flex items-center justify-between gap-3 px-4 py-2.5")}>
+      <div ref={ref} role="status" aria-live="polite" className={cn(shell, "flex items-center justify-between gap-3 px-4 py-2.5")}>
         <span>{toast.undone === "failed" ? t.plan.undoFailed : t.plan.undone(toast.undone)}</span>
         {closeButton}
       </div>
@@ -284,7 +301,7 @@ function PlanToast({
   // The small bar: one line, Undo still there, tap the text to see the full summary again.
   if (toast.collapsed)
     return (
-      <div role="status" aria-live="polite" className={cn(shell, "flex h-12 items-center gap-2 py-1.5 pr-2 pl-1.5")}>
+      <div ref={ref} role="status" aria-live="polite" className={cn(shell, "flex h-12 items-center gap-2 py-1.5 pr-2 pl-1.5")}>
         <button onClick={() => onExpand(true)} aria-expanded={false} className="flex min-w-0 flex-1 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-left">
           <span className="truncate font-semibold">{t.plan.filled(summary.filled)}</span>
           {notes.length > 0 && <span className="shrink-0 text-[12px] font-semibold text-[#7ee08f]">{t.plan.show}</span>}
@@ -295,7 +312,7 @@ function PlanToast({
     );
 
   return (
-    <div role="status" aria-live="polite" className={cn(shell, "flex flex-col gap-2 px-4 py-3")}>
+    <div ref={ref} role="status" aria-live="polite" className={cn(shell, "flex flex-col gap-2 px-4 py-3")}>
       <div className="flex items-start gap-3">
         <button onClick={() => onExpand(false)} aria-expanded={true} className="min-w-0 flex-1 text-left">
           <span className="block text-[15px] font-semibold">{headline}</span>
