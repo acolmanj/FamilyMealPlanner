@@ -40,9 +40,13 @@ The solver fills Monday to Sunday lunch, dinner and the weekday lunchbox. It sea
 | Effort | Hard | Mon-Fri dinner Quick (15-20 min); weekend lunch Elaborate (60+ min); everything else Normal (30-45 min). Busy nights Quick; work-from-home days Normal or better |
 | Old to new mix | Hard | 90% past meals, 10% new. About 1 new meal a week; 0 on request |
 | Starch spacing | Soft | The same starch (pasta, potatoes, rice or noodles) not twice in any 3-day window |
+| Usual slot | Last resort | Each meal is Supper, Lunch, Either or Breakfast (from the menu sheet: 70% or more of its uses at dinner is Supper, at lunch is Lunch). Supper goes to dinner, Lunch to lunch, Either to both, Breakfast never. Relaxed only after recency, and the page says so |
+| Favourites | Order | Starred meals are drawn about 2.5 times as readily in the seeded shuffle; every rule above still applies |
 | Balance targets | Soft | Fish, vegetarian, legume and red-meat counts, shown as plain counts and never as a score |
 
 **Tie-breaks** use plain facts only, in this order: pinned first, then longest since last planned, then the slots the meal has historically filled. The planner computes no scores or ratings.
+
+**Plan week.** The button in the middle of the tab bar fills only the empty slots of this week and next, keeping everything already planned. Next week is solved with this week in its history, so nothing repeats across the join. It first adds up to 3 recent El País recipes to the library (gluten gate first: clear gluten is left out, the rest are "Needs your check" until confirmed), at most once every 6 hours. Undo takes out only what that run added.
 
 **Eating out.** Take-away or eating out is a slot with no recipe and no shopping. It is only included on request.
 

@@ -88,3 +88,15 @@ export function splitIngredients(text: string | null | undefined): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
+
+// True when the page publishes a schema.org Recipe (not just a title and a photo).
+export function hasRecipeSchema(html: string): boolean {
+  for (const m of html.matchAll(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      if (findRecipe(JSON.parse(m[1].trim()))) return true;
+    } catch {
+      continue;
+    }
+  }
+  return false;
+}

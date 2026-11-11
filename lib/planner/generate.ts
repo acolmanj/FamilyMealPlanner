@@ -1,18 +1,22 @@
-import { messages, type Lang } from "../i18n/messages";
-import { DAYS, LIMITS, SLOTS, cellDate, cellKey, isNewMeal, type Cell, type Day, type PlanMeal, type Slot, type Use } from "./rules";
+import { messages, type Lang, type Messages } from "../i18n/messages";
+import { DAYS, LIMITS, SLOTS, addDays, cellDate, cellKey, isNewMeal, slotFits, type Cell, type Day, type PlanMeal, type Slot, type Use } from "./rules";
 
 // Builds a suggested week with plain code: a seeded shuffle of the library, then a
 // backtracking search that keeps every week rule. A new seed gives a different week;
-// the same seed gives the same week. Nothing is scored: the order is the shuffle.
+// the same seed gives the same week. Nothing is scored: the order is the shuffle,
+// in which a favourite is drawn about FAVOURITE_WEIGHT times as readily as other meals.
 
 export type GeneratedCell = { day: Day; slot: Slot; mealId: string; why: string };
-export type Relaxed = "starch" | "recency" | "recencyAll";
+// What had to give to fill the week, in the order it is tried: starch spacing, then
+// recency, then the usual slot (a lunch meal at dinner), then the fish and pulse counts.
+export type Relaxed = "starch" | "recency" | "recencyAll" | "slot" | "quotas";
 export type GenerateResult = { cells: GeneratedCell[]; relaxed: Relaxed[]; unfilled: { day: Day; slot: Slot }[] };
 
 export type GenerateInput = {
   weekStart: string;
   meals: Map<string, PlanMeal>;
   history: Use[];
+  // Every other week's plan, earlier and later: recency looks both ways.
   // Cells that stay as they are (locked by the owner). mealId null means taken by free text.
   keep: Cell[];
   seed: number;
@@ -35,6 +39,21 @@ export function rng(seed: number) {
   };
 }
 
+// How readily the shuffle draws a meal: favourites more, a new El País idea a bit more
+// (the 90/10 rule still allows only about one new meal a week), everything else 1.
+export const FAVOURITE_WEIGHT = 2.5;
+export const IDEA_WEIGHT = 2;
+const weightOf = (m: PlanMeal) => (m.favourite ? FAVOURITE_WEIGHT : m.idea ? IDEA_WEIGHT : 1);
+
+// A weighted shuffle (Efraimidis-Spirakis): each item draws -ln(u)/weight and the
+// smallest comes first, so weight 2 is drawn ahead about twice as often as weight 1.
+export function weightedShuffle<T>(xs: T[], weight: (x: T) => number, rand: () => number) {
+  return xs
+    .map((x) => ({ x, key: -Math.log(1 - rand()) / weight(x) }))
+    .sort((a, b) => a.key - b.key)
+    .map((k) => k.x);
+}
+
 function shuffle<T>(xs: T[], rand: () => number) {
   const a = [...xs];
   for (let i = a.length - 1; i > 0; i--) {
@@ -52,16 +71,25 @@ function lastUse(history: Use[], mealId: string, before: string) {
   for (const u of history) if (u.mealId === mealId && u.date < before && (!last || u.date > last)) last = u.date;
   return last;
 }
+function nextUse(history: Use[], mealId: string, from: string) {
+  let next: string | null = null;
+  for (const u of history) if (u.mealId === mealId && u.date >= from && (!next || u.date < next)) next = u.date;
+  return next;
+}
 const gapDays = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 
-type Level = { starch: boolean; recency: "full" | "short" | "none" };
+type Level = { starch: boolean; recency: "full" | "short" | "none"; slot: boolean; quotas: boolean };
 const LEVELS: Level[] = [
-  { starch: true, recency: "full" },
-  { starch: false, recency: "full" },
-  { starch: false, recency: "short" },
-  { starch: false, recency: "none" },
+  { starch: true, recency: "full", slot: true, quotas: true },
+  { starch: false, recency: "full", slot: true, quotas: true },
+  { starch: false, recency: "short", slot: true, quotas: true },
+  { starch: false, recency: "none", slot: true, quotas: true },
+  // Last resorts: a meal outside its usual slot, then fewer fish or pulses than the target.
+  { starch: false, recency: "none", slot: false, quotas: true },
+  { starch: false, recency: "none", slot: false, quotas: false },
 ];
-const MAX_STEPS = 40_000;
+const MAX_STEPS = 1_500;
+const ATTEMPTS = 6;
 
 export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en" }: GenerateInput): GenerateResult {
   const t = messages(lang).gen;
@@ -69,28 +97,39 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
   const keptKeys = new Set(keep.map(cellKey));
   const kept = keep.filter((c) => c.mealId && meals.has(c.mealId)).map((c) => ({ ...c, meal: meals.get(c.mealId!)! }));
 
-  const pool = shuffle(
-    [...meals.values()].filter((m) => m.gluten !== "blocked" && !isSobras(m.name) && !kept.some((k) => k.meal.id === m.id)),
-    rand,
+  // Never: blocked for gluten, Sobras, breakfasts, or a meal already kept this week.
+  const candidates = [...meals.values()].filter(
+    (m) => m.gluten !== "blocked" && !isSobras(m.name) && m.slotPref !== "breakfast" && !kept.some((k) => k.meal.id === m.id),
   );
+  let pool = weightedShuffle(candidates, weightOf, rand);
+  const weekEnd = addDays(weekStart, DAYS.length);
   const hasRoast = pool.some((m) => m.tags.isRoast);
   const hasPizza = pool.some((m) => m.tags.isPizza);
 
   // Tradition cells first (fewest choices), then the rest in a shuffled order so
   // pulses and fish land on different days from one run to the next.
   const open = DAYS.flatMap((day) => SLOTS.map((slot) => ({ day, slot }))).filter((c) => !keptKeys.has(cellKey(c)));
-  const order = [...open.filter((c) => tradition(c.day, c.slot)), ...shuffle(open.filter((c) => !tradition(c.day, c.slot)), rand)];
+  const shuffledOrder = () => [...open.filter((c) => tradition(c.day, c.slot)), ...shuffle(open.filter((c) => !tradition(c.day, c.slot)), rand)];
+  let order = shuffledOrder();
 
   const recencyOk = (m: PlanMeal, cell: { day: Day; slot: Slot }, level: Level) => {
     if (tradition(cell.day, cell.slot)) return true; // pizza every Saturday and the Sunday roast are the point
     if (level.recency === "none") return true;
-    const last = lastUse(history, m.id, weekStart);
-    if (!last) return true;
     const limit = level.recency === "short" || m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays;
-    return gapDays(last, cellDate(weekStart, cell.day)) >= limit;
+    const date = cellDate(weekStart, cell.day);
+    const last = lastUse(history, m.id, weekStart);
+    const next = nextUse(history, m.id, weekEnd);
+    return (!last || gapDays(last, date) >= limit) && (!next || gapDays(date, next) >= limit);
   };
 
-  for (const level of LEVELS) {
+  // Each level gets a few fresh shuffles (same seed, same sequence) before a rule is
+  // relaxed: a search stuck on an unlucky early choice is cheaper to restart than to finish.
+  for (const level of LEVELS)
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      pool = weightedShuffle(candidates, weightOf, rand);
+      order = shuffledOrder();
+    }
     const chosen = new Map<string, PlanMeal>(kept.map((k) => [cellKey(k), k.meal]));
     const used = new Set(kept.map((k) => k.meal.id));
     let steps = 0;
@@ -103,6 +142,7 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
       if (kind === "roast" && hasRoast && !m.tags.isRoast) return false;
       if (kind === "pizza" && hasPizza && !m.tags.isPizza) return false;
       if (!kind && m.tags.isPizza && hasPizza) return false; // pizza belongs to Saturday night
+      if (level.slot && !(kind && fitsTradition(m, kind)) && !slotFits(m.slotPref, cell.slot)) return false;
       if (!recencyOk(m, cell, level)) return false;
       if (cell.slot === "dinner" && DAYS.indexOf(cell.day) < 5 && m.tags.effort === "long") return false;
       // Daily mix: one vegetarian and one meat or fish meal each day.
@@ -117,21 +157,34 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
           if (x.tags.starch === m.tags.starch && Math.abs(DAYS.indexOf(key.split("-")[0] as Day) - i) < LIMITS.starchWindowDays) return false;
       }
       // Leave enough cells for the week's fish and pulses.
+      if (!level.quotas) return true;
       const fish = count((x) => x.tags.protein === "fish") + (m.tags.protein === "fish" ? 1 : 0);
       const pulses = count((x) => x.tags.isPulse) + (m.tags.isPulse ? 1 : 0);
       if (Math.max(0, 1 - fish) + Math.max(0, LIMITS.pulsesMin - pulses) > remainingAfter) return false;
       return true;
     };
 
-    const solve = (i: number): boolean => {
-      if (i === order.length) return true;
+    // Fill the cell with the fewest meals that still fit first (ties in the shuffled
+    // order), and back off as soon as any cell has none left.
+    const FEW = 4;
+    const solve = (left: typeof order): boolean => {
+      if (left.length === 0) return true;
       if (++steps > MAX_STEPS) return false;
-      const cell = order[i];
+      let best = -1;
+      let bestCount = Infinity;
+      for (let i = 0; i < left.length && bestCount > 1; i++) {
+        let n = 0;
+        for (const m of pool) if (fits(m, left[i], left.length - 1) && ++n >= FEW) break;
+        if (n === 0) return false;
+        if (n < bestCount) [best, bestCount] = [i, n];
+      }
+      const cell = left[best];
+      const rest = left.filter((_, i) => i !== best);
       for (const m of pool) {
-        if (!fits(m, cell, order.length - i - 1)) continue;
+        if (!fits(m, cell, rest.length)) continue;
         chosen.set(cellKey(cell), m);
         used.add(m.id);
-        if (solve(i + 1)) return true;
+        if (solve(rest)) return true;
         chosen.delete(cellKey(cell));
         used.delete(m.id);
         if (steps > MAX_STEPS) return false;
@@ -139,12 +192,14 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
       return false;
     };
 
-    if (!solve(0)) continue;
+    if (!solve(order)) continue;
 
     const relaxed: Relaxed[] = [];
     if (!level.starch) relaxed.push("starch");
     if (level.recency === "short") relaxed.push("recency");
     if (level.recency === "none") relaxed.push("recencyAll");
+    if (!level.slot) relaxed.push("slot");
+    if (!level.quotas) relaxed.push("quotas");
     const all = [...chosen.values()];
     const fishCount = all.filter((m) => m.tags.protein === "fish").length;
     const cells = order.map((cell) => {
@@ -155,9 +210,13 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
       if (isTradition) bits.push(kind === "roast" ? t.whyRoast : t.whyPizza);
       if (m.tags.isPulse) bits.push(t.whyPulses);
       if (m.tags.protein === "fish" && fishCount === 1) bits.push(t.whyFish);
-      if (m.pinned) bits.push(t.whyPinned);
+      if (m.favourite) bits.push(t.whyFavourite);
+      else if (m.pinned) bits.push(t.whyPinned);
+      if (!isTradition && m.slotPref && m.slotPref !== "either")
+        bits.push(slotFits(m.slotPref, cell.slot) ? t.whyUsual[cell.slot] : t.whyOffSlot(m.slotPref === "supper" ? "dinner" : "lunch"));
       const last = lastUse(history, m.id, weekStart);
-      if (!isTradition) bits.push(last ? t.lastHad(Math.max(1, Math.round(gapDays(last, weekStart) / 7))) : t.whyNew);
+      if (m.idea) bits.push(t.whyIdea);
+      else if (!isTradition) bits.push(last ? t.lastHad(Math.max(1, Math.round(gapDays(last, weekStart) / 7))) : t.whyNew);
       return { ...cell, mealId: m.id, why: bits.join(", ") };
     });
     cells.sort((a, b) => DAYS.indexOf(a.day) - DAYS.indexOf(b.day) || SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot));
@@ -165,4 +224,14 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
   }
 
   return { cells: [], relaxed: [], unfilled: open };
+}
+
+// What had to give, in words, for the note under the plan.
+export function relaxedNotes(t: Messages, relaxed: Relaxed[]) {
+  return [
+    relaxed.includes("starch") ? t.gen.relaxedStarch : null,
+    relaxed.some((x) => x.startsWith("recency")) ? t.gen.relaxedRecency : null,
+    relaxed.includes("slot") ? t.gen.relaxedSlot : null,
+    relaxed.includes("quotas") ? t.gen.relaxedQuotas : null,
+  ].filter((x): x is string => Boolean(x));
 }

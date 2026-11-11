@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+<title><![CDATA[EL PAÍS: Gastronomía]]></title>
+<link>https://elpais.com/gastronomia/</link>
+<description><![CDATA[Gastronomía en EL PAÍS: recetas, restaurantes y noticias]]></description>
+<language>es</language>
+<atom:link href="https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/gastronomia/portada" rel="self" type="application/rss+xml"/>
+<lastBuildDate>Tue, 10 Nov 2026 09:12:00 +0000</lastBuildDate>
+<item>
+<title><![CDATA[Receta de garbanzos con espinacas y huevo]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-11-09/garbanzos-con-espinacas-y-huevo.html</link>
+<dc:creator><![CDATA[Mikel López Iturriaga]]></dc:creator>
+<description><![CDATA[<p>Un guiso de cuchara rápido, con garbanzos cocidos, espinacas y un huevo escalfado por encima.</p>]]></description>
+<pubDate>Mon, 09 Nov 2026 05:30:00 +0000</pubDate>
+<guid isPermaLink="true">https://elpais.com/gastronomia/recetas/2026-11-09/garbanzos-con-espinacas-y-huevo.html</guid>
+<category><![CDATA[Recetas]]></category>
+<category><![CDATA[Legumbres]]></category>
+<media:content url="https://imagenes.elpais.com/resizer/v2/garbanzos.jpg" type="image/jpeg" medium="image"/>
+</item>
+<item>
+<title><![CDATA[Merluza en salsa verde con almejas]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-11-07/merluza-en-salsa-verde-con-almejas.html</link>
+<description><![CDATA[El clásico vasco, con su salsa ligada.]]></description>
+<pubDate>Sat, 07 Nov 2026 06:00:00 +0000</pubDate>
+<category><![CDATA[Recetas]]></category>
+<category><![CDATA[Pescados]]></category>
+</item>
+<item>
+<title><![CDATA[Tarta de queso al horno, la más cremosa]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-11-06/tarta-de-queso-al-horno.html</link>
+<description><![CDATA[Un postre que no falla.]]></description>
+<pubDate>Fri, 06 Nov 2026 06:00:00 +0000</pubDate>
+<category><![CDATA[Recetas]]></category>
+<category><![CDATA[Postres]]></category>
+</item>
+<item>
+<title><![CDATA[Los diez mejores cocidos de Madrid]]></title>
+<link>https://elpais.com/gastronomia/2026-11-05/los-diez-mejores-cocidos-de-madrid.html</link>
+<description><![CDATA[Recorremos las casas de comidas.]]></description>
+<pubDate>Thu, 05 Nov 2026 08:00:00 +0000</pubDate>
+<category><![CDATA[Restaurantes]]></category>
+</item>
+<item>
+<title><![CDATA[Pollo al ajillo con patatas para cenar]]></title>
+<link>https://elpais.com/gastronomia/el-comidista/2026-11-04/pollo-al-ajillo-con-patatas.html</link>
+<description><![CDATA[Una cena de diario.]]></description>
+<pubDate>Wed, 04 Nov 2026 07:00:00 +0000</pubDate>
+<category><![CDATA[El Comidista]]></category>
+</item>
+<item>
+<title><![CDATA[Qué hacer con las sobras del cocido: ropa vieja]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-11-03/sobras-del-cocido.html</link>
+<description><![CDATA[Aprovechamiento.]]></description>
+<pubDate>Tue, 03 Nov 2026 07:00:00 +0000</pubDate>
+<category><![CDATA[Recetas]]></category>
+</item>
+<item>
+<title><![CDATA[Crema de calabaza asada]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-11-02/crema-de-calabaza-asada.html</link>
+<description><![CDATA[Suave y templada, con calabaza asada al horno.]]></description>
+<pubDate>Mon, 02 Nov 2026 07:00:00 +0000</pubDate>
+<category><![CDATA[Recetas]]></category>
+</item>
+<item>
+<title><![CDATA[Lentejas estofadas]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-11-01/lentejas-estofadas.html</link>
+<description><![CDATA[Las de toda la vida.]]></description>
+<pubDate>Sun, 01 Nov 2026 07:00:00 +0000</pubDate>
+<category><![CDATA[Recetas]]></category>
+</item>
+<item>
+<title><![CDATA[Arroz con verduras de otoño]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-09-20/arroz-con-verduras-de-otono.html</link>
+<description><![CDATA[Un arroz de septiembre.]]></description>
+<pubDate>Sun, 20 Sep 2026 07:00:00 +0000</pubDate>
+<category><![CDATA[Recetas]]></category>
+</item>
+<item>
+<title><![CDATA[Albóndigas en salsa de tomate]]></title>
+<link>https://elpais.com/gastronomia/recetas/2026-10-30/albondigas-en-salsa-de-tomate.html</link>
+<description><![CDATA[Como las de la abuela.]]></description>
+<pubDate>Fri, 30 Oct 2026 07:00:00 +0000</pubDate>
+<category><![CDATA[Recetas]]></category>
+</item>
+</channel>
+</rss>

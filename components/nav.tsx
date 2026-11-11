@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLang } from "@/components/lang";
+import { PlanWeekTab } from "@/components/plan-week";
 import { cn } from "@/lib/utils";
 
 // iPhone-style tab bar along the bottom of the screen. Household lives in the header.
+// "Plan week" sits in the middle: an action, not a page, so it works from any tab.
 const LINKS = [
   { href: "/week", key: "week", icon: "M4 6h16M4 12h16M4 18h16M8 3v4M16 3v4" },
   { href: "/meals", key: "meals", icon: "M7 3v8a2 2 0 0 0 4 0V3M9 11v10M17 3c-1.7 0-3 2.2-3 5s1.3 4 3 4v9" },
@@ -19,10 +21,10 @@ export function Nav() {
   const { t } = useLang();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-black/5 bg-white/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl backdrop-saturate-150">
-      <div className="mx-auto grid max-w-3xl grid-cols-5">
-        {LINKS.map((l) => {
+      <div className="mx-auto grid max-w-3xl grid-cols-6">
+        {LINKS.map((l, i) => {
           const active = path.startsWith(l.href);
-          return (
+          const tab = (
             <Link
               key={l.href}
               href={l.href}
@@ -38,6 +40,7 @@ export function Nav() {
               <span className="truncate">{t.nav[l.key]}</span>
             </Link>
           );
+          return i === 2 ? [<PlanWeekTab key="plan" />, tab] : tab;
         })}
       </div>
     </nav>

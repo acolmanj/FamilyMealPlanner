@@ -11,5 +11,7 @@ export async function setFavourite(id: string, favourite: boolean): Promise<{ ok
   if (error) return { ok: false, error: error.message };
   revalidatePath("/favourites");
   revalidatePath("/history");
+  revalidatePath("/meals");
+  revalidatePath("/week");
   return { ok: true };
 }

@@ -1,8 +1,9 @@
 import { localiseFinding } from "@/lib/gluten/es";
-import { applyConfirmation, screenMeal } from "@/lib/gluten/gate";
+import { mealStatus, screenMeal } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
 import { mealName, type Lang } from "@/lib/i18n/messages";
-import { cellDate, type Day, type Slot, type Use } from "@/lib/planner/rules";
+import { cellDate, type Day, type PlanMeal, type Slot, type Use } from "@/lib/planner/rules";
+import { isSlotPref } from "@/lib/planner/slot-pref";
 import { mealTags, type Tags } from "@/lib/planner/tags";
 import { defaultWeek, mondayOf } from "@/lib/planner/week";
 import type { Status } from "@/lib/gluten/gate";
@@ -10,7 +11,7 @@ import type { Status } from "@/lib/gluten/gate";
 export type MealImage = { url: string; source: string | null; page: string | null };
 // A recipe idea from TheMealDB, with what the gluten gate finds in its ingredient list as written.
 export type RecipeIdea = { name: string; url: string; gluten: { term: string; swap?: string }[] };
-export type BoardMeal = { id: string; name: string; pinned: boolean; tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null };
+export type BoardMeal = PlanMeal & { tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null };
 export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; locked: boolean; leftover: boolean; why: string | null };
 
 type MealRow = {
@@ -26,6 +27,9 @@ type MealRow = {
   is_processed: boolean | null;
   effort: string | null;
   pinned: boolean;
+  is_favourite: boolean;
+  slot_preference: string | null;
+  source: string | null;
   gf_confirmed_at: string | null;
   image_url: string | null;
   image_source: string | null;
@@ -63,12 +67,22 @@ function recipeIdea(m: MealRow, lang: Lang): RecipeIdea | null {
 // Everything the planner needs for one week: the meal library (with gluten status and tags),
 // the week's cells, and every other week's plan for recency and "new meal".
 export async function loadWeek(week: string, lang: Lang = "en") {
+  const data = await loadWeeks([week], lang);
+  if (!data) return null;
+  if ("error" in data) return { error: data.error } as const;
+  return { meals: data.meals, cells: data.cells[week], history: data.history } as const;
+}
+
+// The same for several weeks at once: each week's cells, and the history of every other week.
+export async function loadWeeks(weeks: string[], lang: Lang = "en") {
   const { supabase, household } = await getHousehold();
   if (!household) return null;
   const [{ data: meals, error }, { data: slots }] = await Promise.all([
     supabase
       .from("meals")
-      .select("id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, pinned, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_name, mealdb_ingredients")
+      .select(
+        "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, pinned, is_favourite, slot_preference, source, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_name, mealdb_ingredients",
+      )
       .eq("retired", false)
       .eq("blacklisted", false)
       .order("name")
@@ -81,17 +95,17 @@ export async function loadWeek(week: string, lang: Lang = "en") {
     id: m.id,
     name: mealName(m, lang),
     pinned: m.pinned,
+    favourite: m.is_favourite,
+    slotPref: isSlotPref(m.slot_preference) ? m.slot_preference : "either",
+    idea: m.source === "elpais" && !m.gf_confirmed_at,
     tags: mealTags(m),
-    gluten: applyConfirmation(
-      screenMeal({ name: m.name, variants: m.variants_seen, ingredients: m.ingredients_note }),
-      Boolean(m.gf_confirmed_at),
-    ).status,
+    gluten: mealStatus(m),
     image: m.image_url ? { url: m.image_url, source: m.image_source, page: m.image_page_url } : null,
     recipe: recipeIdea(m, lang),
   }));
 
   // Lunch and dinner only: Sobras (leftovers) are not a meal.
-  const cells: BoardCell[] = (slots ?? [])
+  const cellsOf = (week: string): BoardCell[] => (slots ?? [])
     .filter((s) => s.week_start === week && (s.slot === "lunch" || s.slot === "dinner") && (s.meal_id || s.as_written))
     .map((s) => ({
       day: s.day,
@@ -102,9 +116,10 @@ export async function loadWeek(week: string, lang: Lang = "en") {
       leftover: s.is_leftover,
       why: s.why_line,
     }));
+  const cells: Record<string, BoardCell[]> = Object.fromEntries(weeks.map((w) => [w, cellsOf(w)]));
 
   const history: Use[] = (slots ?? [])
-    .filter((s) => s.week_start !== week && s.meal_id)
+    .filter((s) => !weeks.includes(s.week_start) && s.meal_id)
     .map((s) => ({ mealId: s.meal_id!, date: cellDate(s.week_start, s.day) }));
 
   return { meals: boardMeals, cells, history } as const;

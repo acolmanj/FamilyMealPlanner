@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useOptimistic, useState, useTransition } from "react";
 import { FoodIcons } from "@/components/food-icons";
 import { GlutenBadge } from "@/components/gluten-badge";
 import { useLang } from "@/components/lang";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalise, type Status } from "@/lib/gluten/gate";
-import type { Protein, Starch } from "@/lib/planner/tags";
+import { SLOT_PREFS, type SlotPref } from "@/lib/planner/slot-pref";
+import { guessProtein, type Protein, type Starch } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
+import { setFavourite } from "../favourites/actions";
 import { useResolveImages } from "../week/resolve-images";
 import { createMeal, importRecipe, updateMeal, type MealEdit } from "./actions";
 
@@ -27,6 +29,9 @@ export type LibraryMeal = {
   image: string | null;
   imageSource: string | null;
   recipeUrl: string | null;
+  favourite: boolean;
+  slotPref: SlotPref;
+  fromElPais: boolean;
 };
 
 const GROUPS: Protein[] = ["meat", "fish", "veg"];
@@ -57,6 +62,7 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
         <div>
           <h1 className="text-[28px] leading-tight font-bold tracking-tight">{t.meals.title}</h1>
           <p className="text-sm text-muted-foreground">{t.meals.intro(meals.length)}</p>
+          <p className="text-sm text-muted-foreground">{t.meals.starHelp}</p>
         </div>
         {!adding && (
           <Button onClick={() => (setAdding(true), setNotice(null))}>
@@ -103,7 +109,8 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
   const [editing, setEditing] = useState(false);
   return (
     <div className={cn("flex flex-col overflow-hidden rounded-2xl border-l-4 text-sm shadow-card", GROUP_STYLE[meal.protein], open && "sm:col-span-2")}>
-      <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 items-center gap-3 p-2.5 text-left active:bg-black/5">
+      <div className="flex items-stretch">
+      <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 min-w-0 flex-1 items-center gap-3 p-2.5 pr-1 text-left active:bg-black/5">
         {meal.image ? (
           <img src={meal.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-12 shrink-0 rounded-xl object-cover" />
         ) : (
@@ -111,15 +118,23 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
         )}
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-[15px] leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
-          <FoodIcons starch={meal.starch} isPulse={meal.isPulse} hasRice={meal.hasRice} className="text-base" />
+          <span className="flex flex-wrap items-center gap-1.5">
+            <FoodIcons starch={meal.starch} isPulse={meal.isPulse} hasRice={meal.hasRice} className="text-base" />
+            {meal.slotPref !== "either" && (
+              <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.slotPrefs[meal.slotPref]}</span>
+            )}
+            {meal.fromElPais && <span className="rounded-full bg-warning/15 px-2 py-px text-[11px] font-semibold text-warning">{t.meals.fromElPais}</span>}
+          </span>
         </span>
         <GlutenBadge status={meal.gluten} />
       </button>
+      <StarButton id={meal.id} name={meal.name} favourite={meal.favourite} />
+      </div>
       {open && (
         <div className="flex flex-col gap-2 bg-card p-3">
           {editing ? (
             <MealForm
-              initial={{ name_en: meal.name_en, name_es: meal.name_es, protein: meal.protein, ingredients: meal.ingredients }}
+              initial={{ name_en: meal.name_en, name_es: meal.name_es, protein: meal.protein, slot_preference: meal.slotPref, ingredients: meal.ingredients }}
               suggested={meal.recipeIngredients}
               suggestedFrom="TheMealDB"
               onSave={(edit) => updateMeal(meal.id, edit)}
@@ -127,6 +142,7 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
             />
           ) : (
             <>
+              <p className="text-muted-foreground">{t.meals.usually(t.meals.slotPrefs[meal.slotPref])}</p>
               <span className="font-medium">{t.meals.ingredients}</span>
               {meal.ingredients.length > 0 ? (
                 <ul className="list-disc pl-5">
@@ -179,9 +195,10 @@ function MealForm({
 }) {
   const { t } = useLang();
   const [f, setF] = useState({ ...initial, text: initial.ingredients.join("\n") });
+  const slotLabel = useId();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const edit = (): MealEdit => ({ name_en: f.name_en, name_es: f.name_es, protein: f.protein, ingredients: f.text.split("\n") });
+  const edit = (): MealEdit => ({ name_en: f.name_en, name_es: f.name_es, protein: f.protein, slot_preference: f.slot_preference, ingredients: f.text.split("\n") });
   const save = () =>
     startTransition(async () => {
       setError(null);
@@ -214,6 +231,25 @@ function MealForm({
           </button>
         ))}
       </div>
+      <span className="font-medium" id={slotLabel}>{t.meals.slotPref}</span>
+      <div role="radiogroup" aria-labelledby={slotLabel} className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1">
+        {SLOT_PREFS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            role="radio"
+            aria-checked={f.slot_preference === p}
+            onClick={() => setF({ ...f, slot_preference: p })}
+            className={cn(
+              "min-h-11 rounded-lg px-1 text-[13px] font-medium",
+              f.slot_preference === p ? "bg-card text-foreground shadow-card" : "text-muted-foreground",
+            )}
+          >
+            {t.meals.slotPrefs[p]}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">{t.meals.slotPrefHelp}</p>
       <label className="flex flex-col gap-1">
         <span className="font-medium">
           {t.meals.ingredients} <span className="font-normal text-muted-foreground">{t.meals.ingredientsHelp}</span>
@@ -255,7 +291,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
   const [found, setFound] = useState<{ url: string; image: string | null; initial: MealEdit } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const blank: MealEdit = { name_en: "", name_es: "", protein: "veg", ingredients: [] };
+  const blank: MealEdit = { name_en: "", name_es: "", protein: "veg", slot_preference: "either", ingredients: [] };
 
   const read = () =>
     startTransition(async () => {
@@ -266,7 +302,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
       setFound({
         url: r.url,
         image: r.recipe.image,
-        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), ingredients: r.recipe.ingredients },
+        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), slot_preference: "either", ingredients: r.recipe.ingredients },
       });
     });
 
@@ -331,10 +367,33 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
   );
 }
 
-// A first guess at the group from the recipe's name and ingredients; the owner can change it.
-const FISH = /\b(fish|salmon|tuna|cod|hake|prawns?|shrimp|crab|mackerel|sardines?|anchov|pescado|salm[oó]n|at[uú]n|bacalao|merluza|gambas|langostinos|cangrejo)/i;
-const MEAT = /\b(chicken|beef|pork|lamb|turkey|bacon|ham|sausages?|chorizo|mince|steak|pollo|ternera|cerdo|cordero|pavo|jam[oó]n|salchichas|carne)/i;
-function guessProtein(name: string, ingredients: string[]): Protein {
-  const text = `${name} ${ingredients.join(" ")}`;
-  return FISH.test(name) ? "fish" : MEAT.test(name) ? "meat" : FISH.test(text) ? "fish" : MEAT.test(text) ? "meat" : "veg";
+// The favourite star: a separate button from the row, so tapping it never opens the meal.
+function StarButton({ id, name, favourite }: { id: string; name: string; favourite: boolean }) {
+  const { t } = useLang();
+  const [on, setOn] = useOptimistic(favourite);
+  const [error, setError] = useState(false);
+  const [, start] = useTransition();
+  const toggle = () =>
+    start(async () => {
+      setError(false);
+      setOn(!on);
+      const r = await setFavourite(id, !on).catch(() => ({ ok: false }));
+      if (!r.ok) setError(true);
+    });
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-pressed={on}
+      aria-label={on ? t.favourites.unmarkLabel(name) : t.favourites.markLabel(name)}
+      title={error ? t.board.didNotSave : undefined}
+      className={cn(
+        "flex w-12 shrink-0 touch-manipulation items-center justify-center text-[26px] leading-none transition active:scale-90",
+        on ? "text-[#e0a800]" : "text-black/25 hover:text-black/40",
+        error && "text-destructive",
+      )}
+    >
+      <span aria-hidden="true">{on ? "★" : "☆"}</span>
+    </button>
+  );
 }

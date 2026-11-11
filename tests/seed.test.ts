@@ -128,6 +128,25 @@ describe("seed SQL against Postgres", () => {
     expect(linked.rows[0].n).toBe(154 - 5 - 6 - 2);
   });
 
+  it("backfills each meal's usual slot, keeps one set by hand, and allows only the four values", async () => {
+    const db = await freshDb();
+    await db.exec(buildSeedSql(files));
+    await db.exec(readFileSync(join(root, "supabase/data/meal_slot_preferences.sql"), "utf8"));
+    const pref = async (name: string) =>
+      (await db.query<{ p: string }>("select slot_preference p from public.meals where name_group = $1", [name])).rows[0].p;
+    expect(await pref("Pizza")).toBe("supper");
+    expect(await pref("Lentejas estofadas (variants)")).toBe("lunch");
+    expect(await pref("Chili con Carne")).toBe("either");
+    // The owner changes one by hand; re-running the migration (production path) keeps it.
+    await db.exec("update public.meals set slot_preference = 'breakfast' where name_group = 'Pisto (variants)'");
+    for (const m of migrations) await db.exec(m);
+    expect(await pref("Pisto (variants)")).toBe("breakfast");
+    await expect(db.exec("update public.meals set slot_preference = 'brunch' where name_group = 'Pizza'")).rejects.toThrow(/slot_preference/);
+    await expect(
+      db.exec(`insert into public.meals (household_id, name, name_group, source, source_url) values ('${HOUSEHOLD_ID}', 'a', 'a', 'elpais', 'https://elpais.com/x'), ('${HOUSEHOLD_ID}', 'b', 'b', 'elpais', 'https://elpais.com/x')`),
+    ).rejects.toThrow(/duplicate|unique/);
+  });
+
   it("row-level security shows data to household members only", async () => {
     const db = await freshDb();
     await db.exec(buildSeedSql(files, { householdEmails: ["owner@example.com"] }));

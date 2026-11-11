@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerdictDetails } from "@/components/verdict-details";
 import { getMessages } from "@/lib/i18n/server";
 import { cleanTitle, formatDate, mealName, type Messages } from "@/lib/i18n/messages";
-import { applyConfirmation, screenMeal, type Status, type Verdict } from "@/lib/gluten/gate";
+import { applyConfirmation, newIdeaVerdict, screenMeal, type Status, type Verdict } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
 import { cn } from "@/lib/utils";
 import { TryAMeal } from "./try-a-meal";
@@ -23,6 +23,7 @@ type Meal = {
   ingredients_note: string | null;
   is_favourite: boolean;
   gf_confirmed_at: string | null;
+  source: string | null;
 };
 
 type Slot = {
@@ -69,7 +70,7 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
   const [{ data: meals, error }, { data: upcoming }] = await Promise.all([
     supabase
       .from("meals")
-      .select("id, name, name_en, name_es, variants_seen, ingredients_note, is_favourite, gf_confirmed_at")
+      .select("id, name, name_en, name_es, variants_seen, ingredients_note, is_favourite, gf_confirmed_at, source")
       .eq("retired", false)
       .order("name")
       .returns<Meal[]>(),
@@ -91,7 +92,9 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
       .map((v) => ({ text: v, verdict: screenMeal({ name: v }) }))
       .filter((v) => ORDER.indexOf(v.verdict.status) < ORDER.indexOf(screenedVerdict.status))
       .map((v) => ({ ...v, verdict: applyConfirmation(v.verdict, confirmed) }));
-    return { meal: m, label: mealName(m, lang), verdict: applyConfirmation(screenedVerdict, confirmed), variants };
+    // An El País recipe is never Safe until you confirm it.
+    const verdict = m.source === "elpais" ? newIdeaVerdict(screenedVerdict, confirmed) : applyConfirmation(screenedVerdict, confirmed);
+    return { meal: m, label: mealName(m, lang), verdict, variants };
   });
   screened.sort(
     (a, b) => ORDER.indexOf(a.verdict.status) - ORDER.indexOf(b.verdict.status) || a.label.localeCompare(b.label),

@@ -1,5 +1,6 @@
 import type { Status } from "../gluten/gate";
 import { messages, type Lang, type Messages } from "../i18n/messages";
+import { slotFits as fitsSlot, type SlotPref } from "./slot-pref";
 import type { Tags } from "./tags";
 
 // The week rules from the build brief, as plain functions of the grid.
@@ -24,7 +25,15 @@ export type PlanMeal = {
   tags: Tags;
   gluten: Status;
   pinned: boolean;
+  // Marked with a star on the Meals page: planned more often.
+  favourite?: boolean;
+  // The slot it usually fills (from the menu sheet, or set by the owner). Missing means either.
+  slotPref?: SlotPref;
+  // A new idea from El País not yet confirmed gluten-free by the household.
+  idea?: boolean;
 };
+
+export { slotFits, type SlotPref } from "./slot-pref";
 
 export type Cell = { day: Day; slot: Slot; mealId: string | null };
 
@@ -240,7 +249,7 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
   const needFish = !others.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
-    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && m.gluten !== "blocked")
+    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && m.gluten !== "blocked" && m.slotPref !== "breakfast")
     .map((m) => {
       const last = lastUseBefore(history, m.id, weekStart);
       const gap = last ? daysBetween(last, date) : null;
@@ -250,10 +259,12 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
 
   const rank = ({ m, last }: (typeof pool)[number]) => [
     tradition === "roast" ? (m.tags.isRoast ? 0 : 1) : tradition === "pizza" ? (m.tags.isPizza ? 0 : 1) : 0,
+    // The slot it usually fills: a dinner meal for a dinner cell.
+    tradition || fitsSlot(m.slotPref, cell.slot) ? 0 : 1,
     wantProtein && !wantProtein.includes(m.tags.protein) ? 1 : 0,
     needPulse && !m.tags.isPulse ? 1 : 0,
     needFish && m.tags.protein !== "fish" ? 1 : 0,
-    m.pinned ? 0 : 1,
+    m.pinned || m.favourite ? 0 : 1,
     last ? 0 : 1, // past meals before new ones (about 1 new a week)
   ];
   pool.sort((a, b) => {
@@ -266,7 +277,9 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
 
   return pool.slice(0, count).map(({ m, gap }) => {
     const bits: string[] = [];
-    if (m.pinned) bits.push(t.pinned);
+    if (m.favourite) bits.push(msg.gen.whyFavourite);
+    else if (m.pinned) bits.push(t.pinned);
+    if (!tradition && m.slotPref && m.slotPref !== "either" && fitsSlot(m.slotPref, cell.slot)) bits.push(msg.gen.whyUsual[cell.slot]);
     if (needPulse && m.tags.isPulse) bits.push(t.pulsesWhy);
     else if (needFish && m.tags.protein === "fish") bits.push(t.fishWhy);
     if (wantProtein && wantProtein.includes(m.tags.protein) && !current)
@@ -287,7 +300,7 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
   const needFish = !planned.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
-    .filter((m) => !inWeek.has(m.id) && m.gluten !== "blocked")
+    .filter((m) => !inWeek.has(m.id) && m.gluten !== "blocked" && m.slotPref !== "breakfast")
     .map((m) => {
       const last = lastUseBefore(history, m.id, weekStart);
       return { m, last, gap: last ? daysBetween(last, weekStart) : null };
@@ -295,7 +308,7 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
     .filter(({ m, gap }) => gap === null || gap >= (m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays))
     .sort(
       (a, b) =>
-        Number(!a.m.pinned) - Number(!b.m.pinned) ||
+        Number(!(a.m.pinned || a.m.favourite)) - Number(!(b.m.pinned || b.m.favourite)) ||
         Number(!a.last) - Number(!b.last) ||
         (a.last ?? "").localeCompare(b.last ?? "") ||
         a.m.name.localeCompare(b.m.name),
@@ -315,7 +328,8 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
       const bits: string[] = [];
       if (needPulse && k === "pulse") bits.push(t.pulsesWhy);
       if (needFish && k === "fish") bits.push(t.fishWhy);
-      if (next.m.pinned) bits.unshift(t.pinned);
+      if (next.m.favourite) bits.unshift(msg.gen.whyFavourite);
+      else if (next.m.pinned) bits.unshift(t.pinned);
       picked.push({ meal: next.m, why: bits.join(", ") });
     }
   return picked;

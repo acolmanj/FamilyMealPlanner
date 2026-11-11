@@ -376,3 +376,24 @@ export function applyConfirmation(verdict: Verdict, confirmed: boolean): Verdict
   if (!confirmed) return verdict;
   return { ...verdict, status: "safe", confirmed: true, screened: verdict.status };
 }
+
+// A recipe from outside (El País) is never Safe until the household confirms it: the gate
+// only reads words, and nobody here has cooked it gluten-free yet. Blocked stays blocked.
+export function newIdeaVerdict(verdict: Verdict, confirmed: boolean): Verdict {
+  if (confirmed) return applyConfirmation(verdict, true);
+  if (verdict.status === "safe" || verdict.status === "needs_substitution") return { ...verdict, status: "needs_check", screened: verdict.status };
+  return verdict;
+}
+
+// The status the app shows for a meal row: screened, then the household's confirmation.
+export function mealStatus(m: {
+  name: string;
+  variants_seen?: string[] | null;
+  ingredients_note?: string | null;
+  gf_confirmed_at?: string | null;
+  source?: string | null;
+}): Status {
+  const verdict = screenMeal({ name: m.name, variants: m.variants_seen ?? [], ingredients: m.ingredients_note });
+  const confirmed = Boolean(m.gf_confirmed_at);
+  return (m.source === "elpais" ? newIdeaVerdict(verdict, confirmed) : applyConfirmation(verdict, confirmed)).status;
+}

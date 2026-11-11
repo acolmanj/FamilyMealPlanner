@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import { fetchRecipe } from "@/lib/recipes/fetch";
+import { isSlotPref, type SlotPref } from "@/lib/planner/slot-pref";
 import type { ParsedRecipe } from "@/lib/recipes/parse";
 
 // The meal library: edit a meal's names, group and ingredients, or add a new one.
@@ -14,6 +15,7 @@ export type MealEdit = {
   name_en: string;
   name_es: string;
   protein: "meat" | "fish" | "veg";
+  slot_preference: SlotPref;
   ingredients: string[];
 };
 
@@ -31,7 +33,7 @@ async function context() {
   return { supabase, householdId: household.id, t };
 }
 
-type Fields = { name_en: string | null; name_es: string | null; protein: string; ingredients_note: string | null };
+type Fields = { name_en: string | null; name_es: string | null; protein: string; slot_preference: SlotPref; ingredients_note: string | null };
 
 function fields(e: MealEdit, t: Awaited<ReturnType<typeof context>>["t"]): { error: string } | { values: Fields } {
   const name_en = clean(e.name_en);
@@ -41,7 +43,13 @@ function fields(e: MealEdit, t: Awaited<ReturnType<typeof context>>["t"]): { err
   if (!PROTEINS.includes(e.protein)) return { error: t.actions.pickProtein };
   const lines = e.ingredients.map(clean).filter(Boolean).slice(0, 60);
   return {
-    values: { name_en: name_en || null, name_es: name_es || null, protein: e.protein, ingredients_note: lines.length ? lines.join("\n") : null },
+    values: {
+      name_en: name_en || null,
+      name_es: name_es || null,
+      protein: e.protein,
+      slot_preference: isSlotPref(e.slot_preference) ? e.slot_preference : "either",
+      ingredients_note: lines.length ? lines.join("\n") : null,
+    },
   };
 }
 

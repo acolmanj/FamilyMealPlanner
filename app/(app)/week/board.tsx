@@ -23,9 +23,10 @@ import {
 } from "@/lib/planner/rules";
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
+import { relaxedNotes } from "@/lib/planner/generate";
 import { addNewMeal, clearCell, generatePlan, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
 import type { BoardCell, BoardMeal } from "./load";
-import { useResolveImages } from "./resolve-images";
+import { useResolveImages, withImagesPaused } from "./resolve-images";
 
 type Change =
   | { type: "set"; day: Day; slot: Slot; mealId: string; text: string }
@@ -365,35 +366,39 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   );
 }
 
-// Suggest a whole week, as often as wanted. Locked meals stay; everything else is refilled.
+// Re-roll what the planner suggested, as often as wanted. Filling empty slots is the
+// "Plan week" button in the tab bar, so there is one way to plan and one way to re-roll.
 function GenerateBar({ week, cells, busy }: { week: string; cells: BoardCell[]; busy: boolean }) {
   const { t } = useLang();
   const [working, startWorking] = useTransition();
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const hasSuggestion = cells.some((c) => c.why && !c.locked);
-  // Meals the owner put in by hand (or imported) but did not lock would be replaced.
-  const handMade = cells.filter((c) => !c.locked && !c.why).length;
 
   const go = () => {
-    if (handMade && !window.confirm(t.gen.confirmReplace(handMade))) return;
     setNote(null);
     startWorking(async () => {
-      const r = await generatePlan(week, Math.floor(Math.random() * 2 ** 31));
+      const r = await withImagesPaused(() => generatePlan(week, Math.floor(Math.random() * 2 ** 31)));
       if (!r.ok) return setNote({ ok: false, text: r.error });
-      const extra = [r.relaxed.includes("starch") ? t.gen.relaxedStarch : null, r.relaxed.some((x) => x.startsWith("recency")) ? t.gen.relaxedRecency : null];
-      setNote({ ok: true, text: [t.gen.done(r.filled), ...extra].filter(Boolean).join(" ") });
+      setNote({ ok: true, text: [t.gen.done(r.filled), ...relaxedNotes(t, r.relaxed)].join(" ") });
     });
   };
 
+  if (!hasSuggestion)
+    return (
+      <p role="status" className="rounded-xl bg-primary/10 px-3 py-2 text-[13px] text-primary">
+        <span aria-hidden="true">✨ </span>
+        {note?.text ?? t.gen.planHint}
+      </p>
+    );
   return (
     <div className="flex flex-col gap-1.5">
       <button
         onClick={go}
         disabled={working || busy}
-        className="flex h-12 w-full touch-manipulation items-center justify-center gap-2 rounded-full bg-primary px-5 text-[17px] font-semibold text-primary-foreground shadow-card transition active:scale-[0.98] disabled:opacity-60 sm:h-10 sm:w-auto sm:self-start sm:text-[15px]"
+        className="flex h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-full bg-card px-5 text-[15px] font-semibold text-primary shadow-card transition active:scale-[0.98] disabled:opacity-60 sm:w-auto sm:self-start"
       >
-        <span aria-hidden="true" className={cn(working && "animate-spin")}>{hasSuggestion ? "↻" : "✨"}</span>
-        {working ? t.gen.working : hasSuggestion ? t.gen.regenerate : t.gen.generate}
+        <span aria-hidden="true" className={cn(working && "animate-spin")}>↻</span>
+        {working ? t.gen.working : t.gen.reshuffle}
       </button>
       <p role="status" className={cn("px-1 text-xs", note && !note.ok ? "text-destructive" : "text-muted-foreground")}>
         {note?.text ?? t.gen.help}
@@ -456,7 +461,13 @@ function DayRow({
                   <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
                   <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
                     {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} hasRice={m.tags.hasRice} className="text-sm" />}
+                    {m?.favourite && (
+                      <span className="text-[13px] leading-none text-[#d99a00]" title={t.board.favourite}>
+                        ★<span className="sr-only"> {t.board.favourite}</span>
+                      </span>
+                    )}
                     {m?.tags.isProcessed && <span>{t.board.processed}</span>}
+                    {m?.idea && m.gluten !== "blocked" && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-warning">{t.board.newIdea}</span>}
                     {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
                     {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
                   </span>
@@ -491,7 +502,9 @@ function MealTile({ meal, why, picked, onClick, extra }: { meal: PlanMeal; why?:
         <span className="leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
         <span className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
           <FoodIcons starch={meal.tags.starch} isPasta={meal.tags.isPasta} isPulse={meal.tags.isPulse} hasRice={meal.tags.hasRice} className="text-sm" />
+          {meal.favourite && <span className="text-[#d99a00]" aria-label={t.board.favourite}>★</span>}
           <span>{[meal.tags.isProcessed ? t.board.processed : null, why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}</span>
+          {meal.idea && meal.gluten !== "blocked" && <span className="font-semibold text-warning">{t.board.newIdea}</span>}
         </span>
       </span>
       <Thumb meal={meal as BoardMeal} />

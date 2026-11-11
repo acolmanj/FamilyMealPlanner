@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { applyConfirmation, screenMeal } from "@/lib/gluten/gate";
+import { mealStatus } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import { resolveImage, type ImageMeal } from "@/lib/images/resolve";
@@ -77,16 +77,12 @@ export async function setCellMeal(week: string, day: string, slot: string, mealI
   const ctx = await context();
   const { data: meal } = await ctx.supabase
     .from("meals")
-    .select("id, name, variants_seen, ingredients_note, gf_confirmed_at")
+    .select("id, name, variants_seen, ingredients_note, gf_confirmed_at, source")
     .eq("household_id", ctx.householdId)
     .eq("id", mealId)
     .maybeSingle();
   if (!meal) return { ok: false, error: (await say()).mealNotFound };
-  const verdict = applyConfirmation(
-    screenMeal({ name: meal.name, variants: meal.variants_seen, ingredients: meal.ingredients_note }),
-    Boolean(meal.gf_confirmed_at),
-  );
-  if (verdict.status === "blocked")
+  if (mealStatus(meal) === "blocked")
     return { ok: false, error: (await say()).blocked(meal.name) };
 
   const before = await getSlot(ctx, week, day, slot);
@@ -154,8 +150,8 @@ export async function clearCell(week: string, day: string, slot: string): Promis
   return { ok: true, adjustmentId };
 }
 
-// Suggest a whole week: every slot that is not locked gets a meal that keeps the rules.
-// Each press sends a new seed, so pressing again gives a different week.
+// Try other suggestions: re-roll only the meals the planner proposed (not locked, with a
+// why line). Meals the owner chose, locked or ate stay. Empty slots are for "Plan week".
 export async function generatePlan(
   week: string,
   seed: number,
@@ -166,8 +162,12 @@ export async function generatePlan(
   const data = await loadWeek(week, lang);
   if (!data || "error" in data) return { ok: false, error: data?.error ?? "No household" };
   const meals = new Map<string, PlanMeal>(data.meals.map((m) => [m.id, m]));
-  const keep = data.cells.filter((c) => c.locked).map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId }));
-  if (keep.length === DAYS.length * SLOTS.length) return { ok: false, error: t.gen.allLocked };
+  const proposed = (c: (typeof data.cells)[number]) => !c.locked && Boolean(c.why);
+  if (!data.cells.some(proposed)) return { ok: false, error: t.gen.allLocked };
+  const keep = data.cells.filter((c) => !proposed(c)).map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId }));
+  // Empty slots stay empty: treat them as taken for this re-roll.
+  const taken = new Set(data.cells.map((c) => `${c.day}-${c.slot}`));
+  for (const day of DAYS) for (const slot of SLOTS) if (!taken.has(`${day}-${slot}`)) keep.push({ day, slot, mealId: null });
   const result = generateWeek({ weekStart: week, meals, history: data.history, keep, seed, lang });
   if (result.unfilled.length) return { ok: false, error: t.gen.failed };
 
