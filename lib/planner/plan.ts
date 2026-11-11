@@ -23,18 +23,6 @@ export const withPassed = (cells: Cell[], passed: Day[]): Cell[] => [
   ...passed.flatMap((day) => SLOTS.filter((slot) => !cells.some((c) => c.day === day && c.slot === slot)).map((slot) => ({ day, slot, mealId: null }))),
 ];
 
-// "Try other suggestions": the cells to keep when re-rolling one week. Only meals the planner
-// proposed (not locked, with a why line) on days still to come are re-rolled. Everything else
-// stays, and empty slots and every slot on a day that has passed count as taken.
-export type RerollCell = Cell & { locked: boolean; why: string | null };
-export function rerollKeep(cells: RerollCell[], passed: Day[] = []): { keep: Cell[]; rerolled: number } {
-  const reroll = (c: RerollCell) => !c.locked && Boolean(c.why) && !passed.includes(c.day);
-  const keep: Cell[] = cells.filter((c) => !reroll(c)).map((c) => ({ day: c.day, slot: c.slot, mealId: c.mealId }));
-  const taken = new Set(cells.map((c) => `${c.day}-${c.slot}`));
-  for (const day of DAYS) for (const slot of SLOTS) if (!taken.has(`${day}-${slot}`)) keep.push({ day, slot, mealId: null });
-  return { keep, rerolled: cells.filter(reroll).length };
-}
-
 export function planWeeks({
   weeks,
   meals,

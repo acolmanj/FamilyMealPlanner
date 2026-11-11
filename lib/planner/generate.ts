@@ -18,7 +18,7 @@ export type GenerateInput = {
   meals: Map<string, PlanMeal>;
   history: Use[];
   // Every other week's plan, earlier and later: recency looks both ways.
-  // Cells that stay as they are (locked by the owner). mealId null means taken by free text.
+  // Cells that stay as they are (already planned). mealId null means taken by free text.
   keep: Cell[];
   seed: number;
   lang?: Lang;

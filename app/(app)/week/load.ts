@@ -14,7 +14,7 @@ export type MealImage = { url: string; source: string | null; page: string | nul
 export type RecipeIdea = { name: string; url: string; gluten: { term: string; swap?: string }[] };
 // gfStock: an El País recipe that uses stock, so the stock must be a gluten-free one.
 export type BoardMeal = PlanMeal & { tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null; gfStock?: boolean };
-export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; locked: boolean; leftover: boolean; why: string | null };
+export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; leftover: boolean; why: string | null };
 
 type MealRow = {
   id: string;
@@ -116,7 +116,6 @@ export async function loadWeeks(weeks: string[], lang: Lang = "en") {
       slot: s.slot as Slot,
       mealId: s.meal_id,
       text: s.as_written ? s.as_written.split(/:\s|: ?https?:/)[0].trim() : null,
-      locked: s.status === "locked",
       leftover: s.is_leftover,
       why: s.why_line,
     }));
