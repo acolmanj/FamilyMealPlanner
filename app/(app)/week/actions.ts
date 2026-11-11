@@ -6,6 +6,7 @@ import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import { resolveImage, type ImageMeal } from "@/lib/images/resolve";
 import { generateWeek, type Relaxed } from "@/lib/planner/generate";
+import { isSobras, isTakeaway } from "@/lib/planner/not-a-meal";
 import { DAYS, SLOTS, type Day, type PlanMeal, type Slot } from "@/lib/planner/rules";
 import { passedDays, rerollKeep } from "@/lib/planner/plan";
 import { dublinToday } from "@/lib/planner/week";
@@ -234,7 +235,9 @@ export async function saveMealTags(mealId: string, tags: TagEdit): Promise<Resul
 export async function addNewMeal(week: string, day: string, slot: string, name: string): Promise<Result> {
   const clean = name.trim().replace(/\s+/g, " ");
   if (clean.length < 2 || clean.length > 120) return { ok: false, error: (await say()).typeName };
-  if (/\b(sobras?|leftovers?)\b/i.test(clean)) return { ok: false, error: (await say()).sobras };
+  // Sobras (leftovers), take-away and eating out are not meals, so they never join the library.
+  if (isSobras(clean)) return { ok: false, error: (await say()).sobras };
+  if (isTakeaway(clean)) return { ok: false, error: (await say()).takeaway };
   const ctx = await context();
   const { data: existing } = await ctx.supabase
     .from("meals")

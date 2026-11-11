@@ -1,5 +1,5 @@
 import { newIdeaVerdict, normalise, screenMeal, type Status } from "../gluten/gate";
-import { isSobras } from "../planner/generate";
+import { isNotAMeal } from "../planner/not-a-meal";
 import type { SlotPref } from "../planner/slot-pref";
 import { guessProtein, type Protein } from "../planner/tags";
 import { outsideVerdict } from "../gluten/outside";
@@ -179,7 +179,7 @@ export async function fetchElPaisIdeas({
   const fresh = parseRss(xml)
     .filter((i) => isElPaisUrl(i.link) && !knownUrls.has(i.link))
     .filter((i) => ageDays(i.pubDate, now) <= MAX_AGE_DAYS && ageDays(i.pubDate, now) > -2)
-    .filter((i) => !isSobras(i.title) && isMeal(i.title, i.categories))
+    .filter((i) => !isNotAMeal(i.title) && isMeal(i.title, i.categories))
     .sort((a, b) => Date.parse(b.pubDate!) - Date.parse(a.pubDate!));
   // Items marked as recipes first; others only if their page turns out to hold a Recipe.
   const candidates = [...fresh.filter(looksLikeRecipe), ...fresh.filter((i) => !looksLikeRecipe(i))].slice(0, MAX_PAGES);
@@ -195,7 +195,7 @@ export async function fetchElPaisIdeas({
     const recipe = html && structured ? parseRecipeHtml(html, item.link) : null;
     const name = cleanName(recipe?.name || item.title);
     const key = normalise(name).trim();
-    if (!key || names.has(key) || isSobras(name) || !isMeal(name)) return;
+    if (!key || names.has(key) || isNotAMeal(name) || !isMeal(name)) return;
     const ingredients = recipe?.ingredients ?? [];
     // Any sign of gluten, even one with a gluten-free swap, leaves the recipe out. Without the
     // page's own ingredient list the summary is screened too, and the idea can never be planned.

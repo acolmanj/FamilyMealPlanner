@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { generateWeek, isSobras } from "../lib/planner/generate";
+import { generateWeek, isNotAMeal, isSobras } from "../lib/planner/generate";
 import { DAYS, addDays, checkWeek, type Cell, type PlanMeal, type Use } from "../lib/planner/rules";
 import { mealTags } from "../lib/planner/tags";
 import { parseSeedData } from "../lib/seed/build";
@@ -57,6 +57,14 @@ describe("suggest a week", () => {
     for (let s = 1; s <= 20; s++) expect(run(s, [], meals).cells.map((c) => c.mealId)).not.toContain("sobras");
     expect(isSobras("Sobras de lentejas")).toBe(true);
     expect(isSobras("Lentejas estofadas")).toBe(false);
+  });
+
+  it("never suggests a take-away or eating out, even if the library has it", () => {
+    const nandos: PlanMeal = { id: "nandos", name: "Nandos", tags: mealTags({ name: "Nandos" }), gluten: "safe", pinned: false };
+    const meals = new Map([...MEALS, ["nandos", nandos]]);
+    for (let s = 1; s <= 20; s++) expect(run(s, [], meals).cells.map((c) => c.mealId)).not.toContain("nandos");
+    expect(isNotAMeal("Take-away")).toBe(true);
+    expect(isNotAMeal("Lentejas estofadas")).toBe(false);
   });
 
   it("gives the same week for the same seed and a different week for another", () => {

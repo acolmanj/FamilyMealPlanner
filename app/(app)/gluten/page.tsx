@@ -8,6 +8,7 @@ import { getMessages } from "@/lib/i18n/server";
 import { cleanTitle, formatDate, mealName, type Messages } from "@/lib/i18n/messages";
 import { applyConfirmation, newIdeaVerdict, screenMeal, type Status, type Verdict } from "@/lib/gluten/gate";
 import { getHousehold } from "@/lib/household";
+import { isNotAMeal } from "@/lib/planner/not-a-meal";
 import { cn } from "@/lib/utils";
 import { TryAMeal } from "./try-a-meal";
 
@@ -84,7 +85,8 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
   ]);
   if (error) return <p className="text-destructive">{t.gluten.couldNotLoad(error.message)}</p>;
 
-  const screened = (meals ?? []).map((m) => {
+  // Sobras (leftovers), take-away and eating out are not meals, so there is nothing to screen.
+  const screened = (meals ?? []).filter((m) => !isNotAMeal(m.name)).map((m) => {
     // The meal itself, then each way it was written (e.g. "Pizza y croquetas").
     const screenedVerdict = screenMeal({ name: m.name, ingredients: m.ingredients_note });
     const confirmed = Boolean(m.gf_confirmed_at);
@@ -103,7 +105,11 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
   const shown = filter && ORDER.includes(filter as Status) ? screened.filter((x) => x.verdict.status === filter) : screened;
 
   const weeks = new Map<string, Slot[]>();
-  for (const s of upcoming ?? []) weeks.set(s.week_start, [...(weeks.get(s.week_start) ?? []), s]);
+  // Lunch and dinner only. Sobras, take-away and eating out are not meals: nothing to screen.
+  const toScreen = (upcoming ?? []).filter(
+    (s) => s.as_written && !s.is_leftover && !s.is_takeaway && !isNotAMeal(s.as_written) && (s.slot === "lunch" || s.slot === "dinner"),
+  );
+  for (const s of toScreen) weeks.set(s.week_start, [...(weeks.get(s.week_start) ?? []), s]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -112,8 +118,8 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
         <p className="text-sm text-muted-foreground">{t.gluten.intro}</p>
       </div>
 
-      <div className="rounded-2xl bg-warning/10 p-3.5 text-sm">
-        <strong>{t.gluten.openDecision}</strong> {t.gluten.openText}
+      <div className="rounded-2xl bg-muted p-3.5 text-sm">
+        <strong>{t.gluten.answered}</strong> {t.gluten.openText}
       </div>
 
       {[...weeks.entries()].map(([weekStart, slots]) => (
@@ -123,12 +129,10 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             {slots
-              // Sobras (leftovers) are not a meal, so there is nothing to screen.
-              .filter((s) => s.as_written && !s.is_leftover && (s.slot === "lunch" || s.slot === "dinner"))
               .sort((a, b) => DAYS.indexOf(a.day) - DAYS.indexOf(b.day) || a.slot.localeCompare(b.slot))
               .map((s) => {
                 const v = applyConfirmation(
-                  screenMeal({ name: s.as_written!, isTakeaway: s.is_takeaway }),
+                  screenMeal({ name: s.as_written! }),
                   Boolean(s.meals?.gf_confirmed_at),
                 );
                 return (

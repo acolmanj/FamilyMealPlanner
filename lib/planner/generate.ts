@@ -1,4 +1,5 @@
 import { messages, type Lang, type Messages } from "../i18n/messages";
+import { isNotAMeal } from "./not-a-meal";
 import { DAYS, LIMITS, SLOTS, addDays, canPlan, cellDate, cellKey, isNewMeal, slotFits, type Cell, type Day, type PlanMeal, type Slot, type Use } from "./rules";
 
 // Builds a suggested week with plain code: a seeded shuffle of the library, then a
@@ -24,8 +25,8 @@ export type GenerateInput = {
 };
 
 const SPACED = ["pasta", "potatoes", "rice", "noodles"];
-// Sobras (leftovers) are never a meal, whatever the library holds.
-export const isSobras = (name: string) => /\b(sobras?|leftovers?)\b/i.test(name);
+// Sobras, take-away and eating out are never a meal, whatever the library holds.
+export { isNotAMeal, isSobras } from "./not-a-meal";
 
 // mulberry32: a tiny seeded random number generator.
 export function rng(seed: number) {
@@ -97,9 +98,9 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
   const keptKeys = new Set(keep.map(cellKey));
   const kept = keep.filter((c) => c.mealId && meals.has(c.mealId)).map((c) => ({ ...c, meal: meals.get(c.mealId!)! }));
 
-  // Never: blocked for gluten, an unread or doubtful outside recipe, Sobras, breakfasts,
+  // Never: blocked for gluten, an unread or doubtful outside recipe, Sobras or take-away, breakfasts,
   // or a meal already kept this week.
-  const candidates = [...meals.values()].filter((m) => canPlan(m) && !isSobras(m.name) && !kept.some((k) => k.meal.id === m.id));
+  const candidates = [...meals.values()].filter((m) => canPlan(m) && !isNotAMeal(m.name) && !kept.some((k) => k.meal.id === m.id));
   let pool = weightedShuffle(candidates, weightOf, rand);
   const weekEnd = addDays(weekStart, DAYS.length);
   const hasRoast = pool.some((m) => m.tags.isRoast);

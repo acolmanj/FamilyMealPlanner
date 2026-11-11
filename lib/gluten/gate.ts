@@ -1,9 +1,10 @@
 // The gluten gate. Pure functions only: same text in, same verdict out.
 //
-// Source: gluten_list_for_review.md (Tiers A to D) with the strictest reading
-// of the 7 open questions until the owner answers them (BUILD_BRIEF.md,
-// "Open decisions"). The gate only ever makes a meal stricter; nothing here
-// can turn a Blocked meal into Safe.
+// Source: gluten_list_for_review.md (Tiers A to D) and the owner's answers to its
+// questions (11 November 2026): tinned food needs a label check, tinned fish and fish
+// pie are safe, anything labelled gluten free (Tesco Free From counts) is safe, tortilla
+// chips need a label check, and take-away and eating out are not meals. Nothing here
+// can turn a Blocked meal into Safe: a GF label never clears a Tier A item.
 
 export type Tier = "A" | "B" | "C" | "D";
 
@@ -30,6 +31,27 @@ export type Rule = {
   // Why it is in this tier or status, in plain words.
   note: string;
 };
+
+// Words for a tin, English and Spanish. Tinned food is Tier C (check the label)...
+const TIN_WORDS = ["tinned", "canned", "tin", "tins", "lata", "latas", "en lata", "de lata", "de bote", "en conserva", "conserva"];
+// ...but tinned fish is safe. Every "tin + fish" phrase, both ways round, is longer than
+// the tin word alone, so it wins ("tinned tuna" is safe, "tin of beans" needs a check).
+// Brands count as fish here, so "1 tin John West tuna" is tinned fish too.
+const FISH = [
+  "tuna", "atun", "sardine", "sardines", "sardina", "sardinas", "salmon", "mackerel", "caballa",
+  "anchovy", "anchovies", "anchoa", "anchoas", "bonito", "mussels", "mejillones", "berberechos",
+  "pilchards", "cockles", "almejas", "fish", "pescado", "john west", "parmentier", "rio mare", "ortiz",
+  "princes", "glenryck", "calvo", "isabel", "nixe", "albo",
+];
+const TIN_BEFORE = ["tinned", "canned", "tin", "tins", "tin of", "tins of", "can of", "cans of", "lata de", "latas de", "conserva de", "bote de"];
+const TIN_AFTER = [
+  "in oil", "in olive oil", "in sunflower oil", "in water", "in spring water", "in brine",
+  "en lata", "de lata", "en conserva", "de bote", "en aceite", "en aceite de oliva", "en aceite de girasol", "al natural",
+];
+const TINNED_FISH = [...new Set(FISH.flatMap((f) => [...TIN_BEFORE.map((t) => `${t} ${f}`), ...TIN_AFTER.map((t) => `${f} ${t}`)]))];
+// Both at once ("1 tin tuna in sunflower oil"), so the "tin" is not left behind on its own.
+const alt = (xs: string[]) => [...xs].sort((a, b) => b.length - a.length).join("|");
+const TIN_FISH_TIN = new RegExp(` (?:${alt(TIN_BEFORE)}) (?:${alt(FISH)}) (?:${alt(TIN_AFTER)}) `, "g");
 
 // Order matters only for display. Phrases that must not trigger a rule are in NOT_GLUTEN.
 export const RULES: Rule[] = [
@@ -129,7 +151,7 @@ export const RULES: Rule[] = [
     tier: "B",
     status: "needs_substitution",
     terms: ["pasta", "espaguetis", "espagueti", "spaghetti", "macarrones", "macaroni", "penne", "fusilli", "rigatoni", "tallarines", "tagliatelle", "lasana", "lasagna", "lasagne", "canelones", "cannelloni", "ravioli", "tortellini", "noodles"],
-    swap: "GF-labelled pasta (Barilla Gluten Free, or Tesco Free From with a GF statement)",
+    swap: "GF-labelled pasta (Barilla Gluten Free or Tesco Free From)",
     note: "Pasta is Tier B: GF label only",
   },
   {
@@ -208,14 +230,14 @@ export const RULES: Rule[] = [
     tier: "C",
     status: "needs_check",
     terms: ["estofado", "estofada", "guiso", "stew", "sopa", "soup", "crema de", "puchero", "cocido", "fabada", "bourguignon", "bourginon", "risotto", "risoto", "paella", "pisto"],
-    note: "Stews, soups, pisto and risotto depend on stock and thickener (open question 5): until you answer, they need a GF stock and your check",
+    note: "Stews, soups, pisto and curries depend on the stock and paste: use a GF-labelled stock and check the paste label",
   },
   {
-    id: "tinned-beans",
+    id: "tinned",
     tier: "C",
     status: "needs_check",
-    terms: ["alubias", "judias", "beans", "haricot", "kidney", "baked beans", "frijoles"],
-    note: "Tinned beans go to \"Needs your check\" until you answer open question 1",
+    terms: ["alubias", "judias", "beans", "haricot", "kidney", "baked beans", "frijoles", ...TIN_WORDS],
+    note: "Tinned food is Tier C: check the label",
   },
   {
     id: "ready-meals",
@@ -229,14 +251,14 @@ export const RULES: Rule[] = [
     tier: "C",
     status: "needs_check",
     terms: ["nachos", "tortilla chips", "totopos", "doritos"],
-    note: "Tortilla chips are not in any tier yet (open question 6), so they need your check",
+    note: "Tortilla chips and nachos: check the label",
   },
   {
     id: "fish-pie",
-    tier: "C",
-    status: "needs_check",
+    tier: "D",
+    status: "safe",
     terms: ["pastel de pescado", "fish pie"],
-    note: "Fish pie sauce is often thickened with flour (open question 4): allowed only with a GF-thickened sauce and no pastry, once you confirm",
+    note: "Fish pie is safe (your answer): thicken the sauce with cornflour, potato topping, no pastry",
     swap: "Thicken the sauce with cornflour; potato topping, no pastry",
   },
   {
@@ -244,9 +266,16 @@ export const RULES: Rule[] = [
     tier: "C",
     status: "needs_check",
     terms: ["take away", "takeaway", "take-away", "nandos", "eating out", "restaurante", "restaurant", "chipper"],
-    note: "Take-away has no recipe to screen (open question 7): check the menu for gluten",
+    note: "Take-away and eating out are not meals, so there is no recipe to check",
   },
 
+  {
+    id: "tinned-fish",
+    tier: "D",
+    status: "safe",
+    terms: TINNED_FISH,
+    note: "Tinned fish is safe (your answer)",
+  },
   // Tier D: naturally gluten-free when plain. Recorded so the screen can say what it recognised.
   {
     id: "naturally-gf",
@@ -269,6 +298,13 @@ const NOT_GLUTEN = [
   "pan de higo",
   "harina de maiz",
   "maicena",
+  // A tin to cook in, not tinned food.
+  "roasting tin",
+  "baking tin",
+  "cake tin",
+  "loaf tin",
+  "muffin tin",
+  "tin foil",
 ];
 
 export function normalise(text: string): string {
@@ -306,9 +342,16 @@ export type ScreenInput = {
   isTakeaway?: boolean;
 };
 
+// Longest terms first, so "fish fingers" wins over "fish", "pastel de pescado" over "pescado"
+// and "tinned tuna" over "tinned". Whole words, with an optional plural ending
+// ("estofada" also finds "estofadas").
+const TERMS = RULES.flatMap((r) => r.terms.map((term) => ({ r, term, n: normalise(term) })))
+  .sort((a, b) => b.n.length - a.n.length)
+  .map((x) => ({ ...x, re: new RegExp(` ${x.n.trim()}(?:s|es)? `, "g") }));
+
 // "Tortilla de patatas" is GF (Tier D) even though "tortilla" wraps are not:
 // strip the safe phrases out, then look for whole-word terms.
-function findTerms(text: string): Finding[] {
+function matchTerms(text: string): Finding[] {
   let t = normalise(text);
   const findings: Finding[] = [];
   const safeHits: string[] = [];
@@ -319,13 +362,14 @@ function findTerms(text: string): Finding[] {
       t = t.split(p).join(" ");
     }
   }
-  // Longest terms first, so "fish fingers" wins over "fish" and "pastel de pescado" over "pescado".
-  const all = RULES.flatMap((r) => r.terms.map((term) => ({ r, term, n: normalise(term) }))).sort(
-    (a, b) => b.n.length - a.n.length,
-  );
-  for (const { r, term, n } of all) {
-    // Whole words, with an optional plural ending ("estofada" also finds "estofadas").
-    const re = new RegExp(` ${n.trim()}(?:s|es)? `, "g");
+  const both = t.match(TIN_FISH_TIN);
+  if (both) {
+    const r = RULES.find((x) => x.id === "tinned-fish")!;
+    findings.push({ rule: r.id, term: both[0].trim(), tier: r.tier, status: r.status, note: r.note });
+    t = t.replace(TIN_FISH_TIN, "  ");
+  }
+  for (const { r, term, re } of TERMS) {
+    re.lastIndex = 0;
     if (re.test(t)) {
       findings.push({ rule: r.id, term, tier: r.tier, status: r.status, note: r.note, swap: r.swap });
       t = t.replace(re, "  ");
@@ -335,6 +379,68 @@ function findTerms(text: string): Finding[] {
     const r = RULES.find((x) => x.id === "naturally-gf")!;
     findings.push({ rule: r.id, term: "tortilla de patatas", tier: "D", status: "safe", note: "Spanish omelette, not a wheat tortilla" });
   }
+  return findings;
+}
+
+// Anything labelled gluten free is safe, and Tesco Free From counts (the owner's answer).
+// The label covers the words after "Free From", "gluten free" or "GF", or before "sin gluten",
+// up to a comma, a new line, "&", "+", "/" or a joining word, and never past the first item
+// the gate would flag: in "GF pasta with sausages" and "GF pasta sausages" only the pasta is
+// labelled. A label never clears a Tier A item: "GF ramen" stays Blocked.
+const LABELS: { words: string[]; covers: "after" | "before" }[] = [
+  { words: ["free", "from", "gluten"], covers: "before" },
+  { words: ["sin", "gluten"], covers: "before" },
+  { words: ["tesco", "free", "from"], covers: "after" },
+  { words: ["free", "from"], covers: "after" },
+  { words: ["gluten", "free"], covers: "after" },
+  { words: ["gf"], covers: "after" },
+];
+const JOINERS = new Set(["with", "and", "or", "plus", "con", "y", "o"]);
+export const LABELLED_NOTE = "Labelled gluten free (Tesco Free From counts)";
+
+// How many things in these words the gate would not call Safe.
+const flagged = (words: string[]) => matchTerms(words.join(" ")).filter((f) => f.status !== "safe").length;
+
+// Takes the labelled words out of one part of a meal, and keeps them in spans.
+function unlabel(words: string[], spans: string[]): string[] {
+  for (let i = 0; i < words.length; i++) {
+    const label = LABELS.find((l) => l.words.every((w, k) => words[i + k] === w));
+    if (!label) continue;
+    const before = words.slice(0, i);
+    const after = words.slice(i + label.words.length);
+    // "Pasta GF" or "sin gluten pasta": when nothing is on the usual side, take the other.
+    const takeAfter = label.covers === "after" ? after.length > 0 : before.length === 0;
+    // The n words next to the label, in reading order.
+    const near = (n: number) => (takeAfter ? after.slice(0, n) : before.slice(before.length - n));
+    // Walk away from the label and stop before a second flagged item, so one label clears one thing.
+    let n = 0;
+    while (n < (takeAfter ? after : before).length && flagged(near(n + 1)) <= 1) n++;
+    const span = near(n);
+    if (!span.length || matchTerms(span.join(" ")).some((f) => f.tier === "A")) return words;
+    spans.push(span.join(" "));
+    return takeAfter ? [...before, ...unlabel(after.slice(n), spans)] : [...before.slice(0, before.length - n), ...unlabel(after, spans)];
+  }
+  return words;
+}
+
+function findTerms(text: string): Finding[] {
+  const spans: string[] = [];
+  const rest = text
+    .split(/[\n,;·&+/]/)
+    .map((piece) => {
+      const out: string[] = [];
+      let part: string[] = [];
+      for (const w of normalise(piece).trim().split(" ").filter(Boolean)) {
+        if (JOINERS.has(w)) {
+          out.push(...unlabel(part, spans), w);
+          part = [];
+        } else part.push(w);
+      }
+      return [...out, ...unlabel(part, spans)].join(" ");
+    })
+    .join(" · ");
+  const findings = matchTerms(rest);
+  if (spans.length) findings.push({ rule: "labelled-gf", term: spans.join(", "), tier: "D", status: "safe", note: LABELLED_NOTE });
   return findings;
 }
 

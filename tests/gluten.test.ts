@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { RULES, applyConfirmation, screenMeal } from "../lib/gluten/gate";
+import { isNotAMeal } from "../lib/planner/not-a-meal";
 import { parseSeedData } from "../lib/seed/build";
 
 const root = join(__dirname, "..");
@@ -48,13 +49,12 @@ describe("gluten gate", () => {
     }
   });
 
-  it("sends Tier C items and the open questions to Needs your check (strictest default)", () => {
+  it("sends Tier C items to Needs your check", () => {
     for (const name of [
       "Salchichas con ensalada",
       "Curry Rogan Josh (cordero)",
       "Chili con Carne",
       "Lentejas estofadas",
-      "Pastel de pescado",
       "Nachos con carne",
       "Calabaza con alubias y garbanzos",
       "Pisto con arroz",
@@ -63,6 +63,82 @@ describe("gluten gate", () => {
     }
     expect(screenMeal({ name: "Nandos (cumple chicos)" }).status).toBe("needs_check");
     expect(screenMeal({ name: "Cena fuera", isTakeaway: true }).status).toBe("needs_check");
+  });
+
+  // The owner's answers, 11 November 2026.
+  describe("the owner's answers", () => {
+    it("1. tinned food needs a label check", () => {
+      for (const name of ["Calabaza con alubias de bote", "400g tin black beans", "Tinned tomatoes", "Tomate en lata", "Garbanzos en conserva"]) {
+        const v = screenMeal({ name });
+        expect(v.status, name).toBe("needs_check");
+        expect(v.findings.map((f) => f.rule), name).toContain("tinned");
+      }
+    });
+
+    it("2. tinned fish is safe, and wins over the tin word", () => {
+      for (const name of ["Tinned tuna", "Tin of tuna", "Canned sardines", "Atún en lata", "Lata de atún", "Sardinas en lata", "Atún en aceite", "Ensalada de caballa en conserva"]) {
+        const v = screenMeal({ name });
+        expect(v.status, name).toBe("safe");
+        expect(v.findings.map((f) => f.rule), name).toContain("tinned-fish");
+      }
+      expect(screenMeal({ name: "Ensalada", ingredients: "1 tin tuna in sunflower oil" }).status).toBe("safe");
+      expect(screenMeal({ name: "Parmentier sardines in olive oil" }).status).toBe("safe");
+      expect(screenMeal({ name: "Ensalada", ingredients: "1 tin John West tuna\n2 tomates" }).status).toBe("safe");
+      // A tin to cook in is not tinned food.
+      expect(screenMeal({ name: "Chicken in a roasting tin" }).status).toBe("safe");
+      // A tin of beans next to the tuna still needs its check.
+      expect(screenMeal({ name: "Tinned tuna", ingredients: "400g tin black beans" }).status).toBe("needs_check");
+    });
+
+    it("3. anything labelled gluten free is safe, and Tesco Free From counts", () => {
+      for (const name of ["Tesco Free From pasta", "Pasta sin gluten", "Gluten free pizza base", "Gluten-free spaghetti", "GF pasta con atún"]) {
+        const v = screenMeal({ name });
+        expect(v.status, name).toBe("safe");
+        expect(v.findings.map((f) => f.rule), name).toContain("labelled-gf");
+      }
+      // Only the labelled item: the rest of the meal is still screened.
+      expect(screenMeal({ name: "GF pasta with sausages" }).status).toBe("needs_check");
+      expect(screenMeal({ name: "Ensalada", ingredients: "Tesco Free From pasta, 2 salchichas" }).status).toBe("needs_check");
+      expect(screenMeal({ name: "Pasta sin gluten", ingredients: "1 pastilla de caldo" }).status).toBe("needs_check");
+      // One label clears one thing, even with no joining word.
+      for (const name of ["GF pasta sausages", "GF pasta & sausages", "GF pasta + meatballs", "Salchichas pasta sin gluten", "Free from lasagne / sausages"]) {
+        expect(screenMeal({ name }).status, name).toBe("needs_check");
+      }
+      expect(screenMeal({ name: "Pastel de pescado sin gluten" }).status).toBe("safe");
+      // "gf" is a whole word only.
+      expect(screenMeal({ name: "gfx pasta" }).status).toBe("needs_substitution");
+      // No label, no pass.
+      expect(screenMeal({ name: "Pasta" }).status).toBe("needs_substitution");
+      // A label never clears a Tier A item.
+      expect(screenMeal({ name: "GF ramen" }).status).toBe("blocked");
+      expect(screenMeal({ name: "Fideos sin gluten" }).status).toBe("blocked");
+    });
+
+    it("4. fish pie is safe, with the cornflour swap", () => {
+      for (const name of ["Pastel de pescado", "Fish pie"]) {
+        const v = screenMeal({ name });
+        expect(v.status, name).toBe("safe");
+        expect(v.swaps[0], name).toMatch(/cornflour/);
+      }
+      expect(screenMeal({ name: "Fish pie", ingredients: "2 tbsp plain flour" }).status).toBe("blocked");
+      expect(screenMeal({ name: "Apple pie" }).status).toBe("blocked");
+    });
+
+    it("6. nachos and tortilla chips need a label check; wraps still need GF ones", () => {
+      expect(screenMeal({ name: "Nachos con carne" }).status).toBe("needs_check");
+      expect(screenMeal({ name: "Tortilla chips con guacamole" }).status).toBe("needs_check");
+      expect(screenMeal({ name: "Tortilla wraps de pollo" }).status).toBe("needs_substitution");
+      expect(screenMeal({ name: "Tortilla de patatas" }).status).toBe("safe");
+    });
+
+    it("7. take-away and eating out are not meals", () => {
+      for (const name of ["Nandos", "Take-away", "Takeaway", "Take away (cumple)", "Eating out", "Comer fuera", "Comida para llevar"]) {
+        expect(isNotAMeal(name), name).toBe(true);
+      }
+      expect(isNotAMeal("Sobras")).toBe(true);
+      for (const name of ["Pollo asado", "Pastel de pescado", "Tortilla de patatas"]) expect(isNotAMeal(name), name).toBe(false);
+      expect(screenMeal({ name: "Nandos" }).findings[0].note).toMatch(/not meals/);
+    });
   });
 
   it("does not call a meal Safe when it recognises nothing in it", () => {
@@ -119,5 +195,15 @@ describe("gluten gate", () => {
       counts[v.status] = (counts[v.status] ?? 0) + 1;
     }
     expect(Object.values(counts).reduce((a, b) => a + b, 0)).toBe(data.meals.length);
+  });
+});
+
+describe("take-away matcher stays narrow", () => {
+  it("keeps real meals that mention a restaurant or a packed lunch", () => {
+    expect(isNotAMeal("Restaurant-style chicken curry")).toBe(false);
+    expect(isNotAMeal("Lentejas para llevar al trabajo")).toBe(false);
+  });
+  it("treats a branded tin of tuna as tinned fish", () => {
+    expect(screenMeal({ name: "Ensalada", ingredients: "1 tin of Princes tuna" }).status).toBe("safe");
   });
 });

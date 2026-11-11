@@ -14,7 +14,7 @@ const ES: Record<string, { note: string; swap?: string }> = {
   pastry: { note: "La masa, los pasteles y las tartas son Nivel A", swap: "Usa masa etiquetada sin gluten o un horneado sin gluten" },
   beer: { note: "La cerveza es Nivel A", swap: "Usa cerveza etiquetada sin gluten, o caldo sin gluten" },
   flour: { note: "La harina de trigo es Nivel A", swap: "Usa harina sin gluten o maicena" },
-  pasta: { note: "La pasta es Nivel B: solo con etiqueta sin gluten", swap: "Pasta etiquetada sin gluten (Barilla Gluten Free, o Tesco Free From con declaración sin gluten)" },
+  pasta: { note: "La pasta es Nivel B: solo con etiqueta sin gluten", swap: "Pasta etiquetada sin gluten (Barilla Gluten Free o Tesco Free From)" },
   pizza: { note: "Las bases de pizza son Nivel B: solo con etiqueta sin gluten", swap: "Base de pizza sin gluten (Goodfella's Gluten Free, o una base etiquetada sin gluten)" },
   bread: { note: "El pan, los panecillos y los wraps son Nivel B: solo con etiqueta sin gluten", swap: "Pan o wraps etiquetados sin gluten (pan Promise Gluten Free, panecillos Schär)" },
   "breaded-frozen": {
@@ -27,12 +27,14 @@ const ES: Record<string, { note: string; swap?: string }> = {
   sausages: { note: "Las salchichas, hamburguesas, albóndigas y embutidos son Nivel C: mira en la etiqueta trigo, cebada, centeno, avena y \"puede contener\"" },
   stock: { note: "El caldo y la salsa de asado son Nivel C: usa caldo etiquetado sin gluten o maicena" },
   sauces: { note: "Las salsas, pastas de curry y mezclas de especias son Nivel C: mira la etiqueta" },
-  "stews-soups": { note: "Los guisos, sopas, pisto y risotto dependen del caldo y el espesante (pregunta 5): hasta que respondas, necesitan caldo sin gluten y tu revisión" },
-  "tinned-beans": { note: "Las alubias de bote van a \"Revísala tú\" hasta que respondas la pregunta 1" },
+  "stews-soups": { note: "Los guisos, sopas, pisto y curris dependen del caldo y la pasta de especias: usa caldo etiquetado sin gluten y mira la etiqueta de la pasta" },
+  tinned: { note: "La comida en lata es Nivel C: mira la etiqueta" },
   "ready-meals": { note: "Los platos preparados, patatas fritas de bolsa y procesados son Nivel C: mira la etiqueta" },
-  nachos: { note: "Los nachos aún no están en ningún nivel (pregunta 6), así que necesitan tu revisión" },
-  "fish-pie": { swap: "Espesa la salsa con maicena; cubierta de patata, sin masa", note: "La salsa del pastel de pescado suele espesarse con harina (pregunta 4): solo vale con salsa espesada sin gluten y sin masa, cuando lo confirmes" },
-  takeaway: { note: "La comida para llevar no tiene receta que revisar (pregunta 7): mira el menú por el gluten" },
+  nachos: { note: "Totopos y nachos: mira la etiqueta" },
+  "fish-pie": { swap: "Espesa la salsa con maicena; cubierta de patata, sin masa", note: "El pastel de pescado es seguro (tu respuesta): espesa la salsa con maicena, cubierta de patata, sin masa" },
+  takeaway: { note: "La comida para llevar y comer fuera no son comidas, así que no hay receta que revisar" },
+  "tinned-fish": { note: "El pescado en lata es seguro (tu respuesta)" },
+  "labelled-gf": { note: "Etiquetado sin gluten (Tesco Free From cuenta)" },
   "naturally-gf": { note: "Sin gluten de forma natural si es fresco y sin nada añadido" },
 };
 
