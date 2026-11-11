@@ -1,0 +1,121 @@
+import { normalise, screenMeal } from "./gate";
+
+// Stricter screening for recipes from outside the household (El País). Nobody here has
+// cooked them gluten-free, so any sign of gluten, even one with a GF swap, keeps them
+// out of the plan, and so does a recipe whose ingredients we could not read.
+//   "gluten"    - any gluten word or swap: not added at all
+//   "unchecked" - no ingredient list from the recipe itself: may be listed, never planned
+//   "ok"        - ingredients read and nothing found: may be planned, flagged to check
+
+export type OutsideVerdict = "gluten" | "unchecked" | "ok";
+
+// Flour is fine only when the recipe names a gluten-free one.
+const GF_FLOUR = "(maiz|arroz|garbanzos?|almendras?|patata|tapioca|yuca|castanas?|coco)";
+const WORDS = [
+  `harinas?(?! (de )?${GF_FLOUR})`,
+  "salsa de soja",
+  "soja",
+  "pasta(?! de (tomate|pimiento|aceitunas|sesamo))",
+  "pastas",
+  "espaguetis?",
+  "spaghetti",
+  "macarrones",
+  "macaroni",
+  "penne",
+  "fusilli",
+  "rigatoni",
+  "tallarines(?! de arroz)",
+  "tagliatelle",
+  "lasagn[ae]",
+  "canelones",
+  "cannelloni",
+  "ravioli",
+  "tortellini",
+  "lasanas?",
+  // Rice noodles are fine; wheat noodles are not.
+  "fideos?(?! de arroz)",
+  "fideua",
+  "avena",
+  "picatostes?",
+  "masa quebrada",
+  "masa brisa",
+  "masa de hojaldre",
+  "hojaldre",
+  "masa de pizza",
+  "pan rallado",
+  "panko",
+  "pan",
+  "panes",
+  "tostadas?",
+  "cuscus",
+  "couscous",
+  "bulgur",
+  "cerveza",
+  "trigo",
+  "cebada",
+  "centeno",
+  "espelta",
+  "seitan",
+  "galletas?",
+  "bizcochos?",
+  "rebozad[oa]s?",
+  "empanad[oa]s?",
+  "empanadillas?",
+  "tempura",
+  "bechamel",
+  "croquetas?",
+  "(?<!rice )noodles",
+  "ramen",
+  "udon",
+  "flour",
+  "breadcrumbs",
+  "soy sauce",
+  "semola",
+  "worcestershire",
+  "perrins",
+  "obleas?",
+  "wonton",
+  "gyozas?",
+  "bao",
+  "miso",
+  // Hoisin and oyster sauce are usually thickened with wheat.
+  "hoisin",
+  "salsa de ostras",
+  "oyster sauce",
+  // Dough of any kind, except corn dough.
+  "masas?(?! de maiz)",
+  "tortillas? de harina",
+  // A pastel is usually pastry or flour-thickened: left out rather than guessed.
+  "pasteles",
+  "pastel",
+];
+const COVERED = new Set(["gf-flour", "pasta", "fideos"]);
+const GLUTEN = new RegExp(`(?<= )(${WORDS.join("|")})(?= )`);
+
+export function outsideVerdict(name: string, ingredients: string[]): OutsideVerdict {
+  const text = [name, ...ingredients].join(" · ");
+  if (GLUTEN.test(normalise(text))) return "gluten";
+  // Then every other finding of the household gate. Its flour, pasta and fideos rules are left to the
+  // word list above, which knows the gluten-free flours, tomato paste and rice noodles.
+  const gate = screenMeal({ name, ingredients: ingredients.join(" · ") });
+  const doubtful = gate.findings.filter((f) => !COVERED.has(f.rule));
+  if (doubtful.some((f) => f.status === "blocked" || f.status === "needs_substitution" || f.tier === "A" || f.tier === "B")) return "gluten";
+  return ingredients.length ? "ok" : "unchecked";
+}
+
+// An El País recipe the household has not confirmed is planned only when its ingredients
+// came from the recipe page and show no sign of gluten at all. Checked again when the
+// library is loaded, so a row added by an older version or edited since meets the same rule.
+export function outsideNoPlan(m: { source: string | null; gf_confirmed_at: string | null; name: string; name_es?: string | null; ingredients_note: string | null }) {
+  if (m.source !== "elpais" || m.gf_confirmed_at) return false;
+  const lines = (m.ingredients_note ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+  return outsideVerdict(m.name_es ?? m.name, lines) !== "ok";
+}
+
+// Stock (caldo, a stock cube, Avecrem) is too common to leave a recipe out for, but the
+// cube or carton must be a gluten-free one: the meal and its cell say so.
+const STOCK = /(?<= )(caldos?|pastillas? de caldo|avecrem|stock|stock cubes?|bouillon)(?= )/;
+export function needsGfStock(name: string, ingredients: string | string[] | null) {
+  const text = [name, ...(Array.isArray(ingredients) ? ingredients : [ingredients ?? ""])].join(" · ");
+  return STOCK.test(normalise(text));
+}

@@ -1,7 +1,9 @@
-import { applyConfirmation, screenMeal } from "@/lib/gluten/gate";
+import { mealStatus } from "@/lib/gluten/gate";
+import { needsGfStock, outsideNoPlan } from "@/lib/gluten/outside";
 import { getHousehold } from "@/lib/household";
 import { mealName } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
+import { isSlotPref } from "@/lib/planner/slot-pref";
 import { mealTags } from "@/lib/planner/tags";
 import { splitIngredients } from "@/lib/recipes/parse";
 import { Library, type LibraryMeal } from "./library";
@@ -24,6 +26,10 @@ type Row = {
   image_page_url: string | null;
   mealdb_ingredients: string[] | null;
   recipe_source: string | null;
+  is_favourite: boolean;
+  slot_preference: string | null;
+  source: string | null;
+  source_url: string | null;
 };
 
 export default async function MealsPage() {
@@ -33,7 +39,7 @@ export default async function MealsPage() {
   const { data, error } = await supabase
     .from("meals")
     .select(
-      "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_ingredients, recipe_source",
+      "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_ingredients, recipe_source, is_favourite, slot_preference, source, source_url",
     )
     .eq("retired", false)
     .eq("blacklisted", false)
@@ -56,13 +62,16 @@ export default async function MealsPage() {
       hasRice: tags.hasRice,
       ingredients: splitIngredients(m.ingredients_note),
       recipeIngredients: m.mealdb_ingredients?.length ? m.mealdb_ingredients : null,
-      gluten: applyConfirmation(
-        screenMeal({ name: m.name, variants: m.variants_seen, ingredients: m.ingredients_note }),
-        Boolean(m.gf_confirmed_at),
-      ).status,
+      gluten: mealStatus(m),
+      favourite: m.is_favourite,
+      slotPref: isSlotPref(m.slot_preference) ? m.slot_preference : "either",
+      fromElPais: m.source === "elpais",
+      newIdea: m.source === "elpais" && !m.gf_confirmed_at,
+      noPlan: outsideNoPlan(m),
+      gfStock: m.source === "elpais" && needsGfStock(m.name_es ?? m.name, m.ingredients_note),
       image: m.image_url,
       imageSource: m.image_source,
-      recipeUrl: m.recipe_source && /^https?:\/\//.test(m.recipe_source) ? m.recipe_source : m.image_page_url,
+      recipeUrl: m.source_url ?? (m.recipe_source && /^https?:\/\//.test(m.recipe_source) ? m.recipe_source : m.image_page_url),
     }))
     .sort((a, b) => a.name.localeCompare(b.name, lang));
 

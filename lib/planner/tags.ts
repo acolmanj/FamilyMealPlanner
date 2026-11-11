@@ -52,7 +52,10 @@ const STARCH: [Starch, string[]][] = [
 const PROCESSED = ["fish fingers", "nuggets", "chicken tenders", "salchichas", "sausages", "fish burgers", "croquetas", "ready meal"];
 const QUICK = ["ensalada verde", "tostada", "tostadas", "tosatada", "tostis", "tosties", "fish fingers", "salchichas", "sausages", "chicken tenders", "nachos", "pesto"];
 const LONG = ["asado", "asada", "roast", "estofado", "estofadas", "bourginon", "bourguignon", "rogan josh", "chili", "pastel"];
-const ROAST = ["asado", "asada", "roast"];
+// A roast is a roasted joint of meat ("cordero asado", "roast lamb"), not roasted
+// vegetables ("crema de calabaza asada", "patatas asadas").
+const ROAST_MEAT = "(pollo|cordero|cerdo|ternera|vaca|pavo|lechon|cochinillo|chicken|lamb|pork|beef|turkey)";
+const ROAST = new RegExp(` (${ROAST_MEAT}( [a-z]+)? asad[oa]s?|asado de ${ROAST_MEAT}|roast ${ROAST_MEAT}|${ROAST_MEAT} roast) `);
 const PULSES = [
   "lentejas", "lenteja", "lentils", "alubias", "alubia", "judias", "beans", "bean", "garbanzos", "chickpeas", "hummus", "humus", "edamame", "adamame",
   "frijoles", "habas", "dal", "dhal", "pulses",
@@ -82,7 +85,7 @@ export function guessTags(name: string): Omit<Tags, "guessed"> {
     isPasta: starch === "pasta",
     isProcessed: has(t, PROCESSED),
     effort,
-    isRoast: has(t, ROAST),
+    isRoast: ROAST.test(t),
     isPizza: has(t, ["pizza"]),
     isPulse: has(t, PULSES),
     hasRice: containsRice(name),
@@ -115,4 +118,12 @@ export function mealTags(meal: MealAttrs): Tags {
       effort: !effort,
     },
   };
+}
+
+// A first guess at the group from the recipe's name and ingredients; the owner can change it.
+const FISH_RE = /\b(fish|salmon|tuna|cod|hake|prawns?|shrimp|crab|mackerel|sardines?|anchov|pescado|salm[oó]n|at[uú]n|bacalao|merluza|gambas|langostinos|cangrejo|almejas|mejillones|calamar|pulpo|sardinas?|bonito|dorada|lubina)/i;
+const MEAT_RE = /\b(chicken|beef|pork|lamb|turkey|bacon|ham|sausages?|chorizo|mince|steak|pollo|ternera|cerdo|cordero|pavo|jam[oó]n|salchichas|carne|conejo|costillas|lomo|panceta)/i;
+export function guessProtein(name: string, ingredients: string[]): Protein {
+  const text = `${name} ${ingredients.join(" ")}`;
+  return FISH_RE.test(name) ? "fish" : MEAT_RE.test(name) ? "meat" : FISH_RE.test(text) ? "fish" : MEAT_RE.test(text) ? "meat" : "veg";
 }

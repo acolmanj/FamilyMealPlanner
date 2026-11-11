@@ -40,9 +40,15 @@ The solver fills Monday to Sunday lunch, dinner and the weekday lunchbox. It sea
 | Effort | Hard | Mon-Fri dinner Quick (15-20 min); weekend lunch Elaborate (60+ min); everything else Normal (30-45 min). Busy nights Quick; work-from-home days Normal or better |
 | Old to new mix | Hard | 90% past meals, 10% new. About 1 new meal a week; 0 on request |
 | Starch spacing | Soft | The same starch (pasta, potatoes, rice or noodles) not twice in any 3-day window |
+| Usual slot | Last resort | Each meal is Supper, Lunch, Either or Breakfast (from the menu sheet: 70% or more of its uses at dinner is Supper, at lunch is Lunch). Supper goes to dinner, Lunch to lunch, Either to both, Breakfast never. Relaxed only after recency, and the page says so |
+| Favourites | Order | Starred meals are drawn about 2.5 times as readily in the seeded shuffle; every rule above still applies |
 | Balance targets | Soft | Fish, vegetarian, legume and red-meat counts, shown as plain counts and never as a score |
 
 **Tie-breaks** use plain facts only, in this order: pinned first, then longest since last planned, then the slots the meal has historically filled. The planner computes no scores or ratings.
+
+**Plan week.** ("Try other suggestions" also leaves days that have passed as they are.) The button in the middle of the tab bar fills only the empty slots of this week and next, keeping everything already planned. Days of this week before today (Europe/Dublin) are left as they are. Next week is solved with this week in its history, so nothing repeats across the join. The slots are read again just before writing, and a slot someone filled in the meantime is left alone (the summary says how many). Undo takes out only what that run added.
+
+**El País ideas.** Plan week first adds up to 3 recent El País recipes to the library, at most once every 6 hours. Nobody here has cooked them gluten-free, so the rule is stricter than for the household's own meals: any sign of gluten (flour other than a named gluten-free one, pasta, lasaña, fideos, soja, avena, picatostes, masa quebrada or brisa, hojaldre, pan rallado, bread, beer, couscous, sémola, Worcestershire, obleas, wonton, gyoza, bao, miso, any masa except masa de maíz, tortillas de harina, pastel and more, or anything the gate flags as Tier A or B) leaves the recipe out. Stock (caldo, a stock cube, Avecrem) is too common to leave out for: such a recipe shows "Use gluten-free stock" on the meal and its cell. The rest show "New · check gluten" until confirmed. A recipe whose page gave no ingredient list is added but never planned. The planner checks this again when it loads the library (`lib/gluten/outside.ts`), so an idea is planned only when its ingredients came from the recipe page and showed nothing. Fetches follow redirects only to other El País pages over https.
 
 **Eating out.** Take-away or eating out is a slot with no recipe and no shopping. It is only included on request.
 

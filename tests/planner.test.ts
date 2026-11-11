@@ -202,3 +202,12 @@ describe("rice", () => {
     expect(mealTags({ name: "Bowl", starch: "rice" }).hasRice).toBe(true);
   });
 });
+
+describe("roast", () => {
+  it("is a roasted joint of meat, not roasted vegetables", () => {
+    expect(guessTags("Pollo asado con patatas").isRoast).toBe(true);
+    expect(guessTags("Roast chicken").isRoast).toBe(true);
+    expect(guessTags("Crema de calabaza asada").isRoast).toBe(false);
+    expect(guessTags("Patatas asadas con bacon y ensalada").isRoast).toBe(false);
+  });
+});

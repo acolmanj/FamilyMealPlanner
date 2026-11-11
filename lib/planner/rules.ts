@@ -1,5 +1,6 @@
 import type { Status } from "../gluten/gate";
 import { messages, type Lang, type Messages } from "../i18n/messages";
+import { slotFits as fitsSlot, type SlotPref } from "./slot-pref";
 import type { Tags } from "./tags";
 
 // The week rules from the build brief, as plain functions of the grid.
@@ -24,7 +25,24 @@ export type PlanMeal = {
   tags: Tags;
   gluten: Status;
   pinned: boolean;
+  // Marked with a star on the Meals page: planned more often.
+  favourite?: boolean;
+  // The slot it usually fills (from the menu sheet, or set by the owner). Missing means either.
+  slotPref?: SlotPref;
+  // A new idea from El País not yet confirmed gluten-free by the household.
+  idea?: boolean;
+  // Never picked by the planner: an El País idea whose ingredients were not read from the
+  // recipe page, or that shows any sign of gluten. It can still be chosen by hand.
+  noPlan?: boolean;
 };
+
+// May the planner pick this meal on its own? Never when blocked for gluten, never a
+// breakfast, never an outside idea that is not cleanly "check gluten" (defence in depth:
+// such recipes are not even added).
+export const canPlan = (m: PlanMeal) =>
+  m.gluten !== "blocked" && m.slotPref !== "breakfast" && !m.noPlan && !(m.idea && m.gluten !== "needs_check");
+
+export { slotFits, type SlotPref } from "./slot-pref";
 
 export type Cell = { day: Day; slot: Slot; mealId: string | null };
 
@@ -80,6 +98,10 @@ function lastUseBefore(history: Use[], mealId: string, date: string): string | n
   for (const u of history) if (u.mealId === mealId && u.date < date && (!last || u.date > last)) last = u.date;
   return last;
 }
+
+// Pizza on Saturday dinner or a roast on Sunday lunch.
+export const isTraditionCell = (c: { day: string; slot: string }, m: PlanMeal) =>
+  (c.day === "sun" && c.slot === "lunch" && m.tags.isRoast) || (c.day === "sat" && c.slot === "dinner" && m.tags.isPizza);
 
 export function isNewMeal(history: Use[], mealId: string, weekStart: string) {
   return !history.some((u) => u.mealId === mealId && u.date < weekStart);
@@ -178,9 +200,11 @@ export function checkWeek({ weekStart, cells, meals, history, lang = "en" }: Wee
       cells: filled.filter((c) => newIds.includes(c.mealId!)).map(cellKey),
     });
 
-  // Recency: not within 3 weeks (2 if pinned).
+  // Recency: not within 3 weeks (2 if pinned). The weekly traditions are exempt:
+  // pizza every Saturday night and the Sunday roast are the point.
   for (const c of filled) {
     const m = mealOf(c);
+    if (isTraditionCell(c, m)) continue;
     const date = cellDate(weekStart, c.day);
     const last = lastUseBefore(history, m.id, weekStart);
     if (!last) continue;
@@ -234,20 +258,22 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
   const needFish = !others.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
-    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && m.gluten !== "blocked")
+    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && canPlan(m))
     .map((m) => {
       const last = lastUseBefore(history, m.id, weekStart);
       const gap = last ? daysBetween(last, date) : null;
       return { m, last, gap };
     })
-    .filter(({ m, gap }) => gap === null || gap >= (m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays));
+    .filter(({ m, gap }) => gap === null || isTraditionCell(cell, m) || gap >= (m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays));
 
   const rank = ({ m, last }: (typeof pool)[number]) => [
     tradition === "roast" ? (m.tags.isRoast ? 0 : 1) : tradition === "pizza" ? (m.tags.isPizza ? 0 : 1) : 0,
+    // The slot it usually fills: a dinner meal for a dinner cell.
+    tradition || fitsSlot(m.slotPref, cell.slot) ? 0 : 1,
     wantProtein && !wantProtein.includes(m.tags.protein) ? 1 : 0,
     needPulse && !m.tags.isPulse ? 1 : 0,
     needFish && m.tags.protein !== "fish" ? 1 : 0,
-    m.pinned ? 0 : 1,
+    m.pinned || m.favourite ? 0 : 1,
     last ? 0 : 1, // past meals before new ones (about 1 new a week)
   ];
   pool.sort((a, b) => {
@@ -260,7 +286,9 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
 
   return pool.slice(0, count).map(({ m, gap }) => {
     const bits: string[] = [];
-    if (m.pinned) bits.push(t.pinned);
+    if (m.favourite) bits.push(msg.gen.whyFavourite);
+    else if (m.pinned) bits.push(t.pinned);
+    if (!tradition && m.slotPref && m.slotPref !== "either" && fitsSlot(m.slotPref, cell.slot)) bits.push(msg.gen.whyUsual[cell.slot]);
     if (needPulse && m.tags.isPulse) bits.push(t.pulsesWhy);
     else if (needFish && m.tags.protein === "fish") bits.push(t.fishWhy);
     if (wantProtein && wantProtein.includes(m.tags.protein) && !current)
@@ -281,7 +309,7 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
   const needFish = !planned.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
-    .filter((m) => !inWeek.has(m.id) && m.gluten !== "blocked")
+    .filter((m) => !inWeek.has(m.id) && canPlan(m))
     .map((m) => {
       const last = lastUseBefore(history, m.id, weekStart);
       return { m, last, gap: last ? daysBetween(last, weekStart) : null };
@@ -289,7 +317,7 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
     .filter(({ m, gap }) => gap === null || gap >= (m.pinned ? LIMITS.recencyDaysPinned : LIMITS.recencyDays))
     .sort(
       (a, b) =>
-        Number(!a.m.pinned) - Number(!b.m.pinned) ||
+        Number(!(a.m.pinned || a.m.favourite)) - Number(!(b.m.pinned || b.m.favourite)) ||
         Number(!a.last) - Number(!b.last) ||
         (a.last ?? "").localeCompare(b.last ?? "") ||
         a.m.name.localeCompare(b.m.name),
@@ -309,7 +337,8 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
       const bits: string[] = [];
       if (needPulse && k === "pulse") bits.push(t.pulsesWhy);
       if (needFish && k === "fish") bits.push(t.fishWhy);
-      if (next.m.pinned) bits.unshift(t.pinned);
+      if (next.m.favourite) bits.unshift(msg.gen.whyFavourite);
+      else if (next.m.pinned) bits.unshift(t.pinned);
       picked.push({ meal: next.m, why: bits.join(", ") });
     }
   return picked;

@@ -9,19 +9,21 @@
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildSeedSql } from "../lib/seed/build";
+import { buildSeedSql, parseSeedData } from "../lib/seed/build";
+import { inferSlotPreferences, slotPreferenceSql } from "../lib/seed/slots";
 
 const root = join(__dirname, "..");
 const seedDir = join(root, "Seed");
 const migrationsDir = join(root, "supabase", "migrations");
 
+const files = {
+  menuCsv: readFileSync(join(seedDir, "meals_menu_semanal.csv"), "utf8"),
+  favouritesCsv: readFileSync(join(seedDir, "favourites_seed.csv"), "utf8"),
+  receiptsCsv: readFileSync(join(seedDir, "tesco_receipts_clean.csv"), "utf8"),
+  glutenMd: readFileSync(join(seedDir, "gluten_list_for_review.md"), "utf8"),
+};
 const sql = buildSeedSql(
-  {
-    menuCsv: readFileSync(join(seedDir, "meals_menu_semanal.csv"), "utf8"),
-    favouritesCsv: readFileSync(join(seedDir, "favourites_seed.csv"), "utf8"),
-    receiptsCsv: readFileSync(join(seedDir, "tesco_receipts_clean.csv"), "utf8"),
-    glutenMd: readFileSync(join(seedDir, "gluten_list_for_review.md"), "utf8"),
-  },
+  files,
   {
     householdEmails: (process.env.HOUSEHOLD_EMAILS ?? "").split(",").map((e) => e.trim()).filter(Boolean),
   },
@@ -30,6 +32,14 @@ const sql = buildSeedSql(
 const seedPath = join(root, "supabase", "seed.sql");
 writeFileSync(seedPath, sql);
 console.log(`Wrote ${seedPath}`);
+
+// Lunch or dinner, inferred from the menu sheet. Also in migration 0006 for production.
+const prefsPath = join(root, "supabase", "data", "meal_slot_preferences.sql");
+writeFileSync(
+  prefsPath,
+  `-- Each seeded meal's usual slot, from the menu sheet (70% or more of its uses). Safe to re-run.\n${slotPreferenceSql(inferSlotPreferences(parseSeedData(files).slots))}\n`,
+);
+console.log(`Wrote ${prefsPath}`);
 
 const migrations = readdirSync(migrationsDir)
   .filter((f) => f.endsWith(".sql"))

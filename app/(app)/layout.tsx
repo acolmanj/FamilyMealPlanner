@@ -33,7 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       {/* Room at the bottom for the tab bar. */}
-      <main className="flex-1 px-3 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-4">
+      <main className="flex-1 px-3 pt-3 pb-[calc(5rem+var(--plan-bar,0px)+env(safe-area-inset-bottom))] sm:px-4">
         {household ? (
           children
         ) : (

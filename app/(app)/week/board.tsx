@@ -23,9 +23,10 @@ import {
 } from "@/lib/planner/rules";
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
-import { addNewMeal, clearCell, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
+import { relaxedNotes } from "@/lib/planner/generate";
+import { addNewMeal, clearCell, generatePlan, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
 import type { BoardCell, BoardMeal } from "./load";
-import { useResolveImages } from "./resolve-images";
+import { useResolveImages, withImagesPaused } from "./resolve-images";
 
 type Change =
   | { type: "set"; day: Day; slot: Slot; mealId: string; text: string }
@@ -57,7 +58,7 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
     case "set":
       return [
         ...cells.filter((c) => !same(c, ch)),
-        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, locked: true, leftover: false },
+        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, locked: true, leftover: false, why: null },
       ];
     case "clear":
       return cells.filter((c) => !same(c, ch));
@@ -68,7 +69,7 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
       const b = cells.find((c) => same(c, ch.to));
       if (!a) return cells;
       const rest = cells.filter((c) => c !== a && c !== b);
-      return [...rest, { ...a, ...ch.to, locked: true }, ...(b ? [{ ...b, ...ch.from, locked: true }] : [])];
+      return [...rest, { ...a, ...ch.to, locked: true, why: null }, ...(b ? [{ ...b, ...ch.from, locked: true, why: null }] : [])];
     }
   }
 }
@@ -311,6 +312,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
       )}
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
+        <GenerateBar week={week} cells={shown} busy={pending} />
         {error && !sheetUp && <p className="rounded-xl bg-destructive/10 p-2 text-sm text-destructive sm:hidden">{error}</p>}
         <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs" aria-busy={pending}>
           <span />
@@ -360,6 +362,47 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
           {drag.data.label}
         </div>
       )}
+    </div>
+  );
+}
+
+// Re-roll what the planner suggested, as often as wanted. Filling empty slots is the
+// "Plan week" button in the tab bar, so there is one way to plan and one way to re-roll.
+function GenerateBar({ week, cells, busy }: { week: string; cells: BoardCell[]; busy: boolean }) {
+  const { t } = useLang();
+  const [working, startWorking] = useTransition();
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const hasSuggestion = cells.some((c) => c.why && !c.locked);
+
+  const go = () => {
+    setNote(null);
+    startWorking(async () => {
+      const r = await withImagesPaused(() => generatePlan(week, Math.floor(Math.random() * 2 ** 31)));
+      if (!r.ok) return setNote({ ok: false, text: r.error });
+      setNote({ ok: true, text: [t.gen.done(r.filled), ...relaxedNotes(t, r.relaxed)].join(" ") });
+    });
+  };
+
+  if (!hasSuggestion)
+    return (
+      <p role="status" className="rounded-xl bg-primary/10 px-3 py-2 text-[13px] text-primary">
+        <span aria-hidden="true">✨ </span>
+        {note?.text ?? t.gen.planHint}
+      </p>
+    );
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        onClick={go}
+        disabled={working || busy}
+        className="flex h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-full bg-card px-5 text-[15px] font-semibold text-primary shadow-card transition active:scale-[0.98] disabled:opacity-60 sm:w-auto sm:self-start"
+      >
+        <span aria-hidden="true" className={cn(working && "animate-spin")}>↻</span>
+        {working ? t.gen.working : t.gen.reshuffle}
+      </button>
+      <p role="status" className={cn("px-1 text-xs", note && !note.ok ? "text-destructive" : "text-muted-foreground")}>
+        {note?.text ?? t.gen.help}
+      </p>
     </div>
   );
 }
@@ -418,7 +461,13 @@ function DayRow({
                   <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
                   <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
                     {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} hasRice={m.tags.hasRice} className="text-sm" />}
+                    {m?.favourite && (
+                      <span className="text-[13px] leading-none text-[#d99a00]" title={t.board.favourite}>
+                        ★<span className="sr-only"> {t.board.favourite}</span>
+                      </span>
+                    )}
                     {m?.tags.isProcessed && <span>{t.board.processed}</span>}
+                    {m?.idea && m.gluten !== "blocked" && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-warning">{t.board.newIdea}</span>}
                     {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
                     {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
                   </span>
@@ -453,7 +502,9 @@ function MealTile({ meal, why, picked, onClick, extra }: { meal: PlanMeal; why?:
         <span className="leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
         <span className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
           <FoodIcons starch={meal.tags.starch} isPasta={meal.tags.isPasta} isPulse={meal.tags.isPulse} hasRice={meal.tags.hasRice} className="text-sm" />
+          {meal.favourite && <span className="text-[#d99a00]" aria-label={t.board.favourite}>★</span>}
           <span>{[meal.tags.isProcessed ? t.board.processed : null, why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}</span>
+          {meal.idea && meal.gluten !== "blocked" && <span className="font-semibold text-warning">{t.board.newIdea}</span>}
         </span>
       </span>
       <Thumb meal={meal as BoardMeal} />
@@ -578,13 +629,16 @@ function CellPanel({
 
       {meal && (
         <div className="flex flex-wrap items-center gap-1">
-          <GlutenBadge status={meal.gluten} />
+          <GlutenBadge status={meal.gluten} label={meal.idea && meal.gluten === "needs_check" ? t.board.newIdea : undefined} />
           <span className="text-muted-foreground">
             {t.protein[meal.tags.protein]}
             {tagLine(t, meal.tags) ? ` · ${tagLine(t, meal.tags)}` : ""}
           </span>
         </div>
       )}
+
+      {meal?.gfStock && <p className="rounded-xl bg-warning/10 px-3 py-2 font-medium text-[#9a4f00]">{t.board.gfStock}</p>}
+      {cell?.why && mode === "main" && <p className="text-muted-foreground">{t.gen.why(cell.why)}</p>}
 
       {meal && mode === "main" && <RecipeNote meal={meal} />}
 
