@@ -11,7 +11,8 @@ const STYLE: Record<Status, string> = {
   blocked: "bg-destructive/15 text-destructive",
 };
 
-export function GlutenBadge({ status, className }: { status: Status; className?: string }) {
+// `label` replaces the status words, e.g. "New · check gluten" for an El País idea.
+export function GlutenBadge({ status, className, label }: { status: Status; className?: string; label?: string }) {
   const { t } = useLang();
   return (
     <span
@@ -21,7 +22,7 @@ export function GlutenBadge({ status, className }: { status: Status; className?:
         className,
       )}
     >
-      {t.status[status]}
+      {label ?? t.status[status]}
     </span>
   );
 }

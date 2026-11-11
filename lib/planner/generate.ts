@@ -1,5 +1,5 @@
 import { messages, type Lang, type Messages } from "../i18n/messages";
-import { DAYS, LIMITS, SLOTS, addDays, cellDate, cellKey, isNewMeal, slotFits, type Cell, type Day, type PlanMeal, type Slot, type Use } from "./rules";
+import { DAYS, LIMITS, SLOTS, addDays, canPlan, cellDate, cellKey, isNewMeal, slotFits, type Cell, type Day, type PlanMeal, type Slot, type Use } from "./rules";
 
 // Builds a suggested week with plain code: a seeded shuffle of the library, then a
 // backtracking search that keeps every week rule. A new seed gives a different week;
@@ -97,10 +97,9 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
   const keptKeys = new Set(keep.map(cellKey));
   const kept = keep.filter((c) => c.mealId && meals.has(c.mealId)).map((c) => ({ ...c, meal: meals.get(c.mealId!)! }));
 
-  // Never: blocked for gluten, Sobras, breakfasts, or a meal already kept this week.
-  const candidates = [...meals.values()].filter(
-    (m) => m.gluten !== "blocked" && !isSobras(m.name) && m.slotPref !== "breakfast" && !kept.some((k) => k.meal.id === m.id),
-  );
+  // Never: blocked for gluten, an unread or doubtful outside recipe, Sobras, breakfasts,
+  // or a meal already kept this week.
+  const candidates = [...meals.values()].filter((m) => canPlan(m) && !isSobras(m.name) && !kept.some((k) => k.meal.id === m.id));
   let pool = weightedShuffle(candidates, weightOf, rand);
   const weekEnd = addDays(weekStart, DAYS.length);
   const hasRoast = pool.some((m) => m.tags.isRoast);

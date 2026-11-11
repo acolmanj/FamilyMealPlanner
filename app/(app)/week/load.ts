@@ -1,5 +1,6 @@
 import { localiseFinding } from "@/lib/gluten/es";
 import { mealStatus, screenMeal } from "@/lib/gluten/gate";
+import { outsideNoPlan } from "@/lib/gluten/outside";
 import { getHousehold } from "@/lib/household";
 import { mealName, type Lang } from "@/lib/i18n/messages";
 import { cellDate, type Day, type PlanMeal, type Slot, type Use } from "@/lib/planner/rules";
@@ -98,6 +99,7 @@ export async function loadWeeks(weeks: string[], lang: Lang = "en") {
     favourite: m.is_favourite,
     slotPref: isSlotPref(m.slot_preference) ? m.slot_preference : "either",
     idea: m.source === "elpais" && !m.gf_confirmed_at,
+    noPlan: outsideNoPlan(m),
     tags: mealTags(m),
     gluten: mealStatus(m),
     image: m.image_url ? { url: m.image_url, source: m.image_source, page: m.image_page_url } : null,

@@ -2,12 +2,15 @@ import { newIdeaVerdict, normalise, screenMeal, type Status } from "../gluten/ga
 import { isSobras } from "../planner/generate";
 import type { SlotPref } from "../planner/slot-pref";
 import { guessProtein, type Protein } from "../planner/tags";
+import { outsideVerdict } from "../gluten/outside";
+import { englishName } from "./name-en";
 import { hasRecipeSchema, parseRecipeHtml } from "./parse";
 
 // New meal ideas from El País's food section: its RSS feed, then each recipe page's
 // schema.org Recipe for the ingredients. Everything goes through the gluten gate:
-// a recipe with clear gluten (wheat flour, breadcrumbs, couscous, beer...) is left out,
-// and the rest come in as "Needs your check" until the household confirms them.
+// a recipe with any sign of gluten (flour, pasta, soy sauce, breadcrumbs...) is left out,
+// and the rest come in as "New · check gluten" until the household confirms them. One
+// whose page gave no ingredient list may be listed in Meals but is never planned.
 // Any network failure gives { ok: false }; planning carries on without new ideas.
 
 export const ELPAIS_FEED = "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/gastronomia/portada";
@@ -23,6 +26,9 @@ export type Idea = {
   name: string;
   url: string;
   ingredients: string[];
+  // True only when the ingredients came from the page's own recipe data and none showed gluten.
+  checked: boolean;
+  nameEn: string;
   image: string | null;
   status: Status;
   protein: Protein;
@@ -34,17 +40,33 @@ export type IdeasResult = { ok: true; ideas: Idea[]; skippedGluten: string[] } |
 
 export type FetchText = (url: string) => Promise<string | null>;
 
-const decode = (s: string) =>
-  s
-    .replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/, "$1")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;|&apos;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
-    .replace(/&amp;/g, "&")
+// Named entities that turn up in Spanish recipe feeds. Anything else is left as written.
+const NAMED: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  aacute: "á", eacute: "é", iacute: "í", oacute: "ó", uacute: "ú",
+  Aacute: "Á", Eacute: "É", Iacute: "Í", Oacute: "Ó", Uacute: "Ú",
+  ntilde: "ñ", Ntilde: "Ñ", uuml: "ü", Uuml: "Ü", ccedil: "ç", Ccedil: "Ç",
+  agrave: "à", egrave: "è", ograve: "ò", iquest: "¿", iexcl: "¡",
+  ordf: "ª", ordm: "º", deg: "°", middot: "·", hellip: "…",
+  ndash: "–", mdash: "—", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", laquo: "«", raquo: "»", euro: "€",
+};
+
+const codePoint = (n: number) => (Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "");
+
+// Entities are decoded in one pass, so "&amp;lt;" stays as the text "&lt;".
+export const decodeEntities = (s: string) =>
+  s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, e: string) => {
+    if (e[0] === "#") return codePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : Number(e.slice(1)));
+    return NAMED[e] ?? whole;
+  });
+
+export const decode = (s: string) =>
+  decodeEntities(
+    s
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+      .replace(/<[^>]+>/g, " "),
+  )
+    .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -106,16 +128,30 @@ function ageDays(pubDate: string | null, now: Date) {
   return Number.isNaN(t) ? Infinity : (now.getTime() - t) / 86_400_000;
 }
 
-export async function defaultFetchText(url: string): Promise<string | null> {
+const MAX_HOPS = 3;
+
+// Redirects are followed by hand, and only to another El País address over https.
+export async function defaultFetchText(url: string, fetchImpl: typeof fetch = fetch): Promise<string | null> {
   try {
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; FamilyMealPlanner/1.0)", Accept: "application/rss+xml, text/html;q=0.9" },
-      cache: "no-store",
-    });
-    if (!res.ok || !isElPaisUrl(res.url || url)) return null;
-    return (await res.text()).slice(0, 3_000_000);
+    let current = url;
+    for (let hop = 0; hop <= MAX_HOPS; hop++) {
+      if (!isElPaisUrl(current)) return null;
+      const res = await fetchImpl(current, {
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        redirect: "manual",
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; FamilyMealPlanner/1.0)", Accept: "application/rss+xml, text/html;q=0.9" },
+        cache: "no-store",
+      });
+      if (res.status >= 300 && res.status < 400) {
+        const next = res.headers.get("location");
+        if (!next) return null;
+        current = new URL(next, current).toString();
+        continue;
+      }
+      if (!res.ok) return null;
+      return (await res.text()).slice(0, 3_000_000);
+    }
+    return null;
   } catch {
     return null;
   }
@@ -161,9 +197,10 @@ export async function fetchElPaisIdeas({
     const key = normalise(name).trim();
     if (!key || names.has(key) || isSobras(name) || !isMeal(name)) return;
     const ingredients = recipe?.ingredients ?? [];
-    // The gate reads the name, the ingredients, and the summary when there are no ingredients.
-    const verdict = screenMeal({ name, ingredients: ingredients.length ? ingredients.join(" · ") : item.description });
-    if (verdict.status === "blocked") {
+    // Any sign of gluten, even one with a gluten-free swap, leaves the recipe out. Without the
+    // page's own ingredient list the summary is screened too, and the idea can never be planned.
+    const verdict = outsideVerdict(name, ingredients);
+    if (verdict === "gluten" || (!ingredients.length && outsideVerdict(item.description, []) === "gluten")) {
       skippedGluten.push(name);
       return;
     }
@@ -172,8 +209,10 @@ export async function fetchElPaisIdeas({
       name,
       url: item.link,
       ingredients,
+      checked: verdict === "ok",
+      nameEn: englishName(name),
       image: recipe?.image ?? item.image,
-      status: newIdeaVerdict(verdict, false).status,
+      status: newIdeaVerdict(screenMeal({ name, ingredients: ingredients.join(" · ") }), false).status,
       protein: guessProtein(name, ingredients),
       slotPref: slotFromText([name, item.title, ...item.categories].join(" ")),
       published: item.pubDate ? new Date(Date.parse(item.pubDate)).toISOString().slice(0, 10) : null,

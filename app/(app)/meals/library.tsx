@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useOptimistic, useState, useTransition } from "react";
+import { useEffect, useId, useOptimistic, useState, useTransition } from "react";
 import { FoodIcons } from "@/components/food-icons";
 import { GlutenBadge } from "@/components/gluten-badge";
 import { useLang } from "@/components/lang";
@@ -32,6 +32,10 @@ export type LibraryMeal = {
   favourite: boolean;
   slotPref: SlotPref;
   fromElPais: boolean;
+  // From El País and not yet confirmed: shown as "New · check gluten".
+  newIdea: boolean;
+  // Never planned until checked (no ingredient list from the recipe page, or a sign of gluten).
+  noPlan: boolean;
 };
 
 const GROUPS: Protein[] = ["meat", "fish", "veg"];
@@ -107,6 +111,7 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
 function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; onToggle: () => void }) {
   const { t } = useLang();
   const [editing, setEditing] = useState(false);
+  const [starFailed, setStarFailed] = useState(false);
   return (
     <div className={cn("flex flex-col overflow-hidden rounded-2xl border-l-4 text-sm shadow-card", GROUP_STYLE[meal.protein], open && "sm:col-span-2")}>
       <div className="flex items-stretch">
@@ -123,13 +128,18 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
             {meal.slotPref !== "either" && (
               <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.slotPrefs[meal.slotPref]}</span>
             )}
-            {meal.fromElPais && <span className="rounded-full bg-warning/15 px-2 py-px text-[11px] font-semibold text-warning">{t.meals.fromElPais}</span>}
+            {meal.fromElPais && <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.fromElPais}</span>}
           </span>
         </span>
-        <GlutenBadge status={meal.gluten} />
+        <GlutenBadge status={meal.gluten} label={meal.newIdea && meal.gluten === "needs_check" ? t.meals.checkGluten : undefined} />
       </button>
-      <StarButton id={meal.id} name={meal.name} favourite={meal.favourite} />
+      <StarButton id={meal.id} name={meal.name} favourite={meal.favourite} onError={setStarFailed} />
       </div>
+      {starFailed && (
+        <p role="alert" className="bg-destructive/10 px-3 py-1.5 text-[13px] font-medium text-destructive">
+          {t.favourites.saveFailed}
+        </p>
+      )}
       {open && (
         <div className="flex flex-col gap-2 bg-card p-3">
           {editing ? (
@@ -143,6 +153,7 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
           ) : (
             <>
               <p className="text-muted-foreground">{t.meals.usually(t.meals.slotPrefs[meal.slotPref])}</p>
+              {meal.newIdea && meal.noPlan && <p className="rounded-xl bg-warning/10 px-3 py-2 text-warning">{t.meals.notPlanned}</p>}
               <span className="font-medium">{t.meals.ingredients}</span>
               {meal.ingredients.length > 0 ? (
                 <ul className="list-disc pl-5">
@@ -368,17 +379,22 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
 }
 
 // The favourite star: a separate button from the row, so tapping it never opens the meal.
-function StarButton({ id, name, favourite }: { id: string; name: string; favourite: boolean }) {
+// It changes at once; if saving fails it goes back and says so under the row.
+function StarButton({ id, name, favourite, onError }: { id: string; name: string; favourite: boolean; onError: (failed: boolean) => void }) {
   const { t } = useLang();
-  const [on, setOn] = useOptimistic(favourite);
-  const [error, setError] = useState(false);
+  const [saved, setSaved] = useState(favourite);
+  const [on, setOn] = useOptimistic(saved);
   const [, start] = useTransition();
+  useEffect(() => setSaved(favourite), [favourite]);
   const toggle = () =>
     start(async () => {
-      setError(false);
-      setOn(!on);
-      const r = await setFavourite(id, !on).catch(() => ({ ok: false }));
-      if (!r.ok) setError(true);
+      const next = !on;
+      onError(false);
+      setOn(next);
+      const r = await setFavourite(id, next).catch(() => ({ ok: false }));
+      // Once the transition ends the optimistic value falls back to `saved`: unchanged on failure.
+      if (r.ok) setSaved(next);
+      else onError(true);
     });
   return (
     <button
@@ -386,11 +402,9 @@ function StarButton({ id, name, favourite }: { id: string; name: string; favouri
       onClick={toggle}
       aria-pressed={on}
       aria-label={on ? t.favourites.unmarkLabel(name) : t.favourites.markLabel(name)}
-      title={error ? t.board.didNotSave : undefined}
       className={cn(
         "flex w-12 shrink-0 touch-manipulation items-center justify-center text-[26px] leading-none transition active:scale-90",
-        on ? "text-[#e0a800]" : "text-black/25 hover:text-black/40",
-        error && "text-destructive",
+        on ? "text-[#a17400]" : "text-[#6e6e73] hover:text-foreground",
       )}
     >
       <span aria-hidden="true">{on ? "★" : "☆"}</span>

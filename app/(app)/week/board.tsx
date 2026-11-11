@@ -629,7 +629,7 @@ function CellPanel({
 
       {meal && (
         <div className="flex flex-wrap items-center gap-1">
-          <GlutenBadge status={meal.gluten} />
+          <GlutenBadge status={meal.gluten} label={meal.idea && meal.gluten === "needs_check" ? t.board.newIdea : undefined} />
           <span className="text-muted-foreground">
             {t.protein[meal.tags.protein]}
             {tagLine(t, meal.tags) ? ` · ${tagLine(t, meal.tags)}` : ""}

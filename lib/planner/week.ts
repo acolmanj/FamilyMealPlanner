@@ -6,8 +6,12 @@ export function mondayOf(d: Date) {
   return x.toISOString().slice(0, 10);
 }
 
-// The week that holds today's date in Ireland (the server runs on UTC).
+// Today's date in Ireland, as YYYY-MM-DD (the server runs on UTC).
+export function dublinToday(now = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin" }).format(now);
+}
+
+// The week that holds today's date in Ireland.
 export function defaultWeek(now = new Date()) {
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Dublin" }).format(now);
-  return mondayOf(new Date(`${today}T00:00:00Z`));
+  return mondayOf(new Date(`${dublinToday(now)}T00:00:00Z`));
 }

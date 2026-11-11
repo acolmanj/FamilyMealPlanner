@@ -8,20 +8,26 @@ import { previewPlan, planTheWeeks, undoPlan, type PlanSummary } from "@/app/(ap
 import { withImagesPaused } from "@/app/(app)/week/resolve-images";
 import { useLang } from "@/components/lang";
 import { formatDate, type Messages } from "@/lib/i18n/messages";
+import type { Day } from "@/lib/planner/rules";
 import { relaxedNotes } from "@/lib/planner/generate";
 import { cn } from "@/lib/utils";
 
 // "Plan week" in the tab bar: ask first (how many empty slots), plan both weeks,
-// then show the week with a short summary and an Undo for what was just added.
+// then show the week with a short summary and an Undo for what was just added. The summary
+// shrinks to a one-line bar after a few seconds so it does not cover the week; Undo stays on it.
 
-type Preview = { weeks: { weekStart: string; empty: number }[]; total: number };
+type Preview = { weeks: { weekStart: string; empty: number; passed: Day[] }[]; total: number };
 type State =
   | { step: "idle" }
   | { step: "checking" }
   | { step: "confirm"; preview: Preview }
   | { step: "working"; preview: Preview }
   | { step: "error"; text: string };
-type Toast = { summary: PlanSummary; undone?: number | "failed"; undoing?: boolean } | null;
+type Toast = { summary: PlanSummary; undone?: number | "failed"; undoing?: boolean; collapsed?: boolean } | null;
+
+const COLLAPSE_MS = 6000;
+const BAR_MS = 90_000;
+const UNDONE_MS = 5000;
 
 export const SPARKLES =
   "M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0zM20 3v4M22 5h-4M4 17v2M5 18H3";
@@ -59,10 +65,15 @@ export function PlanWeekTab() {
     return () => document.removeEventListener("keydown", key);
   }, [open, busy, state.step]);
 
-  // The summary goes away by itself after a while, unless Undo is running.
+  // The summary shrinks to a small bar after a few seconds, and the bar goes away after a
+  // while (unless Undo is running). After Undo the message goes after a few seconds.
   useEffect(() => {
     if (!toast || toast.undoing) return;
-    const id = window.setTimeout(() => setToast(null), toast.undone !== undefined ? 5000 : 20000);
+    const done = toast.undone !== undefined;
+    const id = window.setTimeout(
+      () => setToast((x) => (x && !done && !x.collapsed ? { ...x, collapsed: true } : null)),
+      done ? UNDONE_MS : toast.collapsed ? BAR_MS : COLLAPSE_MS,
+    );
     return () => window.clearTimeout(id);
   }, [toast]);
 
@@ -88,7 +99,7 @@ export function PlanWeekTab() {
 
   const undo = async () => {
     if (!toast) return;
-    setToast({ ...toast, undoing: true });
+    setToast({ ...toast, undoing: true, collapsed: false });
     const r = await withImagesPaused(() => undoPlan(toast.summary.added)).catch(() => null);
     setToast({ summary: toast.summary, undone: r?.ok ? r.removed : "failed" });
     router.refresh();
@@ -158,9 +169,14 @@ export function PlanWeekTab() {
                 )}
                 <ul className="flex flex-col divide-y divide-black/5 rounded-2xl bg-muted/60">
                   {state.preview.weeks.map((w, i) => (
-                    <li key={w.weekStart} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
-                      <span>{weekLabel(t, lang, w.weekStart, i)}</span>
-                      <span className={cn("shrink-0 font-semibold", w.empty ? "text-primary" : "text-muted-foreground")}>{t.plan.emptyCount(w.empty)}</span>
+                    <li key={w.weekStart} className="flex flex-col gap-0.5 px-3.5 py-2.5">
+                      <span className="flex items-center justify-between gap-3">
+                        <span>{weekLabel(t, lang, w.weekStart, i)}</span>
+                        <span className={cn("shrink-0 font-semibold", w.empty ? "text-primary" : "text-muted-foreground")}>{t.plan.emptyCount(w.empty)}</span>
+                      </span>
+                      {w.passed.length > 0 && w.passed.length < 7 && (
+                        <span className="text-[13px] text-muted-foreground">{t.plan.passed(w.passed.map((d) => t.days[d]))}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -202,71 +218,103 @@ export function PlanWeekTab() {
         </div>,
       )}
 
-      {toast && portal(<PlanToast toast={toast} onUndo={undo} onClose={() => setToast(null)} />)}
+      {toast &&
+        portal(
+          <PlanToast
+            toast={toast}
+            onUndo={undo}
+            onClose={() => setToast(null)}
+            onExpand={(open) => setToast((x) => (x ? { ...x, collapsed: !open } : x))}
+          />,
+        )}
     </>
   );
 }
 
-function PlanToast({ toast, onUndo, onClose }: { toast: NonNullable<Toast>; onUndo: () => void; onClose: () => void }) {
+function PlanToast({
+  toast,
+  onUndo,
+  onClose,
+  onExpand,
+}: {
+  toast: NonNullable<Toast>;
+  onUndo: () => void;
+  onClose: () => void;
+  onExpand: (open: boolean) => void;
+}) {
   const { lang, t } = useLang();
   const { summary } = toast;
   const headline = [t.plan.filled(summary.filled), summary.elpais.planned ? t.plan.fromElPais(summary.elpais.planned) : null].filter(Boolean).join(" · ");
   const notes = [
+    summary.skipped ? t.plan.skipped(summary.skipped) : null,
     summary.elpais.status === "down" ? t.plan.elpaisDown : null,
     summary.elpais.added.length ? t.plan.elpaisAdded(summary.elpais.added.length) : null,
+    summary.elpais.unread ? t.plan.elpaisUnread(summary.elpais.unread) : null,
     summary.elpais.skippedGluten ? t.plan.elpaisSkipped(summary.elpais.skippedGluten) : null,
     ...summary.weeks.map((w, i) => (w.failed ? t.plan.weekFailed(weekLabel(t, lang, w.weekStart, i)) : null)),
     ...relaxedNotes(t, [...new Set(summary.weeks.flatMap((w) => w.relaxed))]),
   ].filter((x): x is string => Boolean(x));
   const next = summary.weeks[1];
+  const shell = "fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[60] mx-auto max-w-xl rounded-2xl bg-foreground text-[14px] text-white shadow-lift";
+
+  const undoButton = summary.filled > 0 && (
+    <button
+      onClick={onUndo}
+      disabled={toast.undoing}
+      className="flex h-9 shrink-0 items-center gap-2 rounded-full bg-white/15 px-3.5 font-semibold text-white active:scale-95 disabled:opacity-60"
+    >
+      {toast.undoing && <Spinner />}
+      {toast.undoing ? t.plan.undoing : t.plan.undo}
+    </button>
+  );
+  const closeButton = (
+    <button onClick={onClose} aria-label={t.plan.close} className="-mr-1.5 flex size-9 shrink-0 items-center justify-center text-lg text-white/70">
+      ×
+    </button>
+  );
+
+  if (toast.undone !== undefined)
+    return (
+      <div role="status" aria-live="polite" className={cn(shell, "flex items-center justify-between gap-3 px-4 py-2.5")}>
+        <span>{toast.undone === "failed" ? t.plan.undoFailed : t.plan.undone(toast.undone)}</span>
+        {closeButton}
+      </div>
+    );
+
+  // The small bar: one line, Undo still there, tap the text to see the full summary again.
+  if (toast.collapsed)
+    return (
+      <div role="status" aria-live="polite" className={cn(shell, "flex h-12 items-center gap-2 py-1.5 pr-2 pl-1.5")}>
+        <button onClick={() => onExpand(true)} aria-expanded={false} className="flex min-w-0 flex-1 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-left">
+          <span className="truncate font-semibold">{t.plan.filled(summary.filled)}</span>
+          {notes.length > 0 && <span className="shrink-0 text-[12px] font-semibold text-[#7ee08f]">{t.plan.show}</span>}
+        </button>
+        {undoButton}
+        {closeButton}
+      </div>
+    );
 
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[60] mx-auto flex max-w-xl flex-col gap-2 rounded-2xl bg-foreground px-4 py-3 text-[14px] text-white shadow-lift"
-    >
-      {toast.undone !== undefined ? (
-        <div className="flex items-center justify-between gap-3">
-          <span>{toast.undone === "failed" ? t.plan.undoFailed : t.plan.undone(toast.undone)}</span>
-          <button onClick={onClose} className="shrink-0 px-2 py-1 font-semibold text-[#7ee08f]">
-            {t.plan.close}
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-start gap-3">
-            <span className="min-w-0 flex-1">
-              <span className="block text-[15px] font-semibold">{headline}</span>
-              {notes.map((n) => (
-                <span key={n} className="mt-0.5 block text-[12px] text-white/75">
-                  {n}
-                </span>
-              ))}
+    <div role="status" aria-live="polite" className={cn(shell, "flex flex-col gap-2 px-4 py-3")}>
+      <div className="flex items-start gap-3">
+        <button onClick={() => onExpand(false)} aria-expanded={true} className="min-w-0 flex-1 text-left">
+          <span className="block text-[15px] font-semibold">{headline}</span>
+          {notes.map((n) => (
+            <span key={n} className="mt-0.5 block text-[12px] text-white/75">
+              {n}
             </span>
-            <button onClick={onClose} aria-label={t.plan.close} className="-mt-1 -mr-2 flex size-9 shrink-0 items-center justify-center text-lg text-white/70">
-              ×
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            {summary.filled > 0 && (
-              <button
-                onClick={onUndo}
-                disabled={toast.undoing}
-                className="flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 font-semibold text-white active:scale-95 disabled:opacity-60"
-              >
-                {toast.undoing && <Spinner />}
-                {toast.undoing ? t.plan.undoing : t.plan.undo}
-              </button>
-            )}
-            {next && next.filled > 0 && (
-              <Link href={`/week?w=${next.weekStart}`} className="flex h-10 items-center rounded-full px-3 font-semibold text-[#7ee08f]">
-                {t.plan.nextWeekLink}
-              </Link>
-            )}
-          </div>
-        </>
-      )}
+          ))}
+        </button>
+        {closeButton}
+      </div>
+      <div className="flex items-center gap-2">
+        {undoButton}
+        {next && next.filled > 0 && (
+          <Link href={`/week?w=${next.weekStart}`} className="flex h-9 items-center rounded-full px-3 font-semibold text-[#7ee08f]">
+            {t.plan.nextWeekLink}
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

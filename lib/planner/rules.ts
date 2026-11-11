@@ -31,7 +31,16 @@ export type PlanMeal = {
   slotPref?: SlotPref;
   // A new idea from El País not yet confirmed gluten-free by the household.
   idea?: boolean;
+  // Never picked by the planner: an El País idea whose ingredients were not read from the
+  // recipe page, or that shows any sign of gluten. It can still be chosen by hand.
+  noPlan?: boolean;
 };
+
+// May the planner pick this meal on its own? Never when blocked for gluten, never a
+// breakfast, never an outside idea that is not cleanly "check gluten" (defence in depth:
+// such recipes are not even added).
+export const canPlan = (m: PlanMeal) =>
+  m.gluten !== "blocked" && m.slotPref !== "breakfast" && !m.noPlan && !(m.idea && m.gluten !== "needs_check");
 
 export { slotFits, type SlotPref } from "./slot-pref";
 
@@ -249,7 +258,7 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
   const needFish = !others.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
-    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && m.gluten !== "blocked" && m.slotPref !== "breakfast")
+    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && canPlan(m))
     .map((m) => {
       const last = lastUseBefore(history, m.id, weekStart);
       const gap = last ? daysBetween(last, date) : null;
@@ -300,7 +309,7 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
   const needFish = !planned.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
-    .filter((m) => !inWeek.has(m.id) && m.gluten !== "blocked" && m.slotPref !== "breakfast")
+    .filter((m) => !inWeek.has(m.id) && canPlan(m))
     .map((m) => {
       const last = lastUseBefore(history, m.id, weekStart);
       return { m, last, gap: last ? daysBetween(last, weekStart) : null };

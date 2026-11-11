@@ -4,19 +4,22 @@ import { revalidatePath } from "next/cache";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import type { Relaxed } from "@/lib/planner/generate";
-import { emptySlots, planWeeks } from "@/lib/planner/plan";
+import { emptySlots, passedDays, planWeeks } from "@/lib/planner/plan";
 import { DAYS, SLOTS, addDays, type Day, type PlanMeal, type Slot } from "@/lib/planner/rules";
-import { defaultWeek } from "@/lib/planner/week";
+import { defaultWeek, dublinToday } from "@/lib/planner/week";
 import { loadWeeks } from "../week/load";
 import { addElPaisIdeas, type ElPaisOutcome } from "./elpais";
 
 // "Plan week" in the tab bar: fill every empty slot of this week and next, keeping
-// everything already planned. New proposals stay 'proposed' so they can be swapped.
+// everything already planned and every day that has passed. New proposals stay 'proposed'
+// so they can be swapped.
 
 export type AddedCell = { week: string; day: Day; slot: Slot; mealId: string };
 export type PlanSummary = {
   ok: true;
   filled: number;
+  // Slots someone filled while the plan was being made: left as they were.
+  skipped: number;
   added: AddedCell[];
   weeks: { weekStart: string; empty: number; filled: number; relaxed: Relaxed[]; failed: boolean }[];
   elpais: ElPaisOutcome & { planned: number };
@@ -35,12 +38,16 @@ async function context() {
 }
 
 // How many slots are empty, for the question before anything is written.
-export async function previewPlan(): Promise<{ ok: true; weeks: { weekStart: string; empty: number }[]; total: number } | Failure> {
+export async function previewPlan(): Promise<{ ok: true; weeks: { weekStart: string; empty: number; passed: Day[] }[]; total: number } | Failure> {
   const { lang, t } = await getMessages();
   const weeks = twoWeeks();
+  const today = dublinToday();
   const data = await loadWeeks(weeks, lang);
   if (!data || "error" in data) return { ok: false, error: data?.error ?? t.plan.error };
-  const counts = weeks.map((w) => ({ weekStart: w, empty: emptySlots(data.cells[w]) }));
+  const counts = weeks.map((w) => {
+    const passed = passedDays(w, today);
+    return { weekStart: w, empty: emptySlots(data.cells[w], passed), passed };
+  });
   return { ok: true, weeks: counts, total: counts.reduce((n, w) => n + w.empty, 0) };
 }
 
@@ -49,14 +56,15 @@ export async function planTheWeeks(seed: number): Promise<PlanSummary | Failure>
   if (!Number.isInteger(seed)) return { ok: false, error: t.plan.error };
   const ctx = await context();
   const weeks = twoWeeks();
+  const today = dublinToday();
 
   // New El País ideas first, so they are in the library the planner reads.
   const before = await loadWeeks(weeks, lang);
   if (!before || "error" in before) return { ok: false, error: before?.error ?? t.plan.error };
-  const anyEmpty = weeks.some((w) => emptySlots(before.cells[w]) > 0);
+  const anyEmpty = weeks.some((w) => emptySlots(before.cells[w], passedDays(w, today)) > 0);
   const elpais = anyEmpty
-    ? await addElPaisIdeas(ctx.supabase, ctx.householdId).catch((): ElPaisOutcome => ({ status: "down", added: [], skippedGluten: 0 }))
-    : { status: "recent" as const, added: [], skippedGluten: 0 };
+    ? await addElPaisIdeas(ctx.supabase, ctx.householdId).catch((): ElPaisOutcome => ({ status: "down", added: [], unread: 0, skippedGluten: 0 }))
+    : { status: "recent" as const, added: [], unread: 0, skippedGluten: 0 };
   const data = elpais.added.length ? await loadWeeks(weeks, lang) : before;
   if (!data || "error" in data) return { ok: false, error: data?.error ?? t.plan.error };
 
@@ -67,9 +75,10 @@ export async function planTheWeeks(seed: number): Promise<PlanSummary | Failure>
     history: data.history,
     seed,
     lang,
+    today,
   });
 
-  const rows = planned.flatMap((w) =>
+  const proposed = planned.flatMap((w) =>
     w.failed
       ? []
       : w.cells.map((c) => ({
@@ -86,6 +95,18 @@ export async function planTheWeeks(seed: number): Promise<PlanSummary | Failure>
           why_line: c.why,
         })),
   );
+  // Someone may have filled a slot while the plan was being made: read the slots again just
+  // before writing, and write only into those still empty.
+  const { data: now, error: readError } = await ctx.supabase
+    .from("plan_slots")
+    .select("week_start, day, slot, meal_id, as_written")
+    .eq("household_id", ctx.householdId)
+    .in("week_start", weeks)
+    .returns<{ week_start: string; day: Day; slot: Slot; meal_id: string | null; as_written: string | null }[]>();
+  if (readError) return { ok: false, error: t.plan.error };
+  const taken = new Set((now ?? []).filter((r) => r.meal_id || r.as_written).map((r) => `${r.week_start}-${r.day}-${r.slot}`));
+  const rows = proposed.filter((r) => !taken.has(`${r.week_start}-${r.day}-${r.slot}`));
+  const skipped = proposed.length - rows.length;
   if (rows.length) {
     const { error } = await ctx.supabase.from("plan_slots").upsert(rows, { onConflict: "household_id,week_start,day,slot" });
     if (error) return { ok: false, error: error.message };
@@ -96,8 +117,15 @@ export async function planTheWeeks(seed: number): Promise<PlanSummary | Failure>
   return {
     ok: true,
     filled: added.length,
+    skipped,
     added,
-    weeks: planned.map((w) => ({ weekStart: w.weekStart, empty: w.empty, filled: w.failed ? 0 : w.cells.length, relaxed: w.relaxed, failed: w.failed })),
+    weeks: planned.map((w) => ({
+      weekStart: w.weekStart,
+      empty: w.empty,
+      filled: added.filter((a) => a.week === w.weekStart).length,
+      relaxed: w.relaxed,
+      failed: w.failed,
+    })),
     elpais: { ...elpais, planned: added.filter((a) => meals.get(a.mealId)?.idea).length },
   };
 }

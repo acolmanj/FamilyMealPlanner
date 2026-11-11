@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { FAVOURITE_WEIGHT, generateWeek, rng, weightedShuffle } from "../lib/planner/generate";
-import { emptySlots, planWeeks } from "../lib/planner/plan";
+import { emptySlots, passedDays, planWeeks } from "../lib/planner/plan";
 import { DAYS, addDays, cellDate, checkWeek, slotFits, suggestAlternatives, type Cell, type PlanMeal, type Use } from "../lib/planner/rules";
 import { mealTags } from "../lib/planner/tags";
 import { parseSeedData } from "../lib/seed/build";
@@ -223,11 +223,35 @@ describe("plan week: this week and next", () => {
     expect(a).toMatchObject({ empty: 0, cells: [], failed: false });
   });
 
+  it("leaves days that have passed as they are and counts only the days to come", () => {
+    // Wednesday 11 November: Monday and Tuesday of week A have passed.
+    const today = "2026-11-11";
+    expect(passedDays(A, today)).toEqual(["mon", "tue"]);
+    expect(passedDays(B, today)).toEqual([]);
+    const thisWeek: Cell[] = [{ day: "mon", slot: "dinner", mealId: "m1" }, { day: "wed", slot: "lunch", mealId: null }];
+    expect(emptySlots(thisWeek, passedDays(A, today))).toBe(9);
+    for (const s of SEEDS.slice(0, 10)) {
+      const [a, b] = planWeeks({ weeks: [{ weekStart: A, cells: thisWeek }, { weekStart: B, cells: [] }], meals: MEALS, history: OLD, seed: s, today });
+      expect(a).toMatchObject({ empty: 9, passed: ["mon", "tue"], failed: false });
+      expect(a.cells).toHaveLength(9);
+      expect(a.cells.some((c) => c.day === "mon" || c.day === "tue")).toBe(false);
+      expect(b).toMatchObject({ empty: 14, passed: [] });
+      expect(b.cells).toHaveLength(14);
+    }
+    // On Sunday evening only Sunday is left; next Monday the whole week has passed.
+    expect(planWeeks({ weeks: [{ weekStart: A, cells: [] }], meals: MEALS, history: OLD, seed: 1, today: "2026-11-15" })[0].cells.map((c) => c.day)).toEqual(["sun", "sun"]);
+    expect(planWeeks({ weeks: [{ weekStart: A, cells: [] }], meals: MEALS, history: OLD, seed: 1, today: "2026-11-16" })[0]).toMatchObject({ empty: 0, cells: [] });
+  });
+
   it("plans at most one new El País idea a week, never one blocked for gluten, and flags it", () => {
     const ideas: PlanMeal[] = [
       { id: "idea-1", name: "Garbanzos con espinacas", tags: mealTags({ name: "Garbanzos con espinacas" }), gluten: "needs_check", pinned: false, idea: true, slotPref: "either" },
       { id: "idea-2", name: "Merluza en salsa verde", tags: mealTags({ name: "Merluza en salsa verde" }), gluten: "needs_check", pinned: false, idea: true, slotPref: "either" },
       { id: "idea-3", name: "Lasaña de carne", tags: mealTags({ name: "Lasaña de carne" }), gluten: "blocked", pinned: false, idea: true, slotPref: "either" },
+      // Ingredients not read from the recipe page: listed in Meals, never planned.
+      { id: "idea-4", name: "Crema de calabaza", tags: mealTags({ name: "Crema de calabaza" }), gluten: "needs_check", pinned: false, idea: true, noPlan: true, slotPref: "either" },
+      // Anything but a clean "check gluten" is never planned either.
+      { id: "idea-5", name: "Merluza rebozada", tags: mealTags({ name: "Merluza rebozada" }), gluten: "needs_substitution", pinned: false, idea: true, slotPref: "either" },
     ];
     const meals = new Map([...MEALS, ...ideas.map((m) => [m.id, m] as const)]);
     let planned = 0;
@@ -236,7 +260,9 @@ describe("plan week: this week and next", () => {
         const used = w.cells.filter((c) => c.mealId.startsWith("idea-"));
         expect(used.length).toBeLessThanOrEqual(1);
         expect(used.map((c) => c.mealId)).not.toContain("idea-3");
-        for (const c of used) expect(c.why).toMatch(/El País, check for gluten/);
+        expect(used.map((c) => c.mealId)).not.toContain("idea-4");
+        expect(used.map((c) => c.mealId)).not.toContain("idea-5");
+        for (const c of used) expect(c.why).toMatch(/El País \(New · check gluten\)/);
         planned += used.length;
       }
     }

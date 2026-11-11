@@ -169,7 +169,15 @@ export default async function GlutenPage({ searchParams }: { searchParams: Promi
 
       <div className="flex flex-col gap-3">
         {shown.map(({ meal, label, verdict, variants }) => (
-          <MealCard key={meal.id} id={meal.id} name={label} verdict={verdict} variants={variants} t={t} />
+          <MealCard
+            key={meal.id}
+            id={meal.id}
+            name={label}
+            verdict={verdict}
+            variants={variants}
+            t={t}
+            newIdea={meal.source === "elpais" && !meal.gf_confirmed_at && verdict.status === "needs_check"}
+          />
         ))}
       </div>
     </div>
@@ -196,18 +204,20 @@ function MealCard({
   verdict,
   variants,
   t,
+  newIdea,
 }: {
   id: string;
   name: string;
   verdict: Verdict;
   variants: { text: string; verdict: Verdict }[];
   t: Messages;
+  newIdea: boolean;
 }) {
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-2">
         <CardTitle>{name}</CardTitle>
-        <GlutenBadge status={verdict.status} />
+        <GlutenBadge status={verdict.status} label={newIdea ? t.board.newIdea : undefined} />
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         <VerdictDetails verdict={verdict} />
