@@ -196,11 +196,16 @@ describe("gluten in outside recipes", () => {
     "1 masa para tarta",
     "4 tortillas de harina",
     "Pastel de carne",
+    "2 cucharadas de salsa hoisin",
+    "1 cucharada de salsa de ostras",
+    "Oyster sauce",
+    "200 g de tallarines",
+    "Noodles de trigo",
   ])("leaves out a recipe with %s", (line) => {
     expect(withIngredient(line)).toBe("gluten");
   });
 
-  it.each(["2 cucharadas de harina de maíz", "Harina de arroz", "harina de garbanzo", "Harina de almendra", "Harina de garbanzos", "Pasta de tomate", "Una pizca de pimentón", "Panceta", "200 g de masa de maíz", "1 l de caldo de pollo", "1 pastilla de caldo", "Avecrem"])(
+  it.each(["2 cucharadas de harina de maíz", "Harina de arroz", "harina de garbanzo", "Harina de almendra", "Harina de garbanzos", "Pasta de tomate", "Una pizca de pimentón", "Panceta", "200 g de masa de maíz", "1 l de caldo de pollo", "1 pastilla de caldo", "Avecrem", "200 g de fideos de arroz", "Tallarines de arroz", "Rice noodles"])(
     "keeps a recipe with %s",
     (line) => {
       expect(withIngredient(line)).toBe("ok");

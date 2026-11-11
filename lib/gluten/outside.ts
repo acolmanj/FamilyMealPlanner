@@ -24,7 +24,7 @@ const WORDS = [
   "penne",
   "fusilli",
   "rigatoni",
-  "tallarines",
+  "tallarines(?! de arroz)",
   "tagliatelle",
   "lasagn[ae]",
   "canelones",
@@ -32,7 +32,8 @@ const WORDS = [
   "ravioli",
   "tortellini",
   "lasanas?",
-  "fideos?",
+  // Rice noodles are fine; wheat noodles are not.
+  "fideos?(?! de arroz)",
   "fideua",
   "avena",
   "picatostes?",
@@ -63,7 +64,7 @@ const WORDS = [
   "tempura",
   "bechamel",
   "croquetas?",
-  "noodles",
+  "(?<!rice )noodles",
   "ramen",
   "udon",
   "flour",
@@ -77,6 +78,10 @@ const WORDS = [
   "gyozas?",
   "bao",
   "miso",
+  // Hoisin and oyster sauce are usually thickened with wheat.
+  "hoisin",
+  "salsa de ostras",
+  "oyster sauce",
   // Dough of any kind, except corn dough.
   "masas?(?! de maiz)",
   "tortillas? de harina",
@@ -84,14 +89,14 @@ const WORDS = [
   "pasteles",
   "pastel",
 ];
-const COVERED = new Set(["gf-flour", "pasta"]);
+const COVERED = new Set(["gf-flour", "pasta", "fideos"]);
 const GLUTEN = new RegExp(`(?<= )(${WORDS.join("|")})(?= )`);
 
 export function outsideVerdict(name: string, ingredients: string[]): OutsideVerdict {
   const text = [name, ...ingredients].join(" · ");
   if (GLUTEN.test(normalise(text))) return "gluten";
-  // Then every other finding of the household gate. Its flour and pasta rules are left to the
-  // word list above, which knows the gluten-free flours and tomato paste.
+  // Then every other finding of the household gate. Its flour, pasta and fideos rules are left to the
+  // word list above, which knows the gluten-free flours, tomato paste and rice noodles.
   const gate = screenMeal({ name, ingredients: ingredients.join(" · ") });
   const doubtful = gate.findings.filter((f) => !COVERED.has(f.rule));
   if (doubtful.some((f) => f.status === "blocked" || f.status === "needs_substitution" || f.tier === "A" || f.tier === "B")) return "gluten";
