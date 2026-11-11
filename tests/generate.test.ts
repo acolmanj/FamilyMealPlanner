@@ -65,7 +65,7 @@ describe("suggest a week", () => {
     expect(weeks.size).toBeGreaterThan(8);
   });
 
-  it("keeps locked cells and does not repeat their meals", () => {
+  it("keeps cells already planned and does not repeat their meals", () => {
     const keep: Cell[] = [
       { day: "mon", slot: "lunch", mealId: "Pasta pesto" },
       { day: "wed", slot: "dinner", mealId: null }, // free text

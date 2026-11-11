@@ -23,15 +23,15 @@ import {
 } from "@/lib/planner/rules";
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
-import { relaxedNotes } from "@/lib/planner/generate";
-import { addNewMeal, clearCell, generatePlan, moveCell, saveMealTags, setCellMeal, setLocked, setReason, type TagEdit } from "./actions";
+import { addNewMeal, clearCell, moveCell, saveMealTags, setCellMeal, setReason, type TagEdit } from "./actions";
 import type { BoardCell, BoardMeal } from "./load";
-import { useResolveImages, withImagesPaused } from "./resolve-images";
+import { dublinToday } from "@/lib/planner/week";
+import { useResolveImages } from "./resolve-images";
 
 type Change =
   | { type: "set"; day: Day; slot: Slot; mealId: string; text: string }
   | { type: "move"; from: { day: Day; slot: Slot }; to: { day: Day; slot: Slot } }
-  | { type: "lock"; day: Day; slot: Slot; locked: boolean }
+  | { type: "none" }
   | { type: "clear"; day: Day; slot: Slot };
 
 type Result = { ok: boolean; error?: string; adjustmentId?: string };
@@ -48,8 +48,6 @@ const PROTEIN_STYLE: Record<Protein, string> = {
   fish: "border-l-[#1d5fb4] bg-[#edf4fd]",
   veg: "border-l-[#2e7d32] bg-[#eef7ea]",
 };
-// Below the sm breakpoint the side panel becomes a bottom sheet.
-const isWide = () => typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
 const PROTEIN_DOT: Record<Protein, string> = { meat: "bg-[#8b1a1a]", fish: "bg-[#1d5fb4]", veg: "bg-[#2e7d32]" };
 
 function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
@@ -58,18 +56,18 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
     case "set":
       return [
         ...cells.filter((c) => !same(c, ch)),
-        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, locked: true, leftover: false, why: null },
+        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, leftover: false, why: null },
       ];
     case "clear":
       return cells.filter((c) => !same(c, ch));
-    case "lock":
-      return cells.map((c) => (same(c, ch) ? { ...c, locked: ch.locked } : c));
+    case "none":
+      return cells;
     case "move": {
       const a = cells.find((c) => same(c, ch.from));
       const b = cells.find((c) => same(c, ch.to));
       if (!a) return cells;
       const rest = cells.filter((c) => c !== a && c !== b);
-      return [...rest, { ...a, ...ch.to, locked: true, why: null }, ...(b ? [{ ...b, ...ch.from, locked: true, why: null }] : [])];
+      return [...rest, { ...a, ...ch.to, why: null }, ...(b ? [{ ...b, ...ch.from, why: null }] : [])];
     }
   }
 }
@@ -101,7 +99,6 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState<Target | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
-  const [sheet, setSheet] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const mealMap = useMemo(() => new Map<string, BoardMeal>(meals.map((m) => [m.id, m])), [meals]);
@@ -218,11 +215,8 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
       if (!suppressClick.current) fn(...a);
     };
 
-  const sheetUp = Boolean(open) || sheet;
-  const closeSheet = () => {
-    setOpen(null);
-    setSheet(false);
-  };
+  const sheetUp = Boolean(open);
+  const closeSheet = () => setOpen(null);
   const pickedMeal = picked ? mealMap.get(picked) : undefined;
 
   const openCell = open ? (shown.find((c) => c.day === open.day && c.slot === open.slot) ?? null) : null;
@@ -268,11 +262,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
             meals={meals}
             cells={shown}
             picked={picked}
-            onPick={tapped((id: string) => {
-              setPicked((p) => (p === id ? null : id));
-              // On a phone, get the sheet out of the way so the week can be tapped.
-              if (!isWide()) setSheet(false);
-            })}
+            onPick={tapped((id: string) => setPicked((p) => (p === id ? null : id)))}
             onClose={closeSheet}
             dragProps={dragProps}
           />
@@ -301,18 +291,8 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
         </div>
       )}
 
-      {!sheetUp && !pickedMeal && !drag && (
-        <button
-          onClick={() => setSheet(true)}
-          className="fixed right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex h-12 items-center gap-1.5 rounded-full bg-primary px-5 text-[15px] font-semibold text-primary-foreground shadow-lift active:scale-95 sm:hidden"
-        >
-          <span aria-hidden="true">✨</span>
-          {t.board.suggestions}
-        </button>
-      )}
-
       <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
-        <GenerateBar week={week} cells={shown} busy={pending} />
+        <PlanHint week={week} cells={shown} />
         {error && !sheetUp && <p className="rounded-xl bg-destructive/10 p-2 text-sm text-destructive sm:hidden">{error}</p>}
         <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs" aria-busy={pending}>
           <span />
@@ -337,7 +317,6 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
                   place(picked, { day, slot });
                   setPicked(null);
                 } else {
-                  setSheet(false);
                   setOpen((o) => (o?.day === day && o.slot === slot ? null : { day, slot }));
                 }
               })}
@@ -366,44 +345,17 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   );
 }
 
-// Re-roll what the planner suggested, as often as wanted. Filling empty slots is the
-// "Plan week" button in the tab bar, so there is one way to plan and one way to re-roll.
-function GenerateBar({ week, cells, busy }: { week: string; cells: BoardCell[]; busy: boolean }) {
+// When a slot from today on is empty, point to the Plan week button in the tab bar.
+function PlanHint({ week, cells }: { week: string; cells: BoardCell[] }) {
   const { t } = useLang();
-  const [working, startWorking] = useTransition();
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
-  const hasSuggestion = cells.some((c) => c.why && !c.locked);
-
-  const go = () => {
-    setNote(null);
-    startWorking(async () => {
-      const r = await withImagesPaused(() => generatePlan(week, Math.floor(Math.random() * 2 ** 31)));
-      if (!r.ok) return setNote({ ok: false, text: r.error });
-      setNote({ ok: true, text: [t.gen.done(r.filled), ...relaxedNotes(t, r.relaxed)].join(" ") });
-    });
-  };
-
-  if (!hasSuggestion)
-    return (
-      <p role="status" className="rounded-xl bg-primary/10 px-3 py-2 text-[13px] text-primary">
-        <span aria-hidden="true">✨ </span>
-        {note?.text ?? t.gen.planHint}
-      </p>
-    );
+  const today = dublinToday();
+  const open = DAYS.some((d) => addDays(week, DAYS.indexOf(d)) >= today && SLOTS.some((s) => !cells.some((c) => c.day === d && c.slot === s)));
+  if (!open) return null;
   return (
-    <div className="flex flex-col gap-1.5">
-      <button
-        onClick={go}
-        disabled={working || busy}
-        className="flex h-11 w-full touch-manipulation items-center justify-center gap-2 rounded-full bg-card px-5 text-[15px] font-semibold text-primary shadow-card transition active:scale-[0.98] disabled:opacity-60 sm:w-auto sm:self-start"
-      >
-        <span aria-hidden="true" className={cn(working && "animate-spin")}>↻</span>
-        {working ? t.gen.working : t.gen.reshuffle}
-      </button>
-      <p role="status" className={cn("px-1 text-xs", note && !note.ok ? "text-destructive" : "text-muted-foreground")}>
-        {note?.text ?? t.gen.help}
-      </p>
-    </div>
+    <p className="rounded-xl bg-primary/10 px-3 py-2 text-[13px] text-primary">
+      <span aria-hidden="true">✨ </span>
+      {t.gen.planHint}
+    </p>
   );
 }
 
@@ -690,14 +642,6 @@ function CellPanel({
               <Button variant="outline" size="sm" onClick={() => setMode("move")}>
                 {t.board.move}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pending}
-                onClick={() => run({ type: "lock", day, slot, locked: !cell.locked }, () => setLocked(week, day, slot, !cell.locked))}
-              >
-                {cell.locked ? t.board.unlock : t.board.lock}
-              </Button>
               <Button variant="outline" size="sm" disabled={pending} onClick={() => run({ type: "clear", day, slot }, () => clearCell(week, day, slot), askReason)}>
                 {t.board.remove}
               </Button>
@@ -729,7 +673,7 @@ function CellPanel({
         <TagForm
           meal={meal}
           pending={pending}
-          onSave={(edit) => run({ type: "lock", day, slot, locked: cell?.locked ?? false }, () => saveMealTags(meal.id, edit), () => setMode("main"))}
+          onSave={(edit) => run({ type: "none" }, () => saveMealTags(meal.id, edit), () => setMode("main"))}
           onBack={() => setMode("main")}
         />
       )}
