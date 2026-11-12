@@ -24,6 +24,9 @@ export type Tags = {
 
 export type MealAttrs = {
   name: string;
+  // The names in each language, when the library has them: a roast in any of them counts.
+  name_en?: string | null;
+  name_es?: string | null;
   protein?: string | null;
   starch?: string | null;
   is_pasta?: boolean | null;
@@ -106,7 +109,7 @@ export function mealTags(meal: MealAttrs): Tags {
     isPasta: meal.is_pasta ?? g.isPasta,
     isProcessed: meal.is_processed ?? g.isProcessed,
     effort: effort ?? g.effort,
-    isRoast: g.isRoast,
+    isRoast: g.isRoast || [meal.name_en, meal.name_es].some((n) => n && ROAST.test(normalise(n))),
     isPizza: g.isPizza,
     isPulse: g.isPulse,
     hasRice: (starch === undefined ? g.starch : starch) === "rice" || containsRice(meal.name, meal.ingredients_note, ...(meal.mealdb_ingredients ?? [])),

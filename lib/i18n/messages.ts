@@ -53,7 +53,11 @@ const en = {
   board: {
     didNotSave: "That did not save",
     dropToRemove: "Drop here to remove",
-    clearSlot: "Clear this slot",
+    clearSlot: (cell: string, meal: string) => `Clear ${cell} (${meal})`,
+    cleared: (cell: string) => `Cleared ${cell}`,
+    undo: "Undo",
+    undoFailed: "Couldn't undo: the slot has changed",
+    weekendsOnly: "Weekends only",
     suggested: "Suggested meals",
     tapSlotNow: "Now tap a slot to place it.",
     dragHelp: "Drag a meal onto a slot (on a phone, hold it first), or tap a meal and then a slot.",
@@ -123,7 +127,6 @@ const en = {
     processed: (n: number, max: number) => `Ready-made ${n}, target ${max} or fewer`,
     longCook: (cell: string) => `${cell}: long cook on a weeknight`,
     weekendOnly: (meal: string, cell: string) => `${meal} is a weekends-only meal but is on ${cell}`,
-    weekendsOnly: "weekends only",
     newMeals: (n: number, max: number) => `${plural(n, "new meal", "new meals")}, target about ${max}`,
     recency: (cell: string, days: number) => `${cell}: had it ${plural(days, "day", "days")} ago`,
     starch: (starch: string, a: string, b: string) => `${starch} twice within 3 days (${a}, ${b})`,
@@ -327,6 +330,7 @@ const en = {
     typeName: "Type the meal's name",
     sobras: "Leftovers are not a meal",
     takeaway: "Take-away and eating out are not meals",
+    slotTaken: "That slot has been filled since",
   },
 };
 
@@ -375,7 +379,11 @@ const es: Messages = {
   board: {
     didNotSave: "No se ha guardado",
     dropToRemove: "Suelta aquí para quitar",
-    clearSlot: "Vaciar este hueco",
+    clearSlot: (cell: string, meal: string) => `Vaciar ${cell} (${meal})`,
+    cleared: (cell: string) => `${cell}: vaciado`,
+    undo: "Deshacer",
+    undoFailed: "No se pudo deshacer: el hueco ha cambiado",
+    weekendsOnly: "Solo fines de semana",
     suggested: "Comidas sugeridas",
     tapSlotNow: "Ahora pulsa un hueco para ponerla.",
     dragHelp: "Arrastra una comida a un hueco (en el móvil, mantenla pulsada primero), o pulsa una comida y luego un hueco.",
@@ -445,7 +453,6 @@ const es: Messages = {
     processed: (n: number, max: number) => `Preparadas ${n}, objetivo ${max} o menos`,
     longCook: (cell: string) => `${cell}: cocción larga entre semana`,
     weekendOnly: (meal: string, cell: string) => `${cell}: ${meal} es solo para fines de semana`,
-    weekendsOnly: "solo fines de semana",
     newMeals: (n: number, max: number) => `${plural(n, "comida nueva", "comidas nuevas")}, objetivo unas ${max}`,
     recency: (cell: string, days: number) => `${cell}: la comisteis hace ${plural(days, "día", "días")}`,
     starch: (starch: string, a: string, b: string) => `${starch} dos veces en 3 días (${a}, ${b})`,
@@ -650,6 +657,7 @@ const es: Messages = {
     typeName: "Escribe el nombre de la comida",
     sobras: "Las sobras no son una comida",
     takeaway: "La comida para llevar y comer fuera no son comidas",
+    slotTaken: "Ese hueco ya se ha llenado",
   },
 };
 

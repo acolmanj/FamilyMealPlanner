@@ -14,7 +14,7 @@ Each week has 14 slots: lunch and dinner, Monday to Sunday. There is no breakfas
 
 The planner picks from the meal library, leaving out:
 
-- **Meals blocked for gluten.** This is the only gluten check on planning. Meals marked Safe or "Needs your check" can be planned. Right now every one of the household's own meals is Safe, because John cooks them all gluten-free.
+- **Meals blocked for gluten.** This is the only gluten check on planning. Meals shown as Safe, "Needs substitution" or "Needs your check" can all be planned; only Blocked is left out. John has confirmed on the Gluten page that he cooks the family's own meals gluten-free, and a confirmed meal shows as Safe.
 - **Breakfasts.** A meal whose usual slot is Breakfast is never planned for lunch or dinner.
 - **Things that are not a meal.** Sobras (leftovers), take-away and eating out.
 - **Retired or blacklisted meals.** They are not loaded at all.
@@ -25,14 +25,14 @@ The planner picks from the meal library, leaving out:
 
 When Plan week fills a slot, these rules are never broken:
 
-1. **Traditions.** Sunday lunch is a roast and Saturday dinner is pizza (on a gluten-free base), as long as the library has a roast and a pizza. Pizza is never put anywhere else.
+1. **Traditions.** Sunday lunch is a roast and Saturday dinner is pizza (on a gluten-free base), as long as the library has a roast and a pizza. Pizza is never put anywhere else. A roast is a roasted joint of meat, spotted from any of the meal's names (Spanish or English), so "Pollo" with the English name "Roast Chicken with tomato & Chorizo" counts.
 2. **No repeats.** No meal more than once in the week.
 3. **Daily mix.** Each day has one vegetarian meal and one meat or fish meal.
 4. **Pasta.** 2 pasta meals or fewer in the week.
 5. **Ready-made food.** 2 ready-made meals (fish fingers, nuggets, sausages and so on) or fewer.
 6. **No long cooks on weeknights.** A meal marked as a long cook is never planned for dinner Monday to Friday.
 7. **New meals.** At most 1 meal the family has never had before.
-8. **Weekends only.** A meal marked "Weekends only" is only planned on Saturday or Sunday, lunch or dinner. Every roast starts with this mark (for example "Cordero asado", "Pollo asado con patatas", "Roast Chicken with tomato & Chorizo"). You can tick or untick it for any meal on the Meals page.
+8. **Weekends only.** A meal marked "Weekends only" is only planned on Saturday or Sunday, lunch or dinner. When the mark was added, every roast already in the library got it (for example "Cordero asado", "Pollo asado con patatas", "Roast Chicken with tomato & Chorizo"). A meal added later gets the box ticked for you on the Add a meal form if its name looks like a roast, and you can tick or untick it for any meal on the Meals page.
 
 ## The rules that can give a little
 
@@ -43,7 +43,7 @@ These are tried first. If the week can't be filled with all of them, the planner
 3. **Usual slot.** A meal that is usually a lunch goes to lunch, and one that is usually a dinner goes to dinner. ("Either" meals go anywhere.)
 4. **Fish and pulses.** At least 1 fish meal and at least 2 pulse meals (lentils, beans, chickpeas) in the week.
 
-The weekends-only rule is never relaxed. If a week truly can't be filled, the planner leaves those slots empty and says so.
+The weekends-only rule is never relaxed. If a week truly can't be filled, the planner fills none of that week's empty slots and says so.
 
 ## How the planner picks
 
@@ -80,14 +80,14 @@ The planner checks this again every time it loads the library, so an idea is onl
 ## Changing the plan by hand
 
 - **Tap a slot** to see swap suggestions, search all meals, move the meal, clear the slot, or fix the meal's facts (protein, starch, effort, pasta, ready-made).
-- **Bin icon.** Each filled slot has a small bin in its bottom-right corner that clears it straight away.
+- **Bin icon.** Each filled slot has a small bin in its bottom-right corner that clears it straight away. A message ("Cleared Tue lunch · Undo") stays for 5 seconds, and Undo puts the meal or text back.
 - **Drag** a meal from the suggestions onto a slot, or drag a planned meal to another slot (they swap places) or onto the panel to remove it. On a phone, hold the meal first.
 - **Reason chips.** After a swap, move or clear from the slot panel you can tap a reason (too much pasta, not in the mood, no time, guests, other) or skip. The bin and drag-to-remove don't ask.
-- **Warn, don't block.** Only gluten blocks: a meal blocked for gluten can't be put in a slot. Anything else you do by hand is allowed, and the week shows a warning instead, such as "Pasta 3, target 2 or fewer" or "Roast lamb is a weekends-only meal but is on Tue lunch".
+- **Warn, don't block.** Only gluten blocks: a meal blocked for gluten can't be put in a slot. Anything else you do by hand is allowed, and Week check lists a warning instead, such as "Pasta 3, target 2 or fewer" or "Roast lamb is a weekends-only meal but is on Tue lunch". A weekends-only meal on a weekday also gets a small amber "Weekends only" tag on its tile.
 
 ## Swap suggestions
 
-Tapping a slot suggests 5 meals that fit it. It leaves out meals already in the week, meals blocked for gluten, meals used within the last 3 weeks (2 if pinned; the Sunday roast and Saturday pizza are exempt), and, on Monday to Friday, weekends-only meals. The rest are listed in this order:
+Tapping a slot suggests 5 meals that fit it. It leaves out meals already in the week, meals blocked for gluten, breakfasts, El País ideas that are not clean, meals used within the last 3 weeks (2 if pinned; the Sunday roast and Saturday pizza are exempt), and, on Monday to Friday, weekends-only meals. The rest are listed in this order:
 
 1. The day's tradition (a roast on Sunday lunch, pizza on Saturday dinner).
 2. Meals whose usual slot matches (a dinner meal for dinner).
@@ -98,7 +98,7 @@ Tapping a slot suggests 5 meals that fit it. It leaves out meals already in the 
 7. Meals the family has had before, ahead of new ones.
 8. The meal not had for the longest, then by name.
 
-The side panel ("Suggested meals") is not tied to a day. It shows 10 meals, taking meat, vegetarian and fish in turn, with pulses and fish first if the week is missing them. A weekends-only meal can show here, marked "weekends only".
+The side panel ("Suggested meals") is not tied to a day. It shows 10 meals, taking meat, vegetarian, fish and pulse meals in turn, with pulses and fish first if the week is missing them. It skips meals already in the week and meals had in the last 3 weeks (2 if pinned). A weekends-only meal can show here; its tile says "Weekends only", as it does in search results.
 
 ## Pinned meals
 
@@ -112,12 +112,10 @@ The Supabase tables the planner uses:
 | --- | --- |
 | meals | The meal library: names in English and Spanish, protein, starch, effort, pasta, ready-made, usual slot, weekends only, favourite, gluten checks, photo |
 | plan\_slots | One row per day and slot: the meal or free text, and the why line |
-| adjustments | Every hand change (swap, move, clear) and its reason chip, if given |
+| adjustments | Every hand change (swap, move, clear) and its reason chip, if given. An undone clear is taken out |
 | feed\_checks | When El País was last read |
-| gluten\_rules | The gluten tiers |
-| purchases | Old Tesco receipts, from the seed |
 
-The tables `ingredients`, `freezer_items`, `house_rules` and `week_notes` exist but nothing uses them yet.
+The tables `ingredients`, `freezer_items`, `house_rules`, `week_notes`, `gluten_rules` and `purchases` exist but the app doesn't read them yet. The seed fills `gluten_rules` (the gluten tiers as written) and `purchases` (old Tesco receipts).
 
 ## Not built yet
 

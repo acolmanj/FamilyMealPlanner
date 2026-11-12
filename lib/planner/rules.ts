@@ -351,7 +351,6 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
       if (needFish && k === "fish") bits.push(t.fishWhy);
       if (next.m.favourite) bits.unshift(msg.gen.whyFavourite);
       else if (next.m.pinned) bits.unshift(t.pinned);
-      if (next.m.weekendOnly) bits.push(t.weekendsOnly);
       picked.push({ meal: next.m, why: bits.join(", ") });
     }
   return picked;

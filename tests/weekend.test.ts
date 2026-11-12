@@ -88,9 +88,19 @@ describe("weekends-only rules and suggestions", () => {
     expect(suggestAlternatives({ weekStart: WEEK, cells: [], meals, history: old, cell: c("sat", "lunch", null), count: 10 }).map((s) => s.meal.id)).toContain("roast");
   });
 
-  it("still lists it in the week's suggestions, saying weekends only", () => {
-    const s = suggestForWeek({ weekStart: WEEK, cells: [], meals, history: old }).find((x) => x.meal.id === "roast");
-    expect(s?.why).toMatch(/weekends only/);
+  it("still lists it in the week's suggestions (the tile marks it Weekends only)", () => {
+    expect(suggestForWeek({ weekStart: WEEK, cells: [], meals, history: old }).map((x) => x.meal.id)).toContain("roast");
+  });
+
+  it("counts a roast in any of the meal's names, so it can be the Sunday roast", () => {
+    expect(mealTags({ name: "Pollo" }).isRoast).toBe(false);
+    expect(mealTags({ name: "Pollo", name_en: "Roast Chicken with tomato & Chorizo" }).isRoast).toBe(true);
+    expect(mealTags({ name: "Lamb", name_es: "Cordero asado" }).isRoast).toBe(true);
+    expect(mealTags({ name: "Patatas", name_en: "Roast potatoes" }).isRoast).toBe(false);
+    const pollo: PlanMeal = { id: "pollo", name: "Pollo", tags: mealTags({ name: "Pollo", name_en: "Roast Chicken with tomato & Chorizo" }), gluten: "safe", pinned: false, weekendOnly: true };
+    const rules = checkWeek({ weekStart: WEEK, cells: [c("sun", "lunch", "pollo")], meals: new Map([["pollo", pollo]]), history: [] }).warnings.map((w) => w.rule);
+    expect(rules).not.toContain("tradition");
+    expect(rules).not.toContain("weekend");
   });
 });
 

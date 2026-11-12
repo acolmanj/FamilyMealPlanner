@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalise, type Status } from "@/lib/gluten/gate";
 import { SLOT_PREFS, type SlotPref } from "@/lib/planner/slot-pref";
-import { guessProtein, type Protein, type Starch } from "@/lib/planner/tags";
+import { guessProtein, guessTags, type Protein, type Starch } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
 import { setFavourite } from "../favourites/actions";
 import { useResolveImages } from "../week/resolve-images";
@@ -214,8 +214,11 @@ function MealForm({
   suggestedFrom,
   onSave,
   onDone,
+  guessWeekend,
 }: {
   initial: MealEdit;
+  // A new meal: tick Weekends only for a roast, until the box is changed by hand.
+  guessWeekend?: boolean;
   suggested?: string[] | null;
   suggestedFrom?: string;
   onSave: (edit: MealEdit) => Promise<{ ok: boolean; error?: string }>;
@@ -223,6 +226,11 @@ function MealForm({
 }) {
   const { t } = useLang();
   const [f, setF] = useState({ ...initial, text: initial.ingredients.join("\n") });
+  const [weekendTouched, setWeekendTouched] = useState(false);
+  const isRoast = (en: string, es: string) => guessTags(en).isRoast || guessTags(es).isRoast;
+  // Changing a name of a new meal re-guesses the box, unless it was ticked or unticked by hand.
+  const setName = (next: { name_en: string; name_es: string }) =>
+    setF({ ...f, ...next, ...(guessWeekend && !weekendTouched ? { weekend_only: isRoast(next.name_en, next.name_es) } : {}) });
   const slotLabel = useId();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -246,11 +254,11 @@ function MealForm({
     <div className="flex flex-col gap-2">
       <label className="flex flex-col gap-1">
         <span className="font-medium">{t.meals.nameEn}</span>
-        <Input value={f.name_en} onChange={(e) => setF({ ...f, name_en: e.target.value })} lang="en" />
+        <Input value={f.name_en} onChange={(e) => setName({ name_en: e.target.value, name_es: f.name_es })} lang="en" />
       </label>
       <label className="flex flex-col gap-1">
         <span className="font-medium">{t.meals.nameEs}</span>
-        <Input value={f.name_es} onChange={(e) => setF({ ...f, name_es: e.target.value })} lang="es" />
+        <Input value={f.name_es} onChange={(e) => setName({ name_en: f.name_en, name_es: e.target.value })} lang="es" />
       </label>
       <span className="font-medium">{t.meals.group}</span>
       <div className="flex flex-wrap gap-1">
@@ -289,7 +297,7 @@ function MealForm({
         <input
           type="checkbox"
           checked={f.weekend_only}
-          onChange={(e) => setF({ ...f, weekend_only: e.target.checked })}
+          onChange={(e) => (setWeekendTouched(true), setF({ ...f, weekend_only: e.target.checked }))}
           className="size-5 shrink-0 accent-primary"
         />
         <span className="flex flex-col">
@@ -349,7 +357,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
       setFound({
         url: r.url,
         image: r.recipe.image,
-        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), slot_preference: "either", weekend_only: false, ingredients: r.recipe.ingredients },
+        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), slot_preference: "either", weekend_only: guessTags(name).isRoast, ingredients: r.recipe.ingredients },
       });
     });
 
@@ -396,6 +404,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
           {found.image && <img src={found.image} alt="" referrerPolicy="no-referrer" className="h-28 w-28 rounded-xl object-cover" />}
           <MealForm
             initial={found.initial}
+            guessWeekend
             onSave={(edit) => createMeal({ ...edit, image: found.image, url: found.url })}
             onDone={(saved, edit) => onDone(saved ? edit.name_en || edit.name_es : undefined)}
           />
@@ -405,6 +414,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
       {mode === "hand" && (
         <MealForm
           initial={blank}
+          guessWeekend
           onSave={(edit) => createMeal({ ...edit, image: null, url: null })}
           onDone={(saved, edit) => onDone(saved ? edit.name_en || edit.name_es : undefined)}
         />
@@ -440,7 +450,7 @@ function StarButton({ id, name, favourite, onError }: { id: string; name: string
       aria-pressed={on}
       aria-label={on ? t.favourites.unmarkLabel(name) : t.favourites.markLabel(name)}
       className={cn(
-        "group absolute -top-2.5 -right-2.5 z-10 flex size-11 touch-manipulation items-start justify-end",
+        "group absolute -top-1.5 -right-1.5 z-10 flex size-11 touch-manipulation items-start justify-end",
         on ? "text-[#a17400]" : "text-[#6e6e73] hover:text-foreground",
       )}
     >

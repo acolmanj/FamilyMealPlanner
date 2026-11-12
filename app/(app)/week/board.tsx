@@ -13,6 +13,7 @@ import {
   SLOTS,
   addDays,
   cellKey,
+  fitsDay,
   suggestAlternatives,
   suggestForWeek,
   type Cell,
@@ -23,7 +24,7 @@ import {
 } from "@/lib/planner/rules";
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
-import { addNewMeal, clearCell, moveCell, saveMealTags, setCellMeal, setReason, type TagEdit } from "./actions";
+import { addNewMeal, clearCell, moveCell, restoreCell, saveMealTags, setCellMeal, setReason, type SlotContent, type TagEdit } from "./actions";
 import type { BoardCell, BoardMeal } from "./load";
 import { dublinToday } from "@/lib/planner/week";
 import { useResolveImages } from "./resolve-images";
@@ -32,7 +33,8 @@ type Change =
   | { type: "set"; day: Day; slot: Slot; mealId: string; text: string }
   | { type: "move"; from: { day: Day; slot: Slot }; to: { day: Day; slot: Slot } }
   | { type: "none" }
-  | { type: "clear"; day: Day; slot: Slot };
+  | { type: "clear"; day: Day; slot: Slot }
+  | { type: "restore"; cell: BoardCell };
 
 type Result = { ok: boolean; error?: string; adjustmentId?: string };
 type Run = (ch: Change, action: () => Promise<Result>, after?: (id?: string) => void) => void;
@@ -60,6 +62,8 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
       ];
     case "clear":
       return cells.filter((c) => !same(c, ch));
+    case "restore":
+      return [...cells.filter((c) => !same(c, ch.cell)), ch.cell];
     case "none":
       return cells;
     case "move": {
@@ -115,6 +119,29 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
       else after?.(r.adjustmentId);
     });
   };
+
+  // The bin on a tile clears the slot at once, with a few seconds to undo it.
+  const [cleared, setCleared] = useState<{ cell: BoardCell; name: string; before: SlotContent; adjustmentId?: string } | null>(null);
+  const clearWithUndo = (cell: BoardCell) => {
+    setError(null);
+    startTransition(async () => {
+      change({ type: "clear", day: cell.day, slot: cell.slot });
+      const r = await clearCell(week, cell.day, cell.slot);
+      if (!r.ok) return setError(r.error ?? t.board.didNotSave);
+      if ("before" in r) setCleared({ cell, name: `${t.days[cell.day]} ${t.slots[cell.slot].toLowerCase()}`, before: r.before, adjustmentId: r.adjustmentId });
+    });
+  };
+  const undoClear = () => {
+    if (!cleared) return;
+    const { cell, before, adjustmentId } = cleared;
+    setCleared(null);
+    run({ type: "restore", cell }, () => restoreCell(week, cell.day, cell.slot, before, adjustmentId));
+  };
+  useEffect(() => {
+    if (!cleared) return;
+    const id = setTimeout(() => setCleared(null), 5000);
+    return () => clearTimeout(id);
+  }, [cleared]);
 
   const place = (mealId: string, t: Target) => {
     const m = mealMap.get(mealId);
@@ -282,7 +309,19 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
         </div>
       )}
 
-      {pickedMeal && !drag && (
+      {cleared && !drag && (
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-sm items-center gap-2 rounded-2xl bg-foreground/90 px-4 py-3 text-sm text-white shadow-lift backdrop-blur-xl"
+        >
+          <span className="min-w-0 flex-1 truncate">{t.board.cleared(cleared.name)}</span>
+          <button className="-my-2 min-h-11 shrink-0 px-2 font-semibold text-[#7ee08f]" onClick={undoClear}>
+            {t.board.undo}
+          </button>
+        </div>
+      )}
+
+      {pickedMeal && !drag && !cleared && (
         <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-2xl bg-foreground/90 px-4 py-3 text-sm text-white shadow-lift backdrop-blur-xl sm:hidden">
           <span className="min-w-0 flex-1 truncate">{t.board.tapSlotFor(pickedMeal.name)}</span>
           <button className="shrink-0 font-semibold text-[#7ee08f]" onClick={() => setPicked(null)}>
@@ -311,10 +350,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
               open={open}
               over={drag?.over ?? null}
               dragProps={dragProps}
-              onClear={(slot: Slot) => {
-                setError(null);
-                run({ type: "clear", day, slot }, () => clearCell(week, day, slot));
-              }}
+              onClear={clearWithUndo}
               onTap={tapped((slot: Slot) => {
                 setError(null);
                 if (picked) {
@@ -382,7 +418,7 @@ function DayRow({
   over: string | null;
   dragProps: (d: DragData) => object;
   onTap: (slot: Slot) => void;
-  onClear: (slot: Slot) => void;
+  onClear: (cell: BoardCell) => void;
 }) {
   const { t } = useLang();
   return (
@@ -427,6 +463,7 @@ function DayRow({
                       )}
                       {m?.tags.isProcessed && <span>{t.board.processed}</span>}
                       {m?.idea && m.gluten !== "blocked" && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-warning">{t.board.newIdea}</span>}
+                    {m && !fitsDay(m, day) && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-[#9a4f00]">{t.board.weekendsOnly}</span>}
                       {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
                       {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
                     </span>
@@ -446,12 +483,12 @@ function DayRow({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onClear(slot);
+                  onClear(c);
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                aria-label={t.board.clearSlot}
-                title={t.board.clearSlot}
-                className="absolute right-0 bottom-0 flex size-8 touch-manipulation items-center justify-center rounded-br-xl text-muted-foreground/70 hover:text-destructive active:text-destructive"
+                aria-label={t.board.clearSlot(`${t.days[day]} ${t.slots[slot].toLowerCase()}`, label)}
+                title={t.board.clearSlot(`${t.days[day]} ${t.slots[slot].toLowerCase()}`, label)}
+                className="absolute right-0 bottom-0 flex h-10 w-11 touch-manipulation items-end justify-end rounded-br-xl pr-2 pb-2 text-muted-foreground hover:text-destructive active:text-destructive"
               >
                 <BinIcon />
               </button>
@@ -492,6 +529,7 @@ function MealTile({ meal, why, picked, onClick, extra }: { meal: PlanMeal; why?:
           <FoodIcons starch={meal.tags.starch} isPasta={meal.tags.isPasta} isPulse={meal.tags.isPulse} hasRice={meal.tags.hasRice} className="text-sm" />
           {meal.favourite && <span className="text-[#d99a00]" aria-label={t.board.favourite}>★</span>}
           <span>{[meal.tags.isProcessed ? t.board.processed : null, why, meal.gluten === "blocked" ? t.board.blockedForGluten : null].filter(Boolean).join(" · ")}</span>
+          {meal.weekendOnly && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-[#9a4f00]">{t.board.weekendsOnly}</span>}
           {meal.idea && meal.gluten !== "blocked" && <span className="font-semibold text-warning">{t.board.newIdea}</span>}
         </span>
       </span>
