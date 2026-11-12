@@ -100,12 +100,17 @@ describe("El País feed", () => {
   it("tidies names and reads the slot from the words", () => {
     expect(cleanName("Receta de garbanzos con espinacas | EL PAÍS")).toBe("Garbanzos con espinacas");
     expect(cleanName("la receta del cocido.")).toBe("Cocido");
+    expect(cleanName("Receta sencilla de la sopa de pescado del restaurante Azurmendi")).toBe("Sopa de pescado del restaurante Azurmendi");
+    expect(cleanName("Crema de zanahoria, naranja y lentejas rojas, una receta rápida para comer más legumbres")).toBe("Crema de zanahoria, naranja y lentejas rojas");
     expect(slotFromText("Huevos rotos para el desayuno")).toBe("breakfast");
     expect(slotFromText("Una crema para cenar")).toBe("supper");
     expect(slotFromText("Lentejas con chorizo")).toBe("either");
     expect(isMeal("Tarta de queso")).toBe(false);
     expect(isMeal("Merluza al vino blanco")).toBe(true);
     expect(isMeal("Pastel de pescado")).toBe(true);
+    expect(isMeal("Doce recetas más para el otoño: platos principales y guarniciones que preparamos cada semana")).toBe(false);
+    expect(isMeal("La Merced: cuatro décadas de un restaurante, que solo ofrece un turno a medio día")).toBe(false);
+    expect(isMeal("Receta sencilla de la sopa de pescado del restaurante Azurmendi")).toBe(true);
   });
 
   it("reads numeric, hex and named accent entities, and CDATA anywhere", () => {

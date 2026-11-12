@@ -103,13 +103,21 @@ const looksLikeRecipe = (i: RssItem) => /\brecetas?\b/i.test(i.link) || i.catego
 
 // Sweets, drinks and preserves are not a lunch or a dinner.
 const NOT_A_MEAL = /\b(postres?|tartas?|bizcochos?|galletas?|helados?|flan|natillas|magdalenas?|brownies?|cookies?|turron|roscon|panettone|bombones|chocolate|mermeladas?|confitura|cocteles?|cocktails?|bebidas?|batidos?|smoothies?|licor|vermu)\b/;
-export const isMeal = (title: string, categories: string[] = []) => !NOT_A_MEAL.test(normalise([title, ...categories].join(" ")));
+export const isMeal = (title: string, categories: string[] = []) => !NOT_A_MEAL.test(normalise([title, ...categories].join(" "))) && !isArticle(title);
+
+// Articles in the food section that are not one recipe: round-ups ("Doce recetas más para
+// el otoño") and restaurant stories ("La Merced: cuatro décadas de un restaurante...").
+export const isArticle = (title: string) => {
+  const t = normalise(title);
+  return / recetas /.test(t) || (/ restaurantes? /.test(t) && !/ receta /.test(t));
+};
 
 // "Receta de garbanzos con espinacas" -> "Garbanzos con espinacas".
 export function cleanName(title: string) {
   const t = title
     .replace(/\s*[|·–—-]\s*(El País|EL PAÍS|El Comidista).*$/i, "")
-    .replace(/^(la\s+)?receta\s+(de|del)\s+/i, "")
+    .replace(/^(la\s+)?receta\s+(\p{L}+\s+)?(de|del)\s+((la|el)\s+)?/iu, "")
+    .replace(/,\s*(una|la|el)\s+receta\b.*$/i, "")
     .replace(/^receta:\s*/i, "")
     .replace(/[.:]+$/, "")
     .trim();
