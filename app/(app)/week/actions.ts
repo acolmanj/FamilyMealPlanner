@@ -15,7 +15,7 @@ import { DAYS, SLOTS, type Day, type Slot } from "@/lib/planner/rules";
 type Result = { ok: true; adjustmentId?: string } | { ok: false; error: string };
 
 // What a slot held, so a clear can be undone.
-export type SlotContent = { meal_id: string | null; as_written: string | null; is_takeaway: boolean; status: string; why_line: string | null };
+export type SlotContent = { meal_id: string | null; as_written: string | null; is_takeaway: boolean; status: string; why_line: string | null; changed_by_user?: boolean };
 
 const isWeek = (w: string) => /^\d{4}-\d{2}-\d{2}$/.test(w) && new Date(`${w}T00:00:00Z`).getUTCDay() === 1;
 const isCell = (d: string, s: string) => DAYS.includes(d as Day) && SLOTS.includes(s as Slot);
@@ -46,7 +46,7 @@ async function log(
 async function getSlot({ supabase, householdId }: Ctx, week: string, day: string, slot: string) {
   const { data } = await supabase
     .from("plan_slots")
-    .select("id, meal_id, as_written, is_takeaway, status, why_line")
+    .select("id, meal_id, as_written, is_takeaway, status, why_line, changed_by_user")
     .eq("household_id", householdId)
     .eq("week_start", week)
     .eq("day", day)
@@ -135,7 +135,7 @@ export async function clearCell(week: string, day: string, slot: string): Promis
   if (error) return { ok: false, error: error.message };
   const adjustmentId = await log(ctx, { slot_id: s.id, action: "remove", from_meal: s.meal_id });
   revalidatePath("/week");
-  const before: SlotContent = { meal_id: s.meal_id, as_written: s.as_written, is_takeaway: s.is_takeaway, status: s.status, why_line: s.why_line };
+  const before: SlotContent = { meal_id: s.meal_id, as_written: s.as_written, is_takeaway: s.is_takeaway, status: s.status, why_line: s.why_line, changed_by_user: s.changed_by_user };
   return { ok: true, adjustmentId, before };
 }
 
@@ -145,11 +145,18 @@ export async function restoreCell(week: string, day: string, slot: string, befor
   if (!isWeek(week) || !isCell(day, slot)) return { ok: false, error: (await say()).unknownCell };
   const ctx = await context();
   const s = await getSlot(ctx, week, day, slot);
-  if (!s || s.meal_id || s.as_written) return { ok: false, error: (await say()).slotTaken };
+  if (!s || s.meal_id || s.as_written) return { ok: false, error: (await getMessages()).t.board.undoFailed };
   const str = (x: unknown) => (typeof x === "string" ? x.slice(0, 2000) : null);
   if (before.meal_id) {
-    const { data: meal } = await ctx.supabase.from("meals").select("id").eq("household_id", ctx.householdId).eq("id", before.meal_id).maybeSingle();
+    const { data: meal } = await ctx.supabase
+      .from("meals")
+      .select("id, name, variants_seen, ingredients_note, gf_confirmed_at, source")
+      .eq("household_id", ctx.householdId)
+      .eq("id", before.meal_id)
+      .maybeSingle();
     if (!meal) return { ok: false, error: (await say()).mealNotFound };
+    // Gluten still blocks, even when putting a meal back.
+    if (mealStatus(meal) === "blocked") return { ok: false, error: (await say()).blocked(meal.name) };
   }
   const { error } = await ctx.supabase
     .from("plan_slots")
@@ -159,6 +166,7 @@ export async function restoreCell(week: string, day: string, slot: string, befor
       is_takeaway: before.is_takeaway === true,
       status: ["proposed", "locked", "eaten"].includes(before.status) ? before.status : "proposed",
       why_line: str(before.why_line),
+      changed_by_user: before.changed_by_user === true,
     })
     .eq("id", s.id);
   if (error) return { ok: false, error: error.message };

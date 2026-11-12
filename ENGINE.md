@@ -14,7 +14,7 @@ Each week has 14 slots: lunch and dinner, Monday to Sunday. There is no breakfas
 
 The planner picks from the meal library, leaving out:
 
-- **Meals blocked for gluten.** This is the only gluten check on planning. Meals shown as Safe, "Needs substitution" or "Needs your check" can all be planned; only Blocked is left out. John has confirmed on the Gluten page that he cooks the family's own meals gluten-free, and a confirmed meal shows as Safe.
+- **Meals blocked for gluten.** This is the only gluten check on planning. Meals shown as Safe, "Needs substitution" or "Needs your check" can all be planned; only Blocked is left out. A meal confirmed on the Gluten page shows as Safe.
 - **Breakfasts.** A meal whose usual slot is Breakfast is never planned for lunch or dinner.
 - **Things that are not a meal.** Sobras (leftovers), take-away and eating out.
 - **Retired or blacklisted meals.** They are not loaded at all.
@@ -80,7 +80,7 @@ The planner checks this again every time it loads the library, so an idea is onl
 ## Changing the plan by hand
 
 - **Tap a slot** to see swap suggestions, search all meals, move the meal, clear the slot, or fix the meal's facts (protein, starch, effort, pasta, ready-made).
-- **Bin icon.** Each filled slot has a small bin in its bottom-right corner that clears it straight away. A message ("Cleared Tue lunch · Undo") stays for 5 seconds, and Undo puts the meal or text back.
+- **Bin icon.** Each filled slot has a small bin in its bottom-right corner that clears it straight away. A message ("Cleared Tue lunch · Undo") stays for 8 seconds, and Undo puts the meal or text back.
 - **Drag** a meal from the suggestions onto a slot, or drag a planned meal to another slot (they swap places) or onto the panel to remove it. On a phone, hold the meal first.
 - **Reason chips.** After a swap, move or clear from the slot panel you can tap a reason (too much pasta, not in the mood, no time, guests, other) or skip. The bin and drag-to-remove don't ask.
 - **Warn, don't block.** Only gluten blocks: a meal blocked for gluten can't be put in a slot. Anything else you do by hand is allowed, and Week check lists a warning instead, such as "Pasta 3, target 2 or fewer" or "Roast lamb is a weekends-only meal but is on Tue lunch". A weekends-only meal on a weekday also gets a small amber "Weekends only" tag on its tile.

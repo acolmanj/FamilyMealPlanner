@@ -139,7 +139,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   };
   useEffect(() => {
     if (!cleared) return;
-    const id = setTimeout(() => setCleared(null), 5000);
+    const id = setTimeout(() => setCleared(null), 8000);
     return () => clearTimeout(id);
   }, [cleared]);
 
