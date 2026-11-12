@@ -31,6 +31,7 @@ type MealRow = {
   pinned: boolean;
   is_favourite: boolean;
   slot_preference: string | null;
+  weekend_only: boolean | null;
   source: string | null;
   gf_confirmed_at: string | null;
   image_url: string | null;
@@ -83,7 +84,7 @@ export async function loadWeeks(weeks: string[], lang: Lang = "en") {
     supabase
       .from("meals")
       .select(
-        "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, pinned, is_favourite, slot_preference, source, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_name, mealdb_ingredients",
+        "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, pinned, is_favourite, slot_preference, weekend_only, source, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_name, mealdb_ingredients",
       )
       .eq("retired", false)
       .eq("blacklisted", false)
@@ -99,6 +100,7 @@ export async function loadWeeks(weeks: string[], lang: Lang = "en") {
     pinned: m.pinned,
     favourite: m.is_favourite,
     slotPref: isSlotPref(m.slot_preference) ? m.slot_preference : "either",
+    weekendOnly: Boolean(m.weekend_only),
     idea: m.source === "elpais" && !m.gf_confirmed_at,
     noPlan: outsideNoPlan(m),
     gfStock: m.source === "elpais" && needsGfStock(m.name_es ?? m.name, m.ingredients_note),

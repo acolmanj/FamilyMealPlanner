@@ -43,6 +43,9 @@ function PlainPasta() {
   );
 }
 
+// Each icon is drawn 20% bigger than the text size the caller gives (text-sm, text-base...).
+const ICON = "text-[1.2em]";
+
 // A small picture for the meal's main starch, rice whenever the meal has rice, and beans when it has pulses.
 const STARCH_ICON: Record<Exclude<Starch, "pasta" | "rice">, string> = { potatoes: "🥔", noodles: "🍜", bread: "🍞" };
 
@@ -67,17 +70,17 @@ export function FoodIcons({
   return (
     <span className={cn("inline-flex items-center gap-0.5 leading-none", className)}>
       {main && (
-        <span role="img" aria-label={t.starch[main]} title={t.starch[main]}>
+        <span role="img" className={ICON} aria-label={t.starch[main]} title={t.starch[main]}>
           {main === "pasta" ? <PlainPasta /> : STARCH_ICON[main]}
         </span>
       )}
       {rice && (
-        <span role="img" aria-label={t.starch.rice} title={t.starch.rice}>
+        <span role="img" className={ICON} aria-label={t.starch.rice} title={t.starch.rice}>
           🍚
         </span>
       )}
       {isPulse && (
-        <span role="img" aria-label={t.board.pulses} title={t.board.pulses}>
+        <span role="img" className={ICON} aria-label={t.board.pulses} title={t.board.pulses}>
           🫘
         </span>
       )}

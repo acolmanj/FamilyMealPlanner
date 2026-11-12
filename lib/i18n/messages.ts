@@ -53,6 +53,11 @@ const en = {
   board: {
     didNotSave: "That did not save",
     dropToRemove: "Drop here to remove",
+    clearSlot: (cell: string, meal: string) => `Clear ${cell} (${meal})`,
+    cleared: (cell: string) => `Cleared ${cell}`,
+    undo: "Undo",
+    undoFailed: "Couldn't undo: the slot has changed",
+    weekendsOnly: "Weekends only",
     suggested: "Suggested meals",
     tapSlotNow: "Now tap a slot to place it.",
     dragHelp: "Drag a meal onto a slot (on a phone, hold it first), or tap a meal and then a slot.",
@@ -121,6 +126,7 @@ const en = {
     pasta: (n: number, max: number) => `Pasta ${n}, target ${max} or fewer`,
     processed: (n: number, max: number) => `Ready-made ${n}, target ${max} or fewer`,
     longCook: (cell: string) => `${cell}: long cook on a weeknight`,
+    weekendOnly: (meal: string, cell: string) => `${meal} is a weekends-only meal but is on ${cell}`,
     newMeals: (n: number, max: number) => `${plural(n, "new meal", "new meals")}, target about ${max}`,
     recency: (cell: string, days: number) => `${cell}: had it ${plural(days, "day", "days")} ago`,
     starch: (starch: string, a: string, b: string) => `${starch} twice within 3 days (${a}, ${b})`,
@@ -301,6 +307,8 @@ const en = {
     fromElPais: "El País",
     checkGluten: "New · check gluten",
     notPlanned: "Won't be planned until you check it on the Gluten page.",
+    weekendOnly: "Weekends only",
+    weekendOnlyHelp: "The planner only puts it on Saturday or Sunday. Good for roasts.",
   },
 
   household: {
@@ -322,6 +330,7 @@ const en = {
     typeName: "Type the meal's name",
     sobras: "Leftovers are not a meal",
     takeaway: "Take-away and eating out are not meals",
+    slotTaken: "That slot has been filled since",
   },
 };
 
@@ -370,6 +379,11 @@ const es: Messages = {
   board: {
     didNotSave: "No se ha guardado",
     dropToRemove: "Suelta aquí para quitar",
+    clearSlot: (cell: string, meal: string) => `Vaciar ${cell} (${meal})`,
+    cleared: (cell: string) => `${cell}: vaciado`,
+    undo: "Deshacer",
+    undoFailed: "No se pudo deshacer: el hueco ha cambiado",
+    weekendsOnly: "Solo fines de semana",
     suggested: "Comidas sugeridas",
     tapSlotNow: "Ahora pulsa un hueco para ponerla.",
     dragHelp: "Arrastra una comida a un hueco (en el móvil, mantenla pulsada primero), o pulsa una comida y luego un hueco.",
@@ -438,6 +452,7 @@ const es: Messages = {
     pasta: (n: number, max: number) => `Pasta ${n}, objetivo ${max} o menos`,
     processed: (n: number, max: number) => `Preparadas ${n}, objetivo ${max} o menos`,
     longCook: (cell: string) => `${cell}: cocción larga entre semana`,
+    weekendOnly: (meal: string, cell: string) => `${cell}: ${meal} es solo para fines de semana`,
     newMeals: (n: number, max: number) => `${plural(n, "comida nueva", "comidas nuevas")}, objetivo unas ${max}`,
     recency: (cell: string, days: number) => `${cell}: la comisteis hace ${plural(days, "día", "días")}`,
     starch: (starch: string, a: string, b: string) => `${starch} dos veces en 3 días (${a}, ${b})`,
@@ -619,6 +634,8 @@ const es: Messages = {
     fromElPais: "El País",
     checkGluten: "Nueva · revisa el gluten",
     notPlanned: "No se planificará hasta que la revises en la página de Gluten.",
+    weekendOnly: "Solo fines de semana",
+    weekendOnlyHelp: "El planificador solo la pone en sábado o domingo. Va bien para los asados.",
   },
 
   household: {
@@ -640,6 +657,7 @@ const es: Messages = {
     typeName: "Escribe el nombre de la comida",
     sobras: "Las sobras no son una comida",
     takeaway: "La comida para llevar y comer fuera no son comidas",
+    slotTaken: "Ese hueco ya se ha llenado",
   },
 };
 

@@ -1,4 +1,5 @@
 import { parse } from "csv-parse/sync";
+import { guessTags } from "../planner/tags";
 
 // Builds an idempotent SQL script from the four files in /Seed.
 // Pure: same files in, same SQL out. Re-running the SQL updates rows in place
@@ -255,11 +256,12 @@ export function buildSeedSql(files: SeedFiles, opts: SeedOptions = {}): string {
     );
   }
 
+  // A roast starts as weekends only; re-running the seed keeps whatever the owner set since.
   out.push("\n-- Meals (one per name group)");
   for (const m of data.meals) {
     out.push(
-      `insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values (${h}, ${q(m.nameGroup)}, ${q(m.nameGroup)}, ${qArr(m.variants)}, ${q(m.ingredientsNote)}, ${q(m.recipeSource)}, ${q(m.glutenKeywordFlag)}, ${q(m.lastEaten)}, ${q(m.isFavourite)}, ${q(m.favouriteSeenCount)}, 'menu')
+      `insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values (${h}, ${q(m.nameGroup)}, ${q(m.nameGroup)}, ${qArr(m.variants)}, ${q(m.ingredientsNote)}, ${q(m.recipeSource)}, ${q(m.glutenKeywordFlag)}, ${q(m.lastEaten)}, ${q(m.isFavourite)}, ${q(m.favouriteSeenCount)}, 'menu', ${q(guessTags(m.nameGroup).isRoast)})
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,

@@ -17,6 +17,8 @@ export type MealEdit = {
   name_es: string;
   protein: "meat" | "fish" | "veg";
   slot_preference: SlotPref;
+  // Weekends only: the planner puts it only on Saturday or Sunday.
+  weekend_only: boolean;
   ingredients: string[];
 };
 
@@ -32,7 +34,14 @@ async function context() {
   return { supabase, householdId: household.id, t };
 }
 
-type Fields = { name_en: string | null; name_es: string | null; protein: string; slot_preference: SlotPref; ingredients_note: string | null };
+type Fields = {
+  name_en: string | null;
+  name_es: string | null;
+  protein: string;
+  slot_preference: SlotPref;
+  weekend_only: boolean;
+  ingredients_note: string | null;
+};
 
 function fields(e: MealEdit, t: Awaited<ReturnType<typeof context>>["t"]): { error: string } | { values: Fields } {
   const name_en = clean(e.name_en);
@@ -49,6 +58,7 @@ function fields(e: MealEdit, t: Awaited<ReturnType<typeof context>>["t"]): { err
       name_es: name_es || null,
       protein: e.protein,
       slot_preference: isSlotPref(e.slot_preference) ? e.slot_preference : "either",
+      weekend_only: e.weekend_only === true,
       ingredients_note: lines.length ? lines.join("\n") : null,
     },
   };
