@@ -1,6 +1,6 @@
 import { messages, type Lang, type Messages } from "../i18n/messages";
 import { isNotAMeal } from "./not-a-meal";
-import { DAYS, LIMITS, SLOTS, addDays, canPlan, cellDate, cellKey, isNewMeal, slotFits, type Cell, type Day, type PlanMeal, type Slot, type Use } from "./rules";
+import { DAYS, LIMITS, SLOTS, addDays, canPlan, cellDate, cellKey, fitsDay, isNewMeal, slotFits, type Cell, type Day, type PlanMeal, type Slot, type Use } from "./rules";
 
 // Builds a suggested week with plain code: a seeded shuffle of the library, then a
 // backtracking search that keeps every week rule. A new seed gives a different week;
@@ -138,6 +138,8 @@ export function generateWeek({ weekStart, meals, history, keep, seed, lang = "en
 
     const fits = (m: PlanMeal, cell: { day: Day; slot: Slot }, remainingAfter: number) => {
       if (used.has(m.id)) return false;
+      // Weekends only (roasts): Saturday or Sunday, at every level.
+      if (!fitsDay(m, cell.day)) return false;
       const kind = tradition(cell.day, cell.slot);
       if (kind === "roast" && hasRoast && !m.tags.isRoast) return false;
       if (kind === "pizza" && hasPizza && !m.tags.isPizza) return false;

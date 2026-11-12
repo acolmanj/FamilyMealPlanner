@@ -4,8 +4,8 @@ insert into public.households (id, name) values ('00000000-0000-4000-8000-000000
   on conflict (id) do nothing;
 
 -- Meals (one per name group)
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Curry Rogan Josh (lamb)', 'Curry Rogan Josh (lamb)', array['Curry Rogan Josh (cordero)', 'Lamb Rogan Josh']::text[], '2 Cebollas picadas, 1 dedo de gengibre picado, 1 chile picado, 1 pu1ado de cilantro picado', null, 'Tier C keyword: check label (curry)', '2026-09-22', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Curry Rogan Josh (lamb)', 'Curry Rogan Josh (lamb)', array['Curry Rogan Josh (cordero)', 'Lamb Rogan Josh']::text[], '2 Cebollas picadas, 1 dedo de gengibre picado, 1 chile picado, 1 pu1ado de cilantro picado', null, 'Tier C keyword: check label (curry)', '2026-09-22', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -14,8 +14,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pisto (variants)', 'Pisto (variants)', array['Pisto', 'Pisto con arroz (congelador)', 'Pisto con puré de patatas']::text[], null, null, null, '2026-10-14', true, 4, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pisto (variants)', 'Pisto (variants)', array['Pisto', 'Pisto con arroz (congelador)', 'Pisto con puré de patatas']::text[], null, null, null, '2026-10-14', true, 4, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -24,8 +24,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Calabaza con alubias/garbanzos (variants)', 'Calabaza con alubias/garbanzos (variants)', array['Calabaza con alubias y garbanzos', 'Calabaza con garbanzos']::text[], null, null, 'Tier C keyword: check label (alubias)', '2026-10-20', true, 4, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Calabaza con alubias/garbanzos (variants)', 'Calabaza con alubias/garbanzos (variants)', array['Calabaza con alubias y garbanzos', 'Calabaza con garbanzos']::text[], null, null, 'Tier C keyword: check label (alubias)', '2026-10-20', true, 4, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -34,8 +34,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pastel de pescado', 'Pastel de pescado', array['Pastel de pescado']::text[], null, null, null, '2026-10-02', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pastel de pescado', 'Pastel de pescado', array['Pastel de pescado']::text[], null, null, null, '2026-10-02', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -44,8 +44,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta con chorizo (variants)', 'Pasta con chorizo (variants)', array['Pasta con chorizo', 'Pasta con tomate (congelador) y chorizo']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-09-24', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta con chorizo (variants)', 'Pasta con chorizo (variants)', array['Pasta con chorizo', 'Pasta con tomate (congelador) y chorizo']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-09-24', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -54,8 +54,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pizza', 'Pizza', array['Pizza (Claremont Family Day)', 'Pizza', 'Pizza y nuggets', 'Pizza y croquetas']::text[], null, null, 'Tier A/B keyword: needs GF version (pizza)', '2026-10-24', true, 8, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pizza', 'Pizza', array['Pizza (Claremont Family Day)', 'Pizza', 'Pizza y nuggets', 'Pizza y croquetas']::text[], null, null, 'Tier A/B keyword: needs GF version (pizza)', '2026-10-24', true, 8, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -64,8 +64,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Cordero asado / roast lamb', 'Cordero asado / roast lamb', array['Roast lamb', 'Cordero asado']::text[], null, null, null, '2026-10-25', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Cordero asado / roast lamb', 'Cordero asado / roast lamb', array['Roast lamb', 'Cordero asado']::text[], null, null, null, '2026-10-25', false, null, 'menu', true)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -74,8 +74,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de brocoli y garbanzos', 'Ensalada de brocoli y garbanzos', array['Ensalada de brocoli y garbanzos']::text[], null, null, null, '2026-09-17', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de brocoli y garbanzos', 'Ensalada de brocoli y garbanzos', array['Ensalada de brocoli y garbanzos']::text[], null, null, null, '2026-09-17', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -84,8 +84,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Fish fingers', 'Fish fingers', array['Fish fingers', 'Fish fingers con ensalada de pepino', 'Fish fingers con pepino']::text[], null, null, 'Tier A/B keyword: needs GF version (fish fingers)', '2026-10-20', true, 4, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Fish fingers', 'Fish fingers', array['Fish fingers', 'Fish fingers con ensalada de pepino', 'Fish fingers con pepino']::text[], null, null, 'Tier A/B keyword: needs GF version (fish fingers)', '2026-10-20', true, 4, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -94,8 +94,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pancakes con salmón', 'Pancakes con salmón', array['Pancakes con salmón', 'Pancakes con salmón y ensalada']::text[], null, null, 'Tier A/B keyword: needs GF version (pancakes)', '2026-10-21', true, 3, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pancakes con salmón', 'Pancakes con salmón', array['Pancakes con salmón', 'Pancakes con salmón y ensalada']::text[], null, null, 'Tier A/B keyword: needs GF version (pancakes)', '2026-10-21', true, 3, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -104,8 +104,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Ensalada verde', 'Ensalada verde', array['Ensalada verde']::text[], null, null, null, '2026-10-12', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Ensalada verde', 'Ensalada verde', array['Ensalada verde']::text[], null, null, null, '2026-10-12', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -114,8 +114,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Alitas de Pollo (One Pot Book)', 'Alitas de Pollo (One Pot Book)', array['Alitas de Pollo (One Pot Book)']::text[], null, 'One Pot Book', 'Tier C keyword: check label (alitas)', '2026-08-15', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Alitas de Pollo (One Pot Book)', 'Alitas de Pollo (One Pot Book)', array['Alitas de Pollo (One Pot Book)']::text[], null, 'One Pot Book', 'Tier C keyword: check label (alitas)', '2026-08-15', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -124,8 +124,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de lentejas', 'Ensalada de lentejas', array['Ensalada de lentejas']::text[], null, null, null, '2026-08-16', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de lentejas', 'Ensalada de lentejas', array['Ensalada de lentejas']::text[], null, null, null, '2026-08-16', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -134,8 +134,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Lentejas estofadas (variants)', 'Lentejas estofadas (variants)', array['Lentejas', 'Estofado de lentejas, berenjenas y granada', 'Lentejas estofadas']::text[], null, null, 'Tier C keyword: check label (estofado)', '2026-10-19', true, 6, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Lentejas estofadas (variants)', 'Lentejas estofadas (variants)', array['Lentejas', 'Estofado de lentejas, berenjenas y granada', 'Lentejas estofadas']::text[], null, null, 'Tier C keyword: check label (estofado)', '2026-10-19', true, 6, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -144,8 +144,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Risoto', 'Risoto', array['Risoto']::text[], null, null, 'Tier C keyword: check label (risoto)', '2026-08-20', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Risoto', 'Risoto', array['Risoto']::text[], null, null, 'Tier C keyword: check label (risoto)', '2026-08-20', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -154,8 +154,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta', 'Pasta', array['Pasta']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-08-28', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta', 'Pasta', array['Pasta']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-08-28', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -164,8 +164,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Curry de cangrejo (Jamie)', 'Curry de cangrejo (Jamie)', array['Curry de cangrejo (Jamie)']::text[], null, 'Jamie', 'Tier C keyword: check label (curry)', '2026-08-22', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Curry de cangrejo (Jamie)', 'Curry de cangrejo (Jamie)', array['Curry de cangrejo (Jamie)']::text[], null, 'Jamie', 'Tier C keyword: check label (curry)', '2026-08-22', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -174,8 +174,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pollo asado con patatas', 'Pollo asado con patatas', array['Pollo asado con patatas, zanahorias y navos', 'Pollo asado con patatas y zanahorias']::text[], null, null, null, '2026-10-04', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pollo asado con patatas', 'Pollo asado con patatas', array['Pollo asado con patatas, zanahorias y navos', 'Pollo asado con patatas y zanahorias']::text[], null, null, null, '2026-10-04', false, null, 'menu', true)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -184,8 +184,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Tostada con aguacate/huevos (variants)', 'Tostada con aguacate/huevos (variants)', array['Tostadas con aguacate y huevos', 'Tostada con guacamole y huevos. Ensalada de pepino', 'Tostada con berdel y ensalada', 'Tosatada con aguacate, huevos y ensalada']::text[], null, null, 'Tier A/B keyword: needs GF version (tostada)', '2026-10-05', true, 3, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Tostada con aguacate/huevos (variants)', 'Tostada con aguacate/huevos (variants)', array['Tostadas con aguacate y huevos', 'Tostada con guacamole y huevos. Ensalada de pepino', 'Tostada con berdel y ensalada', 'Tosatada con aguacate, huevos y ensalada']::text[], null, null, 'Tier A/B keyword: needs GF version (tostada)', '2026-10-05', true, 3, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -194,8 +194,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Tortilla de patatas con ensalada', 'Tortilla de patatas con ensalada', array['Tortilla de patatas con ensalada']::text[], '1 Cebolla picada, 6 Patatas cortadas finas (650gr)', null, null, '2026-08-18', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Tortilla de patatas con ensalada', 'Tortilla de patatas con ensalada', array['Tortilla de patatas con ensalada']::text[], '1 Cebolla picada, 6 Patatas cortadas finas (650gr)', null, null, '2026-08-18', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -204,8 +204,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pescado con ensalada de tomates y aguacate', 'Pescado con ensalada de tomates y aguacate', array['Pescado con ensalada de tomates y aguacate']::text[], null, null, null, '2026-08-19', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pescado con ensalada de tomates y aguacate', 'Pescado con ensalada de tomates y aguacate', array['Pescado con ensalada de tomates y aguacate']::text[], null, null, null, '2026-08-19', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -214,8 +214,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Sopa de garbanzos con fideos', 'Sopa de garbanzos con fideos', array['Sopa de garbanzos con fideos']::text[], '1 Puerro picado, 2 Dientes de ajo', null, 'Tier A/B keyword: needs GF version (fideos)', '2026-09-29', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Sopa de garbanzos con fideos', 'Sopa de garbanzos con fideos', array['Sopa de garbanzos con fideos']::text[], '1 Puerro picado, 2 Dientes de ajo', null, 'Tier A/B keyword: needs GF version (fideos)', '2026-09-29', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -224,8 +224,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Sopa de zanahoria', 'Sopa de zanahoria', array['Sopa de zanahoria']::text[], '1 Cebolla roja picada, 3 dientes de ajo en láminas, 750 gr zanahorias cortadas', null, 'Tier C keyword: check label (sopa)', '2026-08-23', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Sopa de zanahoria', 'Sopa de zanahoria', array['Sopa de zanahoria']::text[], '1 Cebolla roja picada, 3 dientes de ajo en láminas, 750 gr zanahorias cortadas', null, 'Tier C keyword: check label (sopa)', '2026-08-23', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -234,8 +234,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Arroz a la cubana', 'Arroz a la cubana', array['Arroz a la cubana']::text[], '2 cebollas picadas', null, null, '2026-09-30', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Arroz a la cubana', 'Arroz a la cubana', array['Arroz a la cubana']::text[], '2 cebollas picadas', null, null, '2026-09-30', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -244,8 +244,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta con garbanzos y tomatitos', 'Pasta con garbanzos y tomatitos', array['Pasta con garbanzos y tomatitos']::text[], '400gr tomates cherri partidos por la mitad, 2 dientes de ajo en láminas, hojas de albahaca fresca', null, 'Tier A/B keyword: needs GF version (pasta)', '2026-08-25', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta con garbanzos y tomatitos', 'Pasta con garbanzos y tomatitos', array['Pasta con garbanzos y tomatitos']::text[], '400gr tomates cherri partidos por la mitad, 2 dientes de ajo en láminas, hojas de albahaca fresca', null, 'Tier A/B keyword: needs GF version (pasta)', '2026-08-25', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -254,8 +254,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Tortilla de berenjena con ensalada', 'Tortilla de berenjena con ensalada', array['Tortilla de berenjena con ensalada']::text[], '1 berenjena en cuadraditos, 1 cebolla, 1/2 pimiento rojo y un ajo picados, perejil picado', null, null, '2026-08-27', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Tortilla de berenjena con ensalada', 'Tortilla de berenjena con ensalada', array['Tortilla de berenjena con ensalada']::text[], '1 berenjena en cuadraditos, 1 cebolla, 1/2 pimiento rojo y un ajo picados, perejil picado', null, null, '2026-08-27', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -264,8 +264,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Smash burgers (Alex)', 'Smash burgers (Alex)', array['Smash burgers (Alex)']::text[], null, 'Alex', 'Tier C keyword: check label (burger)', '2026-08-29', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Smash burgers (Alex)', 'Smash burgers (Alex)', array['Smash burgers (Alex)']::text[], null, 'Alex', 'Tier C keyword: check label (burger)', '2026-08-29', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -274,8 +274,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Beef bourginon', 'Beef bourginon', array['Beef bourginon']::text[], null, null, 'Tier C keyword: check label (bourg)', '2026-08-30', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Beef bourginon', 'Beef bourginon', array['Beef bourginon']::text[], null, null, 'Tier C keyword: check label (bourg)', '2026-08-30', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -284,8 +284,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pechugas de Pollo', 'Pechugas de Pollo', array['Pechugas de Pollo']::text[], null, null, null, '2026-08-25', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pechugas de Pollo', 'Pechugas de Pollo', array['Pechugas de Pollo']::text[], null, null, null, '2026-08-25', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -294,8 +294,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Sopa de alubias (libro veg Jamie)', 'Sopa de alubias (libro veg Jamie)', array['Sopa de alubias (libro veg Jamie)']::text[], '4 Cebollas rojas picadas, 4 Dientes ajo picados, 4 Palos de apio picados, 1 chile', 'libro veg Jamie', 'Tier C keyword: check label (sopa)', '2026-09-13', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Sopa de alubias (libro veg Jamie)', 'Sopa de alubias (libro veg Jamie)', array['Sopa de alubias (libro veg Jamie)']::text[], '4 Cebollas rojas picadas, 4 Dientes ajo picados, 4 Palos de apio picados, 1 chile', 'libro veg Jamie', 'Tier C keyword: check label (sopa)', '2026-09-13', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -304,8 +304,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Salchichas / sausages (variants)', 'Salchichas / sausages (variants)', array['Salchichas', 'Salchichas con ensalada', 'Sausages', 'Salchichas con ensalada de pepino', 'Salchichas con pepino']::text[], null, null, 'Tier C keyword: check label (salchicha)', '2026-10-15', true, 4, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Salchichas / sausages (variants)', 'Salchichas / sausages (variants)', array['Salchichas', 'Salchichas con ensalada', 'Sausages', 'Salchichas con ensalada de pepino', 'Salchichas con pepino']::text[], null, null, 'Tier C keyword: check label (salchicha)', '2026-10-15', true, 4, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -314,8 +314,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de lentejas y adamame', 'Ensalada de lentejas y adamame', array['Ensalada de lentejas y adamame']::text[], '1 cebolla morada pequena en juliana, 150gr de adamame, 25 gr de almendras tostadas fileteadas, perejil', null, 'Tier A/B keyword: needs GF version (tostada)', '2026-08-30', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de lentejas y adamame', 'Ensalada de lentejas y adamame', array['Ensalada de lentejas y adamame']::text[], '1 cebolla morada pequena en juliana, 150gr de adamame, 25 gr de almendras tostadas fileteadas, perejil', null, 'Tier A/B keyword: needs GF version (tostada)', '2026-08-30', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -324,8 +324,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Fajitas de Pollo', 'Fajitas de Pollo', array['Fajitas de Pollo']::text[], null, null, 'Tier A/B keyword: needs GF version (fajitas)', '2026-09-05', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Fajitas de Pollo', 'Fajitas de Pollo', array['Fajitas de Pollo']::text[], null, null, 'Tier A/B keyword: needs GF version (fajitas)', '2026-09-05', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -334,8 +334,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Patatas asadas con bacon y ensalada', 'Patatas asadas con bacon y ensalada', array['Patatas asadas con bacon y ensalada']::text[], null, null, null, '2026-08-31', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Patatas asadas con bacon y ensalada', 'Patatas asadas con bacon y ensalada', array['Patatas asadas con bacon y ensalada']::text[], null, null, null, '2026-08-31', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -344,8 +344,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Chili con Carne', 'Chili con Carne', array['Chili con Carne']::text[], null, null, 'Tier C keyword: check label (chili)', '2026-10-03', true, 4, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Chili con Carne', 'Chili con Carne', array['Chili con Carne']::text[], null, null, 'Tier C keyword: check label (chili)', '2026-10-03', true, 4, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -354,8 +354,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Tortilla rápida de patatas y ensalada', 'Tortilla rápida de patatas y ensalada', array['Tortilla rápida de patatas y ensalada']::text[], null, null, null, '2026-09-03', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Tortilla rápida de patatas y ensalada', 'Tortilla rápida de patatas y ensalada', array['Tortilla rápida de patatas y ensalada']::text[], null, null, null, '2026-09-03', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -364,8 +364,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Sopa de calabaza y naranja (Arguinano Pg 96)', 'Sopa de calabaza y naranja (Arguinano Pg 96)', array['Sopa de calabaza y naranja (Arguinano Pg 96)']::text[], null, 'Arguinano Pg 96', 'Tier C keyword: check label (sopa)', '2026-09-06', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Sopa de calabaza y naranja (Arguinano Pg 96)', 'Sopa de calabaza y naranja (Arguinano Pg 96)', array['Sopa de calabaza y naranja (Arguinano Pg 96)']::text[], null, 'Arguinano Pg 96', 'Tier C keyword: check label (sopa)', '2026-09-06', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -374,8 +374,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta con atún (variants)', 'Pasta con atún (variants)', array['Pasta con atún (Jamie)', 'Pasta con atún y anchoillas', 'Pasta con atún y tomate']::text[], null, 'Jamie', 'Tier A/B keyword: needs GF version (pasta)', '2026-10-21', true, 5, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta con atún (variants)', 'Pasta con atún (variants)', array['Pasta con atún (Jamie)', 'Pasta con atún y anchoillas', 'Pasta con atún y tomate']::text[], null, 'Jamie', 'Tier A/B keyword: needs GF version (pasta)', '2026-10-21', true, 5, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -384,8 +384,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Chuletas de cerdo con puré de patatas', 'Chuletas de cerdo con puré de patatas', array['Chuletas de cerdo con puré de patatas']::text[], null, null, null, '2026-09-08', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Chuletas de cerdo con puré de patatas', 'Chuletas de cerdo con puré de patatas', array['Chuletas de cerdo con puré de patatas']::text[], null, null, null, '2026-09-08', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -394,8 +394,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Puré de ''naranja''', 'Puré de ''naranja''', array['Puré de ''naranja''']::text[], null, null, null, '2026-09-08', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Puré de ''naranja''', 'Puré de ''naranja''', array['Puré de ''naranja''']::text[], null, null, null, '2026-09-08', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -404,8 +404,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de gnoquis crujientes', 'Ensalada de gnoquis crujientes', array['Ensalada de gnoquis crujientes']::text[], null, null, 'Tier A/B keyword: needs GF version (gnoqu)', '2026-09-10', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de gnoquis crujientes', 'Ensalada de gnoquis crujientes', array['Ensalada de gnoquis crujientes']::text[], null, null, 'Tier A/B keyword: needs GF version (gnoqu)', '2026-09-10', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -414,8 +414,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Fish burgers', 'Fish burgers', array['Fish burgers']::text[], null, null, 'Tier A/B keyword: needs GF version (fish burgers)', '2026-10-15', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Fish burgers', 'Fish burgers', array['Fish burgers']::text[], null, null, 'Tier A/B keyword: needs GF version (fish burgers)', '2026-10-15', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -424,8 +424,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Bunsens', 'Bunsens', array['Bunsens']::text[], null, null, null, '2026-09-13', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Bunsens', 'Bunsens', array['Bunsens']::text[], null, null, null, '2026-09-13', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -434,8 +434,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de arroz', 'Ensalada de arroz', array['Ensalada de arroz']::text[], null, null, null, '2026-10-22', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Ensalada de arroz', 'Ensalada de arroz', array['Ensalada de arroz']::text[], null, null, null, '2026-10-22', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -444,8 +444,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta con albóndigas', 'Pasta con albóndigas', array['Pasta con albóndigas']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-09-17', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta con albóndigas', 'Pasta con albóndigas', array['Pasta con albóndigas']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-09-17', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -454,8 +454,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Solomillos de vaca', 'Solomillos de vaca', array['Solomillos de vaca']::text[], null, null, null, '2026-09-20', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Solomillos de vaca', 'Solomillos de vaca', array['Solomillos de vaca']::text[], null, null, null, '2026-09-20', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -464,8 +464,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pollo', 'Pollo', array['Pollo']::text[], null, null, null, '2026-09-16', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pollo', 'Pollo', array['Pollo']::text[], null, null, null, '2026-09-16', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -474,8 +474,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Patatas asadas con ensalada', 'Patatas asadas con ensalada', array['Patatas asadas con ensalada']::text[], null, null, null, '2026-09-18', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Patatas asadas con ensalada', 'Patatas asadas con ensalada', array['Patatas asadas con ensalada']::text[], null, null, null, '2026-09-18', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -484,8 +484,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Tostis / tosties', 'Tostis / tosties', array['Tosties', 'Tostis con ensalada']::text[], null, null, 'Tier A/B keyword: needs GF version (tosti)', '2026-10-11', true, 3, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Tostis / tosties', 'Tostis / tosties', array['Tosties', 'Tostis con ensalada']::text[], null, null, 'Tier A/B keyword: needs GF version (tosti)', '2026-10-11', true, 3, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -494,8 +494,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pechugas de pollo con patatas asadas y ensalada', 'Pechugas de pollo con patatas asadas y ensalada', array['Pechugas de pollo con patatas asadas y ensalada']::text[], null, null, null, '2026-09-26', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pechugas de pollo con patatas asadas y ensalada', 'Pechugas de pollo con patatas asadas y ensalada', array['Pechugas de pollo con patatas asadas y ensalada']::text[], null, null, null, '2026-09-26', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -504,8 +504,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Amburguesas', 'Amburguesas', array['Amburguesas']::text[], null, null, null, '2026-09-27', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Amburguesas', 'Amburguesas', array['Amburguesas']::text[], null, null, null, '2026-09-27', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -514,8 +514,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Sopa de zanahorias y gengibre', 'Sopa de zanahorias y gengibre', array['Sopa de zanahorias y gengibre']::text[], null, null, 'Tier C keyword: check label (sopa)', '2026-09-27', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Sopa de zanahorias y gengibre', 'Sopa de zanahorias y gengibre', array['Sopa de zanahorias y gengibre']::text[], null, null, 'Tier C keyword: check label (sopa)', '2026-09-27', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -524,8 +524,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta carbonara', 'Pasta carbonara', array['Pasta carbonara']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-09-28', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta carbonara', 'Pasta carbonara', array['Pasta carbonara']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-09-28', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -534,8 +534,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta pesto', 'Pasta pesto', array['Pasta pesto']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-10-02', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta pesto', 'Pasta pesto', array['Pasta pesto']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-10-02', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -544,8 +544,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Puré de alubias', 'Puré de alubias', array['Puré de alubias']::text[], null, null, 'Tier C keyword: check label (alubias)', '2026-10-04', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Puré de alubias', 'Puré de alubias', array['Puré de alubias']::text[], null, null, 'Tier C keyword: check label (alubias)', '2026-10-04', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -554,8 +554,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Risotto', 'Risotto', array['Risotto']::text[], null, null, 'Tier C keyword: check label (risotto)', '2026-10-05', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Risotto', 'Risotto', array['Risotto']::text[], null, null, 'Tier C keyword: check label (risotto)', '2026-10-05', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -564,8 +564,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta con Pollo', 'Pasta con Pollo', array['Pasta con Pollo']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-10-09', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta con Pollo', 'Pasta con Pollo', array['Pasta con Pollo']::text[], null, null, 'Tier A/B keyword: needs GF version (pasta)', '2026-10-09', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -574,8 +574,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pasta boloñesa (variants)', 'Pasta boloñesa (variants)', array['Bolognesa', 'Pasta bolognesa']::text[], null, null, 'Tier A/B keyword: needs GF version (bolognesa)', '2026-10-17', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pasta boloñesa (variants)', 'Pasta boloñesa (variants)', array['Bolognesa', 'Pasta bolognesa']::text[], null, null, 'Tier A/B keyword: needs GF version (bolognesa)', '2026-10-17', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -584,8 +584,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Stakes con patatas al horno', 'Stakes con patatas al horno', array['Stakes con patatas al horno']::text[], null, null, null, '2026-10-11', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Stakes con patatas al horno', 'Stakes con patatas al horno', array['Stakes con patatas al horno']::text[], null, null, null, '2026-10-11', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -594,8 +594,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Alcachofas salteadas', 'Alcachofas salteadas', array['Alcachofas salteadas']::text[], null, null, null, '2026-10-08', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Alcachofas salteadas', 'Alcachofas salteadas', array['Alcachofas salteadas']::text[], null, null, null, '2026-10-08', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -604,8 +604,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Jamie''s beans', 'Jamie''s beans', array['Jamie''s beans']::text[], null, null, 'Tier C keyword: check label (beans)', '2026-10-09', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Jamie''s beans', 'Jamie''s beans', array['Jamie''s beans']::text[], null, null, 'Tier C keyword: check label (beans)', '2026-10-09', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -614,8 +614,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Salmón con arroz', 'Salmón con arroz', array['Salmón con arroz']::text[], null, null, null, '2026-10-18', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Salmón con arroz', 'Salmón con arroz', array['Salmón con arroz']::text[], null, null, null, '2026-10-18', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -624,8 +624,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Loaded black bean nachos', 'Loaded black bean nachos', array['Loaded black bean nachos']::text[], null, null, 'Tier C keyword: check label (nachos)', '2026-10-13', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Loaded black bean nachos', 'Loaded black bean nachos', array['Loaded black bean nachos']::text[], null, null, 'Tier C keyword: check label (nachos)', '2026-10-13', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -634,8 +634,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Ensalada templada de boniato y rúcula', 'Ensalada templada de boniato y rúcula', array['Ensalada templada de boniato y rúcula']::text[], null, null, null, '2026-10-14', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Ensalada templada de boniato y rúcula', 'Ensalada templada de boniato y rúcula', array['Ensalada templada de boniato y rúcula']::text[], null, null, null, '2026-10-14', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -644,8 +644,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula', 'Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula', array['Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula']::text[], null, null, null, '2026-10-16', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula', 'Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula', array['Pechugas de Pollo al horno con tomates y wedges. Ensalada de rúcula']::text[], null, null, null, '2026-10-16', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -654,8 +654,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Sopa', 'Sopa', array['Sopa']::text[], null, null, 'Tier C keyword: check label (sopa)', '2026-10-18', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Sopa', 'Sopa', array['Sopa']::text[], null, null, 'Tier C keyword: check label (sopa)', '2026-10-18', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -664,8 +664,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Patatas al horno can bacon y ensalada verde', 'Patatas al horno can bacon y ensalada verde', array['Patatas al horno can bacon y ensalada verde']::text[], null, null, null, '2026-10-22', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Patatas al horno can bacon y ensalada verde', 'Patatas al horno can bacon y ensalada verde', array['Patatas al horno can bacon y ensalada verde']::text[], null, null, null, '2026-10-22', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -674,8 +674,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Nachos con carne', 'Nachos con carne', array['Nachos con carne']::text[], null, null, 'Tier C keyword: check label (nachos)', '2026-10-24', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Nachos con carne', 'Nachos con carne', array['Nachos con carne']::text[], null, null, 'Tier C keyword: check label (nachos)', '2026-10-24', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -684,8 +684,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Tortilla de brocoli y queso con esnsalada de tomate', 'Tortilla de brocoli y queso con esnsalada de tomate', array['Tortilla de brocoli y queso con esnsalada de tomate']::text[], null, null, null, '2026-10-19', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Tortilla de brocoli y queso con esnsalada de tomate', 'Tortilla de brocoli y queso con esnsalada de tomate', array['Tortilla de brocoli y queso con esnsalada de tomate']::text[], null, null, null, '2026-10-19', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,
@@ -694,8 +694,8 @@ insert into public.meals (household_id, name, name_group, variants_seen, ingredi
     last_eaten = greatest(meals.last_eaten, excluded.last_eaten),
     is_favourite = meals.is_favourite or excluded.is_favourite,
     favourite_seen_count = excluded.favourite_seen_count;
-insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source)
-  values ('00000000-0000-4000-8000-000000000001', 'Pollo pochado', 'Pollo pochado', array['Pollo pochado']::text[], null, null, null, '2026-10-23', false, null, 'menu')
+insert into public.meals (household_id, name, name_group, variants_seen, ingredients_note, recipe_source, gluten_keyword_flag, last_eaten, is_favourite, favourite_seen_count, source, weekend_only)
+  values ('00000000-0000-4000-8000-000000000001', 'Pollo pochado', 'Pollo pochado', array['Pollo pochado']::text[], null, null, null, '2026-10-23', false, null, 'menu', false)
   on conflict (household_id, name_group) do update set
     variants_seen = excluded.variants_seen,
     ingredients_note = excluded.ingredients_note,

@@ -79,7 +79,7 @@ function tagLine(m: Messages, t: Tags) {
 }
 
 // A small photo, about a fifth of the tile. Hosted by TheMealDB or Wikimedia Commons.
-function Thumb({ meal }: { meal?: Pick<BoardMeal, "image"> }) {
+function Thumb({ meal, className }: { meal?: Pick<BoardMeal, "image">; className?: string }) {
   if (!meal?.image) return null;
   return (
     <img
@@ -88,7 +88,7 @@ function Thumb({ meal }: { meal?: Pick<BoardMeal, "image"> }) {
       loading="lazy"
       referrerPolicy="no-referrer"
       draggable={false}
-      className="pointer-events-none aspect-square w-1/5 max-w-14 min-w-8 shrink-0 rounded-lg object-cover"
+      className={cn("pointer-events-none aspect-square w-1/5 max-w-14 min-w-8 shrink-0 rounded-lg object-cover", className)}
     />
   );
 }
@@ -311,6 +311,10 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
               open={open}
               over={drag?.over ?? null}
               dragProps={dragProps}
+              onClear={(slot: Slot) => {
+                setError(null);
+                run({ type: "clear", day, slot }, () => clearCell(week, day, slot));
+              }}
               onTap={tapped((slot: Slot) => {
                 setError(null);
                 if (picked) {
@@ -368,6 +372,7 @@ function DayRow({
   over,
   dragProps,
   onTap,
+  onClear,
 }: {
   day: Day;
   date: string;
@@ -377,6 +382,7 @@ function DayRow({
   over: string | null;
   dragProps: (d: DragData) => object;
   onTap: (slot: Slot) => void;
+  onClear: (slot: Slot) => void;
 }) {
   const { t } = useLang();
   return (
@@ -390,49 +396,79 @@ function DayRow({
         const c = cells.find((x) => x.day === day && x.slot === slot);
         const m = c?.mealId ? meals.get(c.mealId) : undefined;
         const label = m?.name ?? cleanTitle(c?.text ?? "");
+        // The bin is a sibling of the tile, not inside it (a button can't hold a button),
+        // so the drop target is the wrapper around both.
         return (
-          <button
-            key={slot}
-            data-drop={key}
-            onClick={() => onTap(slot)}
-            {...(c ? dragProps({ kind: "cell", day, slot, label }) : {})}
-            className={cn(
-              "flex min-h-[4.5rem] touch-manipulation items-start gap-1.5 rounded-xl border-l-4 border-l-transparent bg-card p-2 text-left shadow-card transition select-none active:scale-[0.98] [-webkit-touch-callout:none]",
-              !c && "border-2 border-dashed border-black/10 bg-transparent text-muted-foreground shadow-none",
-              m && PROTEIN_STYLE[m.tags.protein],
-              c && !m && "bg-card",
-              m?.gluten === "blocked" && "ring-2 ring-destructive",
-              open?.day === day && open.slot === slot && "ring-2 ring-primary",
-              over === key && "ring-2 ring-primary/60 shadow-lift",
-            )}
-            aria-label={`${t.days[day]} ${t.slots[slot]}: ${label || t.board.emptyLabel}`}
-          >
-            {c ? (
-              <>
-                <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
-                  <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
-                  <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
-                    {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} hasRice={m.tags.hasRice} className="text-sm" />}
-                    {m?.favourite && (
-                      <span className="text-[13px] leading-none text-[#d99a00]" title={t.board.favourite}>
-                        ★<span className="sr-only"> {t.board.favourite}</span>
-                      </span>
-                    )}
-                    {m?.tags.isProcessed && <span>{t.board.processed}</span>}
-                    {m?.idea && m.gluten !== "blocked" && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-warning">{t.board.newIdea}</span>}
-                    {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
-                    {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
+          <div key={slot} data-drop={key} className="relative flex">
+            <button
+              onClick={() => onTap(slot)}
+              {...(c ? dragProps({ kind: "cell", day, slot, label }) : {})}
+              className={cn(
+                "flex min-h-[4.5rem] min-w-0 flex-1 touch-manipulation items-start gap-1.5 rounded-xl border-l-4 border-l-transparent bg-card p-2 text-left shadow-card transition select-none active:scale-[0.98] [-webkit-touch-callout:none]",
+                !c && "border-2 border-dashed border-black/10 bg-transparent text-muted-foreground shadow-none",
+                m && PROTEIN_STYLE[m.tags.protein],
+                c && !m && "bg-card",
+                m?.gluten === "blocked" && "ring-2 ring-destructive",
+                open?.day === day && open.slot === slot && "ring-2 ring-primary",
+                over === key && "ring-2 ring-primary/60 shadow-lift",
+              )}
+              aria-label={`${t.days[day]} ${t.slots[slot]}: ${label || t.board.emptyLabel}`}
+            >
+              {c ? (
+                <>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
+                    <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
+                    <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+                      {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} hasRice={m.tags.hasRice} className="text-sm" />}
+                      {m?.favourite && (
+                        <span className="text-[13px] leading-none text-[#d99a00]" title={t.board.favourite}>
+                          ★<span className="sr-only"> {t.board.favourite}</span>
+                        </span>
+                      )}
+                      {m?.tags.isProcessed && <span>{t.board.processed}</span>}
+                      {m?.idea && m.gluten !== "blocked" && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-warning">{t.board.newIdea}</span>}
+                      {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
+                      {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
+                    </span>
                   </span>
-                </span>
-                <Thumb meal={m} />
-              </>
-            ) : (
-              <span className="m-auto text-xl font-light">+</span>
+                  {/* The photo on top, and room under it for the bin. */}
+                  <span className={cn("flex shrink-0 flex-col items-end self-stretch", m?.image ? "w-1/5 max-w-14 min-w-8" : "w-6")}>
+                    <Thumb meal={m} className="w-full max-w-none min-w-0" />
+                    <span className="mt-auto h-6 w-6 shrink-0" aria-hidden="true" />
+                  </span>
+                </>
+              ) : (
+                <span className="m-auto text-xl font-light">+</span>
+              )}
+            </button>
+            {c && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClear(slot);
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                aria-label={t.board.clearSlot}
+                title={t.board.clearSlot}
+                className="absolute right-0 bottom-0 flex size-8 touch-manipulation items-center justify-center rounded-br-xl text-muted-foreground/70 hover:text-destructive active:text-destructive"
+              >
+                <BinIcon />
+              </button>
             )}
-          </button>
+          </div>
         );
       })}
     </>
+  );
+}
+
+// A small rubbish bin, drawn inline.
+function BinIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2l1-12M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" />
+    </svg>
   );
 }
 

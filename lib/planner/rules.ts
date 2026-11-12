@@ -34,7 +34,14 @@ export type PlanMeal = {
   // Never picked by the planner: an El País idea whose ingredients were not read from the
   // recipe page, or that shows any sign of gluten. It can still be chosen by hand.
   noPlan?: boolean;
+  // Weekends only (a roast): the planner puts it only on Saturday or Sunday.
+  weekendOnly?: boolean;
 };
+
+// Saturday and Sunday.
+export const isWeekend = (day: string) => day === "sat" || day === "sun";
+// May this meal go on this day? A weekends-only meal never goes on a weekday.
+export const fitsDay = (m: PlanMeal, day: string) => !m.weekendOnly || isWeekend(day);
 
 // May the planner pick this meal on its own? Never when blocked for gluten, never a
 // breakfast, never an outside idea that is not cleanly "check gluten" (defence in depth:
@@ -144,6 +151,11 @@ export function checkWeek({ weekStart, cells, meals, history, lang = "en" }: Wee
   const satDinner = filled.find((c) => c.day === "sat" && c.slot === "dinner");
   if (satDinner && !mealOf(satDinner).tags.isPizza)
     warnings.push({ level: "hard", rule: "tradition", text: t.saturdayPizza, cells: [cellKey(satDinner)] });
+
+  // Weekends only: a roast on a weekday is out of place (hand placement is still allowed).
+  for (const c of filled)
+    if (!fitsDay(mealOf(c), c.day))
+      warnings.push({ level: "hard", rule: "weekend", text: t.weekendOnly(mealOf(c).name, name(c)), cells: [cellKey(c)] });
 
   // Fish, once the week is complete (before that the count says how many so far).
   if (weekComplete && counts.fish === 0) warnings.push({ level: "hard", rule: "fish", text: t.noFish, cells: [] });
@@ -258,7 +270,7 @@ export function suggestAlternatives(input: WeekInput & { cell: Cell; count?: num
   const needFish = !others.some((m) => m.tags.protein === "fish");
 
   const pool = [...meals.values()]
-    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && canPlan(m))
+    .filter((m) => m.id !== cell.mealId && !inWeek.has(m.id) && canPlan(m) && fitsDay(m, cell.day))
     .map((m) => {
       const last = lastUseBefore(history, m.id, weekStart);
       const gap = last ? daysBetween(last, date) : null;
@@ -339,6 +351,7 @@ export function suggestForWeek(input: WeekInput & { count?: number }): Suggestio
       if (needFish && k === "fish") bits.push(t.fishWhy);
       if (next.m.favourite) bits.unshift(msg.gen.whyFavourite);
       else if (next.m.pinned) bits.unshift(t.pinned);
+      if (next.m.weekendOnly) bits.push(t.weekendsOnly);
       picked.push({ meal: next.m, why: bits.join(", ") });
     }
   return picked;

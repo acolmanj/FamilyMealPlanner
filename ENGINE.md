@@ -1,138 +1,132 @@
-# Family Meal Planner: prediction engine
+# Family Meal Planner: how the planner works
 
-Oct 24, 2026 · @John
+Updated Nov 12, 2026 · @John
 
-The engine builds a valid, explainable week with deterministic code, uses AI only for notes, new recipes and wording, and learns by proposing visible rules that you approve.
+This page explains, in plain words, how the app plans the week today. Everything here is done by ordinary code: there is no AI and no scoring. The same rules check a week whether the planner filled it or you did.
 
-## Pipeline
+The code lives in `lib/planner/` (`rules.ts` for the rules and suggestions, `generate.ts` for filling a week, `plan.ts` for Plan week).
 
-Each weekly run follows the same five steps. Only step 3 uses AI, and everything it returns is checked by code.
+## The week
 
-1. **Read inputs.** The meal library, the last 8 weeks of plans, the freezer stock, this week's notes, pinned and blacklisted meals, and the house rules.
-2. **Build the candidate pool.** Remove every meal that is unsafe, blacklisted, too recent or out of season.
-3. **Parse notes and propose new meals.** AI turns free-text notes into confirmable chips and suggests the 10% new meals. Each must pass the gluten gate.
-4. **Solve the week.** Deterministic code fills the 21 slots under the rules below, using a seeded shuffle so a regenerate is different but reproducible.
-5. **Explain and publish.** Each cell gets a factual reason, then the plan, balance counts, shopping lists and budget are built from it.
+Each week has 14 slots: lunch and dinner, Monday to Sunday. There is no breakfast slot, no lunchbox slot and no leftovers ("Sobras") slot. A slot can hold a meal from the library or a bit of free text.
 
-## Candidate pool
+## Which meals the planner can use
 
-A meal enters the pool only if it passes all five tests. These are code checks and the AI cannot override them.
+The planner picks from the meal library, leaving out:
 
-- **Gluten gate.** Every ingredient screened as Safe. Anything unverifiable goes to "Needs your check" and the meal is replaced or marked as a swap.
-- **Not blacklisted.**
-- **Recency.** Not planned in the last 3 weeks, or 2 weeks if pinned. Frozen portions from an earlier cook are exempt.
-- **In season.** Irish seasonal produce by default, Spanish seasonality for Spanish recipes.
-- **Attributes known.** Effort, main protein, main starch and vegetarian flag must all be filled in, because the solver needs them.
+- **Meals blocked for gluten.** This is the only gluten check on planning. Meals marked Safe or "Needs your check" can be planned. Right now every one of the household's own meals is Safe, because John cooks them all gluten-free.
+- **Breakfasts.** A meal whose usual slot is Breakfast is never planned for lunch or dinner.
+- **Things that are not a meal.** Sobras (leftovers), take-away and eating out.
+- **Retired or blacklisted meals.** They are not loaded at all.
+- **El País ideas that are not clean.** See "El País ideas" below.
+- **Meals already in the week.** No meal is planned twice in the same week.
 
-## Constraint solver
+## The rules that are always kept
 
-The solver fills Monday to Sunday lunch, dinner and the weekday lunchbox. It searches by backtracking. Hard rules are never broken: if no valid week exists, the solver names the rule that blocked it. Soft rules are tried first and then produce a warning instead of a failure.
+When Plan week fills a slot, these rules are never broken:
 
-| Rule | Type | Value |
-| --- | --- | --- |
-| Gluten gate | Hard | Only Safe meals |
-| Traditions | Hard | Sunday lunch roast with GF gravy; Saturday dinner pizza on a GF base |
-| Fish | Hard | At least 1 fish meal a week |
-| Repeats | Hard | No meal more than once a week. A leftover slot counts as a second use |
-| Daily mix | Hard | One meat meal and one vegetarian meal each day |
-| Pasta | Hard | 2 pasta meals or fewer a week |
-| Processed or ready meals | Hard | 2 or fewer a week |
-| Effort | Hard | Mon-Fri dinner Quick (15-20 min); weekend lunch Elaborate (60+ min); everything else Normal (30-45 min). Busy nights Quick; work-from-home days Normal or better |
-| Old to new mix | Hard | 90% past meals, 10% new. About 1 new meal a week; 0 on request |
-| Starch spacing | Soft | The same starch (pasta, potatoes, rice or noodles) not twice in any 3-day window |
-| Usual slot | Last resort | Each meal is Supper, Lunch, Either or Breakfast (from the menu sheet: 70% or more of its uses at dinner is Supper, at lunch is Lunch). Supper goes to dinner, Lunch to lunch, Either to both, Breakfast never. Relaxed only after recency, and the page says so |
-| Favourites | Order | Starred meals are drawn about 2.5 times as readily in the seeded shuffle; every rule above still applies |
-| Balance targets | Soft | Fish, vegetarian, legume and red-meat counts, shown as plain counts and never as a score |
+1. **Traditions.** Sunday lunch is a roast and Saturday dinner is pizza (on a gluten-free base), as long as the library has a roast and a pizza. Pizza is never put anywhere else.
+2. **No repeats.** No meal more than once in the week.
+3. **Daily mix.** Each day has one vegetarian meal and one meat or fish meal.
+4. **Pasta.** 2 pasta meals or fewer in the week.
+5. **Ready-made food.** 2 ready-made meals (fish fingers, nuggets, sausages and so on) or fewer.
+6. **No long cooks on weeknights.** A meal marked as a long cook is never planned for dinner Monday to Friday.
+7. **New meals.** At most 1 meal the family has never had before.
+8. **Weekends only.** A meal marked "Weekends only" is only planned on Saturday or Sunday, lunch or dinner. Every roast starts with this mark (for example "Cordero asado", "Pollo asado con patatas", "Roast Chicken with tomato & Chorizo"). You can tick or untick it for any meal on the Meals page.
 
-**Tie-breaks** use plain facts only, in this order: pinned first, then longest since last planned, then the slots the meal has historically filled. The planner computes no scores or ratings.
+## The rules that can give a little
 
-**Plan week.** ("Try other suggestions" also leaves days that have passed as they are.) The button in the middle of the tab bar fills only the empty slots of this week and next, keeping everything already planned. Days of this week before today (Europe/Dublin) are left as they are. Next week is solved with this week in its history, so nothing repeats across the join. The slots are read again just before writing, and a slot someone filled in the meantime is left alone (the summary says how many). Undo takes out only what that run added.
+These are tried first. If the week can't be filled with all of them, the planner lets them go one at a time, in this order, and the page says which one gave:
 
-**El País ideas.** Plan week first adds up to 3 recent El País recipes to the library, at most once every 6 hours. Nobody here has cooked them gluten-free, so the rule is stricter than for the household's own meals: any sign of gluten (flour other than a named gluten-free one, pasta, lasaña, fideos, soja, avena, picatostes, masa quebrada or brisa, hojaldre, pan rallado, bread, beer, couscous, sémola, Worcestershire, obleas, wonton, gyoza, bao, miso, any masa except masa de maíz, tortillas de harina, pastel and more, or anything the gate flags as Tier A or B) leaves the recipe out. Stock (caldo, a stock cube, Avecrem) is too common to leave out for: such a recipe shows "Use gluten-free stock" on the meal and its cell. The rest show "New · check gluten" until confirmed. A recipe whose page gave no ingredient list is added but never planned. The planner checks this again when it loads the library (`lib/gluten/outside.ts`), so an idea is planned only when its ingredients came from the recipe page and showed nothing. Fetches follow redirects only to other El País pages over https.
+1. **Starch spacing.** The same starch (pasta, potatoes, rice or noodles) not twice within 3 days.
+2. **Recency.** A meal not used within 3 weeks of another week where it is planned (looking both back and forward). First this drops to 2 weeks, then it is dropped. The Sunday roast and the Saturday pizza don't count: having them every week is the point.
+3. **Usual slot.** A meal that is usually a lunch goes to lunch, and one that is usually a dinner goes to dinner. ("Either" meals go anywhere.)
+4. **Fish and pulses.** At least 1 fish meal and at least 2 pulse meals (lentils, beans, chickpeas) in the week.
 
-**Eating out.** Take-away or eating out is a slot with no recipe and no shopping. It is only included on request.
+The weekends-only rule is never relaxed. If a week truly can't be filled, the planner leaves those slots empty and says so.
 
-## Leftovers and freezer
+## How the planner picks
 
-Because a leftover slot counts as a second use, a big cook and its leftovers can never fall in the same week. Extra portions go to the freezer and appear in a later week's "Sobras" slot.
+The planner shuffles the library using a seed (a random number), then fills the slots one by one, trying meals in shuffled order and backing up when it gets stuck. It always fills next the slot with the fewest meals that still fit, so tight slots like Sunday lunch are not left to the end. The same seed always gives the same week; Plan week uses a new seed each time.
 
-- **Freezing.** When a big cook (roast, stew, curry, chili) makes extra portions, the plan records the meal, number of portions and date frozen. Each portion is usable for 30 days from that date.
-- **Filling Sobras slots.** The solver uses the oldest eligible frozen portion first.
-- **First weeks.** With no freezer stock, Sobras slots stay empty and the solver fills them with other meals.
-- **Counting.** Eating a frozen portion counts as a use of that meal in the week it is eaten, so no fresh cook of the same meal that week. It is exempt from the 3-week recency rule, because the cooking already happened.
-- **Expiry nudge.** Portions still frozen at about 3 weeks appear under "Needs your attention".
-- **Shopping.** A meal served from the freezer adds nothing to the shopping lists.
-- **Gluten.** Frozen portions came from Safe meals and need no new screening.
-- **Lunchboxes.** Weekday lunchboxes are outside the once-a-week rule, so a lunchbox made from last night's dinner does not count as a second use. This is an assumption to confirm.
+The shuffle is weighted, so some meals come up sooner:
 
-## AI layer and explanations
+- **Favourites** (starred on the Meals page) come up about 2.5 times as readily.
+- **New El País ideas** come up about 2 times as readily. The "at most 1 new meal" rule still applies.
 
-The language model helps with three jobs and has no say in the rules.
+Every rule above still applies to favourites and ideas. Each planned slot gets a short "why" line, such as "Sunday roast", "pulses", "favourite", "a usual dinner" or "last had 6 weeks ago".
 
-- **Parse weekly notes.** Free text such as "football Tuesday, busy Thursday, more fish" becomes chips (busy night, work from home, event, request) that you confirm.
-- **Propose new meals.** About 10% of the week comes from your sources (BBC Good Food, Jamie Oliver, El Comidista, Serious Eats, NYT Cooking). Every ingredient line is screened as Safe, Needs substitution or Blocked, and Blocked recipes are dropped.
-- **Write the why line.** Each meal gets a short factual reason, such as "pinned, last planned 5 weeks ago" or "gives the week its second fish meal".
+## Plan week
 
-All model output must match a fixed schema and then pass the gluten gate and the solver. If it fails, the engine falls back to the past-meal pool and says so on the page.
+The Plan week button in the middle of the tab bar fills the empty slots of this week and next.
 
-## Correcting the plan
+- Everything already planned stays as it is.
+- Days of this week that have already passed (Irish time) are left alone.
+- Next week is planned with this week counted as history, so meals don't repeat across the two weeks.
+- Just before saving, it reads the slots again. A slot someone else filled in the meantime is left alone, and the summary says so.
+- Undo takes out only what that run added, and only where nothing has changed since.
 
-Corrections should take one or two taps.
+## El País ideas
 
-- **Swap.** Tap a meal and get 3 alternatives that fit that slot's rules.
-- **Move.** Drag a meal to another day or slot.
-- **Lock.** Anything you touch becomes locked, and "Refill the rest" regenerates only the unlocked cells.
-- **Warn, don't block.** A change that breaks a rule shows a warning ("this makes pasta 3, target 2"). Only the gluten gate blocks.
-- **Live updates.** The balance counts, shopping lists and budget update after every edit.
-- **Reason chips.** After a swap you can optionally tap one reason: too long, had it recently, not in the mood, ingredient problem.
+Plan week first adds up to 3 recent El País recipes to the meal library, at most once every 6 hours (after a failed try, it tries again after 30 minutes). Nobody in the house has cooked these gluten-free yet, so they are checked more strictly than the family's own meals:
 
-## Learning from corrections
+- Any sign of gluten in the ingredients (wheat flour, pasta, noodles, bread, breadcrumbs, beer, couscous, soy sauce, pastry and many more) means the recipe is not added.
+- A recipe that uses stock is still added, and shows "Use gluten-free stock".
+- A recipe whose page had no ingredient list is added but never planned until you check it.
+- The rest show "New · check gluten" until you confirm them on the Gluten page.
 
-The planner learns by counting your corrections and proposing rules that you approve. It keeps no hidden weights, scores or rankings, so nothing influences the plan unless it appears on the house rules page.
+The planner checks this again every time it loads the library, so an idea is only planned when its ingredients came from the recipe page and showed nothing.
 
-- **Adjustment log.** Every swap, move, removal, lock, pin and reason chip is stored with before and after.
-- **Rule proposals.** When a count passes a threshold, the planner proposes a rule and waits for a yes or no.
-- **House rules page.** It lists every active rule with its evidence and an off switch, and deleting a rule removes its effect.
-- **Attribute fixes.** If you correct a meal's effort, protein or starch, the library is updated directly.
-- **Progress measure.** The number of cells you change each week. It is a count about the engine, not a rating of meals, and it should fall over time.
+## Changing the plan by hand
 
-Example proposals, with suggested starting thresholds to adjust:
+- **Tap a slot** to see swap suggestions, search all meals, move the meal, clear the slot, or fix the meal's facts (protein, starch, effort, pasta, ready-made).
+- **Bin icon.** Each filled slot has a small bin in its bottom-right corner that clears it straight away.
+- **Drag** a meal from the suggestions onto a slot, or drag a planned meal to another slot (they swap places) or onto the panel to remove it. On a phone, hold the meal first.
+- **Reason chips.** After a swap, move or clear from the slot panel you can tap a reason (too much pasta, not in the mood, no time, guests, other) or skip. The bin and drag-to-remove don't ask.
+- **Warn, don't block.** Only gluten blocks: a meal blocked for gluten can't be put in a slot. Anything else you do by hand is allowed, and the week shows a warning instead, such as "Pasta 3, target 2 or fewer" or "Roast lamb is a weekends-only meal but is on Tue lunch".
 
-| Pattern in the log | Proposed rule |
+## Swap suggestions
+
+Tapping a slot suggests 5 meals that fit it. It leaves out meals already in the week, meals blocked for gluten, meals used within the last 3 weeks (2 if pinned; the Sunday roast and Saturday pizza are exempt), and, on Monday to Friday, weekends-only meals. The rest are listed in this order:
+
+1. The day's tradition (a roast on Sunday lunch, pizza on Saturday dinner).
+2. Meals whose usual slot matches (a dinner meal for dinner).
+3. The protein that fits: the same protein as the meal being swapped, or, for an empty slot, the opposite of the other meal that day (vegetarian if it is meat or fish, and the other way round).
+4. Pulses, if the week has fewer than 2.
+5. Fish, if the week has none.
+6. Favourites.
+7. Meals the family has had before, ahead of new ones.
+8. The meal not had for the longest, then by name.
+
+The side panel ("Suggested meals") is not tied to a day. It shows 10 meals, taking meat, vegetarian and fish in turn, with pulses and fish first if the week is missing them. A weekends-only meal can show here, marked "weekends only".
+
+## Pinned meals
+
+The database has a "pinned" mark on meals, and the code treats a pinned meal like a favourite with a shorter recency gap (2 weeks instead of 3). Nothing in the app sets it, so in practice no meal is pinned.
+
+## What the app stores
+
+The Supabase tables the planner uses:
+
+| Table | What it holds |
 | --- | --- |
-| A meal moved off the same day 3 of 4 times | Stop planning it on that day |
-| A meal swapped out 3 times | Blacklist it |
-| A meal planned and eaten 4 times | Pin it as a favourite |
-| The same weekday marked busy every week | Make that weekday Quick by default |
-| Same-starch spacing overridden repeatedly | Relax the 3-day gap for that starch |
+| meals | The meal library: names in English and Spanish, protein, starch, effort, pasta, ready-made, usual slot, weekends only, favourite, gluten checks, photo |
+| plan\_slots | One row per day and slot: the meal or free text, and the why line |
+| adjustments | Every hand change (swap, move, clear) and its reason chip, if given |
+| feed\_checks | When El País was last read |
+| gluten\_rules | The gluten tiers |
+| purchases | Old Tesco receipts, from the seed |
 
-## Data tables
+The tables `ingredients`, `freezer_items`, `house_rules` and `week_notes` exist but nothing uses them yet.
 
-These are the tables in Supabase that the engine reads and writes. Column lists are a starting point and Claude Code can refine them.
+## Not built yet
 
-| Table | Holds | Key columns |
-| --- | --- | --- |
-| meals | The meal library | name, effort, main\_protein, main\_starch, vegetarian, fish, processed, pinned, blacklisted, source |
-| ingredients | Each meal's ingredient lines | meal\_id, item, quantity, unit, gluten\_tier, gluten\_status |
-| plan\_slots | One row per day and slot | week\_start, day, slot, meal\_id, locked, is\_leftover, why |
-| freezer\_items | Frozen portions | meal\_id, portions, frozen\_on, use\_by (frozen\_on + 30 days) |
-| adjustments | The correction log | slot\_id, action, before\_meal\_id, after\_meal\_id, reason, created\_at |
-| house\_rules | Approved learned rules | kind, scope, evidence, active |
-| week\_notes | Parsed weekly notes | week\_start, kind, day, confirmed |
-| purchases | Receipt history, kept minimal | product, quantity, price, date, substitution\_outcome |
+These ideas were in the first plan. They are kept here so they aren't lost, but the app doesn't do any of them today:
 
-## Build order and assumptions
-
-1. Meal library import, the gluten gate, and the solver with a read-only week.
-2. The editable board with locks, the shopping builder and the Lidl checklist.
-3. The freezer, adjustment log and rule proposals.
-4. Notes parsing and new-meal suggestions.
-5. Receipts, then the Tesco basket assistant behind a switch, with the plain list as a fallback.
-
-**Assumptions to confirm**
-
-- Weekday lunchboxes are outside the once-a-week rule.
-- A frozen portion is exempt from the 3-week recency rule but counts as a use in the week it is eaten.
-- About 1 new meal a week satisfies the 90/10 mix.
-- The starch rule counts the starch that defines the meal, not a small side.
-- The learning thresholds in the table are starting points.
+- **Lunchboxes.** A weekday lunchbox slot, outside the once-a-week rule.
+- **Freezer and leftover portions.** Recording portions frozen from a big cook (usable for 30 days), filling a later "Sobras" slot from the oldest one, a nudge before they expire, and no shopping for them.
+- **Seasonality.** Preferring Irish (or Spanish) seasonal produce.
+- **Weekend effort levels.** Elaborate cooks for weekend lunch, quick ones for busy nights, normal for work-from-home days.
+- **Weekly notes and an AI helper.** Turning notes like "football Tuesday, more fish" into choices you confirm, suggesting new meals from other recipe sites, and writing the why lines.
+- **Learning from corrections.** Counting changes from the adjustment log and proposing house rules for you to approve (for example "stop planning this on Thursdays" after it is moved off Thursday 3 times out of 4), with a page to see and switch them off.
+- **Shopping and budget.** Shopping lists, a budget, a Lidl checklist and a Tesco basket built from the plan.

@@ -31,6 +31,8 @@ export type LibraryMeal = {
   recipeUrl: string | null;
   favourite: boolean;
   slotPref: SlotPref;
+  // Planned only on Saturday or Sunday.
+  weekendOnly: boolean;
   fromElPais: boolean;
   // From El País and not yet confirmed: shown as "New · check gluten".
   newIdea: boolean;
@@ -98,7 +100,8 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
               {t.protein[g]} <span className="text-sm font-normal text-muted-foreground">{list.length}</span>
             </h2>
             {list.length === 0 && <p className="text-sm text-muted-foreground">{t.meals.empty}</p>}
-            <div className="grid gap-2.5 sm:grid-cols-2">
+            {/* Room around each card for the star on its top-right corner. */}
+            <div className="grid gap-x-4 gap-y-3.5 sm:grid-cols-2">
               {list.map((m) => (
                 <MealCard key={m.id} meal={m} open={open === m.id} onToggle={() => setOpen((o) => (o === m.id ? null : m.id))} />
               ))}
@@ -115,80 +118,91 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
   const [editing, setEditing] = useState(false);
   const [starFailed, setStarFailed] = useState(false);
   return (
-    <div className={cn("flex flex-col overflow-hidden rounded-2xl border-l-4 text-sm shadow-card", GROUP_STYLE[meal.protein], open && "sm:col-span-2")}>
-      <div className="flex items-stretch">
-      <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 min-w-0 flex-1 items-center gap-3 p-2.5 pr-1 text-left active:bg-black/5">
-        {meal.image ? (
-          <img src={meal.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-12 shrink-0 rounded-xl object-cover" />
-        ) : (
-          <span className="size-12 shrink-0 rounded-xl bg-white/60" />
-        )}
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-[15px] leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
-          <span className="flex flex-wrap items-center gap-1.5">
-            <FoodIcons starch={meal.starch} isPulse={meal.isPulse} hasRice={meal.hasRice} className="text-base" />
-            {meal.slotPref !== "either" && (
-              <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.slotPrefs[meal.slotPref]}</span>
-            )}
-            {meal.fromElPais && <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.fromElPais}</span>}
-          </span>
-        </span>
-        <GlutenBadge status={meal.gluten} label={meal.newIdea && meal.gluten === "needs_check" ? t.meals.checkGluten : undefined} />
-      </button>
-      <StarButton id={meal.id} name={meal.name} favourite={meal.favourite} onError={setStarFailed} />
-      </div>
-      {starFailed && (
-        <p role="alert" className="bg-destructive/10 px-3 py-1.5 text-[13px] font-medium text-destructive">
-          {t.favourites.saveFailed}
-        </p>
-      )}
-      {open && (
-        <div className="flex flex-col gap-2 bg-card p-3">
-          {editing ? (
-            <MealForm
-              initial={{ name_en: meal.name_en, name_es: meal.name_es, protein: meal.protein, slot_preference: meal.slotPref, ingredients: meal.ingredients }}
-              suggested={meal.recipeIngredients}
-              suggestedFrom="TheMealDB"
-              onSave={(edit) => updateMeal(meal.id, edit)}
-              onDone={() => setEditing(false)}
-            />
+    // The star sits on the card's top-right corner, outside the clipped card so it is not cut off.
+    <div className={cn("relative", open && "sm:col-span-2")}>
+      <div className={cn("flex flex-col overflow-hidden rounded-2xl border-l-4 text-sm shadow-card", GROUP_STYLE[meal.protein])}>
+        <button onClick={onToggle} aria-expanded={open} className="flex min-h-16 min-w-0 flex-1 items-center gap-3 p-2.5 pr-6 text-left active:bg-black/5">
+          {meal.image ? (
+            <img src={meal.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="size-12 shrink-0 rounded-xl object-cover" />
           ) : (
-            <>
-              <p className="text-muted-foreground">{t.meals.usually(t.meals.slotPrefs[meal.slotPref])}</p>
-              {meal.newIdea && meal.noPlan && <p className="rounded-xl bg-warning/10 px-3 py-2 text-[#9a4f00]">{t.meals.notPlanned}</p>}
-              {meal.gfStock && <p className="rounded-xl bg-warning/10 px-3 py-2 font-medium text-[#9a4f00]">{t.board.gfStock}</p>}
-              <span className="font-medium">{t.meals.ingredients}</span>
-              {meal.ingredients.length > 0 ? (
-                <ul className="list-disc pl-5">
-                  {meal.ingredients.map((x, i) => (
-                    <li key={i}>{x}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-muted-foreground">{t.meals.noIngredients}</p>
-              )}
-              {meal.ingredients.length === 0 && meal.recipeIngredients && (
-                <p className="text-xs text-muted-foreground">
-                  {t.meals.recipeIngredients("TheMealDB")} {meal.recipeIngredients.join(", ")}
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                  {t.meals.edit}
-                </Button>
-                {meal.recipeUrl && (
-                  <a href={meal.recipeUrl} target="_blank" rel="noreferrer" className="text-xs underline">
-                    {t.meals.openRecipe}
-                  </a>
-                )}
-                {meal.image && (
-                  <span className="text-[10px] text-muted-foreground">{t.meals.photoFrom(sourceName(meal.imageSource, meal.recipeUrl))}</span>
-                )}
-              </div>
-            </>
+            <span className="size-12 shrink-0 rounded-xl bg-white/60" />
           )}
-        </div>
-      )}
+          <span className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-[15px] leading-snug font-medium break-words hyphens-auto">{meal.name}</span>
+            <span className="flex flex-wrap items-center gap-1.5">
+              <FoodIcons starch={meal.starch} isPulse={meal.isPulse} hasRice={meal.hasRice} className="text-base" />
+              {meal.slotPref !== "either" && (
+                <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.slotPrefs[meal.slotPref]}</span>
+              )}
+              {meal.weekendOnly && (
+                <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.weekendOnly}</span>
+              )}
+              {meal.fromElPais && <span className="rounded-full bg-white/70 px-2 py-px text-[11px] font-medium text-muted-foreground">{t.meals.fromElPais}</span>}
+            </span>
+          </span>
+          <GlutenBadge status={meal.gluten} label={meal.newIdea && meal.gluten === "needs_check" ? t.meals.checkGluten : undefined} />
+        </button>
+        {starFailed && (
+          <p role="alert" className="bg-destructive/10 px-3 py-1.5 text-[13px] font-medium text-destructive">
+            {t.favourites.saveFailed}
+          </p>
+        )}
+        {open && (
+          <div className="flex flex-col gap-2 bg-card p-3">
+            {editing ? (
+              <MealForm
+                initial={{
+                  name_en: meal.name_en,
+                  name_es: meal.name_es,
+                  protein: meal.protein,
+                  slot_preference: meal.slotPref,
+                  weekend_only: meal.weekendOnly,
+                  ingredients: meal.ingredients,
+                }}
+                suggested={meal.recipeIngredients}
+                suggestedFrom="TheMealDB"
+                onSave={(edit) => updateMeal(meal.id, edit)}
+                onDone={() => setEditing(false)}
+              />
+            ) : (
+              <>
+                <p className="text-muted-foreground">{t.meals.usually(t.meals.slotPrefs[meal.slotPref])}</p>
+                {meal.newIdea && meal.noPlan && <p className="rounded-xl bg-warning/10 px-3 py-2 text-[#9a4f00]">{t.meals.notPlanned}</p>}
+                {meal.gfStock && <p className="rounded-xl bg-warning/10 px-3 py-2 font-medium text-[#9a4f00]">{t.board.gfStock}</p>}
+                <span className="font-medium">{t.meals.ingredients}</span>
+                {meal.ingredients.length > 0 ? (
+                  <ul className="list-disc pl-5">
+                    {meal.ingredients.map((x, i) => (
+                      <li key={i}>{x}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-muted-foreground">{t.meals.noIngredients}</p>
+                )}
+                {meal.ingredients.length === 0 && meal.recipeIngredients && (
+                  <p className="text-xs text-muted-foreground">
+                    {t.meals.recipeIngredients("TheMealDB")} {meal.recipeIngredients.join(", ")}
+                  </p>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                    {t.meals.edit}
+                  </Button>
+                  {meal.recipeUrl && (
+                    <a href={meal.recipeUrl} target="_blank" rel="noreferrer" className="text-xs underline">
+                      {t.meals.openRecipe}
+                    </a>
+                  )}
+                  {meal.image && (
+                    <span className="text-[10px] text-muted-foreground">{t.meals.photoFrom(sourceName(meal.imageSource, meal.recipeUrl))}</span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+      <StarButton id={meal.id} name={meal.name} favourite={meal.favourite} onError={setStarFailed} />
     </div>
   );
 }
@@ -212,7 +226,14 @@ function MealForm({
   const slotLabel = useId();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const edit = (): MealEdit => ({ name_en: f.name_en, name_es: f.name_es, protein: f.protein, slot_preference: f.slot_preference, ingredients: f.text.split("\n") });
+  const edit = (): MealEdit => ({
+    name_en: f.name_en,
+    name_es: f.name_es,
+    protein: f.protein,
+    slot_preference: f.slot_preference,
+    weekend_only: f.weekend_only,
+    ingredients: f.text.split("\n"),
+  });
   const save = () =>
     startTransition(async () => {
       setError(null);
@@ -264,6 +285,18 @@ function MealForm({
         ))}
       </div>
       <p className="text-xs text-muted-foreground">{t.meals.slotPrefHelp}</p>
+      <label className="flex min-h-11 items-center gap-2.5">
+        <input
+          type="checkbox"
+          checked={f.weekend_only}
+          onChange={(e) => setF({ ...f, weekend_only: e.target.checked })}
+          className="size-5 shrink-0 accent-primary"
+        />
+        <span className="flex flex-col">
+          <span className="font-medium">{t.meals.weekendOnly}</span>
+          <span className="text-xs text-muted-foreground">{t.meals.weekendOnlyHelp}</span>
+        </span>
+      </label>
       <label className="flex flex-col gap-1">
         <span className="font-medium">
           {t.meals.ingredients} <span className="font-normal text-muted-foreground">{t.meals.ingredientsHelp}</span>
@@ -305,7 +338,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
   const [found, setFound] = useState<{ url: string; image: string | null; initial: MealEdit } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const blank: MealEdit = { name_en: "", name_es: "", protein: "veg", slot_preference: "either", ingredients: [] };
+  const blank: MealEdit = { name_en: "", name_es: "", protein: "veg", slot_preference: "either", weekend_only: false, ingredients: [] };
 
   const read = () =>
     startTransition(async () => {
@@ -316,7 +349,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
       setFound({
         url: r.url,
         image: r.recipe.image,
-        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), slot_preference: "either", ingredients: r.recipe.ingredients },
+        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), slot_preference: "either", weekend_only: false, ingredients: r.recipe.ingredients },
       });
     });
 
@@ -400,17 +433,23 @@ function StarButton({ id, name, favourite, onError }: { id: string; name: string
       else onError(true);
     });
   return (
+    // A 44px tap area; the round star sits in its top-right corner, across the card's corner.
     <button
       type="button"
       onClick={toggle}
       aria-pressed={on}
       aria-label={on ? t.favourites.unmarkLabel(name) : t.favourites.markLabel(name)}
       className={cn(
-        "flex w-12 shrink-0 touch-manipulation items-center justify-center text-[26px] leading-none transition active:scale-90",
+        "group absolute -top-2.5 -right-2.5 z-10 flex size-11 touch-manipulation items-start justify-end",
         on ? "text-[#a17400]" : "text-[#6e6e73] hover:text-foreground",
       )}
     >
-      <span aria-hidden="true">{on ? "★" : "☆"}</span>
+      <span
+        aria-hidden="true"
+        className="flex size-7 items-center justify-center rounded-full bg-card text-[18px] leading-none shadow-card ring-1 ring-black/5 transition group-active:scale-90"
+      >
+        {on ? "★" : "☆"}
+      </span>
     </button>
   );
 }

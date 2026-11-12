@@ -29,6 +29,7 @@ type Row = {
   recipe_source: string | null;
   is_favourite: boolean;
   slot_preference: string | null;
+  weekend_only: boolean | null;
   source: string | null;
   source_url: string | null;
 };
@@ -40,7 +41,7 @@ export default async function MealsPage() {
   const { data, error } = await supabase
     .from("meals")
     .select(
-      "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_ingredients, recipe_source, is_favourite, slot_preference, source, source_url",
+      "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_ingredients, recipe_source, is_favourite, slot_preference, weekend_only, source, source_url",
     )
     .eq("retired", false)
     .eq("blacklisted", false)
@@ -66,6 +67,7 @@ export default async function MealsPage() {
       gluten: mealStatus(m),
       favourite: m.is_favourite,
       slotPref: isSlotPref(m.slot_preference) ? m.slot_preference : "either",
+      weekendOnly: Boolean(m.weekend_only),
       fromElPais: m.source === "elpais",
       newIdea: m.source === "elpais" && !m.gf_confirmed_at,
       noPlan: outsideNoPlan(m),
