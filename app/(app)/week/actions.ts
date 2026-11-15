@@ -83,6 +83,8 @@ export async function setCellMeal(week: string, day: string, slot: string, mealI
     .select("id, name, variants_seen, ingredients_note, gf_confirmed_at, source")
     .eq("household_id", ctx.householdId)
     .eq("id", mealId)
+    // A meal deleted from the meal list can't be placed, even from a page opened before the delete.
+    .eq("retired", false)
     .maybeSingle();
   if (!meal) return { ok: false, error: (await say()).mealNotFound };
   if (mealStatus(meal) === "blocked")
@@ -153,6 +155,7 @@ export async function restoreCell(week: string, day: string, slot: string, befor
       .select("id, name, variants_seen, ingredients_note, gf_confirmed_at, source")
       .eq("household_id", ctx.householdId)
       .eq("id", before.meal_id)
+      .eq("retired", false)
       .maybeSingle();
     if (!meal) return { ok: false, error: (await say()).mealNotFound };
     // Gluten still blocks, even when putting a meal back.
@@ -233,6 +236,7 @@ export async function addNewMeal(week: string, day: string, slot: string, name: 
     if (existing.retired) {
       await ctx.supabase.from("meals").update({ retired: false }).eq("household_id", ctx.householdId).eq("id", existing.id);
       revalidatePath("/meals");
+      revalidatePath("/gluten");
     }
     return setCellMeal(week, day, slot, existing.id);
   }

@@ -24,6 +24,7 @@ export default async function FavouritesPage() {
     .from("meals")
     .select("id, name, name_en, name_es, variants_seen, is_favourite, favourite_seen_count, last_eaten")
     .not("favourite_seen_count", "is", null)
+    .eq("retired", false)
     .order("favourite_seen_count", { ascending: false })
     .order("name")
     .returns<Meal[]>();

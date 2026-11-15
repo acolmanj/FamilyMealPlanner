@@ -240,7 +240,7 @@ function MealCard({ meal, open, onToggle, onDeleted }: { meal: LibraryMeal; open
                   </p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                  <Button size="sm" variant="outline" onClick={() => (setAsking(false), setEditing(true))}>
                     {t.meals.edit}
                   </Button>
                   {!asking && (
@@ -258,7 +258,7 @@ function MealCard({ meal, open, onToggle, onDeleted }: { meal: LibraryMeal; open
                   )}
                 </div>
                 {asking && (
-                  <div role="alertdialog" aria-label={t.meals.deleteTitle(meal.name)} className="flex flex-col gap-2 rounded-xl bg-destructive/10 p-3">
+                  <div role="group" aria-label={t.meals.deleteTitle(meal.name)} data-delete-confirm className="flex flex-col gap-2 rounded-xl bg-destructive/10 p-3">
                     <p className="font-semibold">{t.meals.deleteTitle(meal.name)}</p>
                     <p>{t.meals.deleteHelp}</p>
                     {meal.plannedAhead > 0 && <p className="font-medium">{t.meals.deletePlanned(meal.plannedAhead)}</p>}
@@ -271,7 +271,7 @@ function MealCard({ meal, open, onToggle, onDeleted }: { meal: LibraryMeal; open
                       <Button size="sm" className="bg-destructive text-white hover:bg-destructive/90" disabled={deleting} onClick={remove}>
                         {deleting ? t.meals.deleting : t.meals.deleteYes}
                       </Button>
-                      <Button size="sm" variant="outline" disabled={deleting} onClick={() => setAsking(false)}>
+                      <Button size="sm" variant="outline" autoFocus disabled={deleting} onClick={() => setAsking(false)}>
                         {t.meals.deleteNo}
                       </Button>
                     </div>

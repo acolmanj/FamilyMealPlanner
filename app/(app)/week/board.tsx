@@ -114,7 +114,8 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
     setError(null);
     startTransition(async () => {
       change(ch);
-      const r = await action();
+      // A dropped connection must not break the page: the tile goes back and a message says so.
+      const r = await action().catch((): Result => ({ ok: false }));
       if (!r.ok) setError(r.error ?? t.board.didNotSave);
       else after?.(r.adjustmentId);
     });
@@ -321,7 +322,20 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
         </div>
       )}
 
-      {pickedMeal && !drag && !cleared && (
+      {/* Phone: the pop-up has closed, so a save that failed is said here, over the week. (Desktop shows it in the side panel.) */}
+      {error && !sheetUp && !drag && (
+        <div
+          role="alert"
+          className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-sm items-center gap-2 rounded-2xl bg-destructive px-4 py-3 text-sm text-white shadow-lift sm:hidden"
+        >
+          <span className="min-w-0 flex-1">{error}</span>
+          <button className="-my-2 min-h-11 shrink-0 px-2 font-semibold" onClick={() => setError(null)} aria-label={t.board.close}>
+            ×
+          </button>
+        </div>
+      )}
+
+      {pickedMeal && !drag && !cleared && !error && (
         <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-2xl bg-foreground/90 px-4 py-3 text-sm text-white shadow-lift backdrop-blur-xl sm:hidden">
           <span className="min-w-0 flex-1 truncate">{t.board.tapSlotFor(pickedMeal.name)}</span>
           <button className="shrink-0 font-semibold text-[#7ee08f]" onClick={() => setPicked(null)}>
@@ -332,7 +346,6 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
         <PlanHint week={week} cells={shown} />
-        {error && !sheetUp && <p role="alert" className="rounded-xl bg-destructive/10 p-2 text-sm text-destructive">{error}</p>}
         <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs" aria-busy={pending}>
           <span />
           {SLOTS.map((s) => (
@@ -454,7 +467,7 @@ function DayRow({
                 <>
                   <span className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 self-stretch">
                     <FitTitle text={label} />
-                    <span className="flex shrink-0 flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="mt-auto flex shrink-0 flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
                       {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} hasRice={m.tags.hasRice} className="text-sm" />}
                       {m?.favourite && (
                         <span className="text-[13px] leading-none text-[#d99a00]" title={t.board.favourite}>
@@ -503,7 +516,8 @@ function DayRow({
 // The meal name on a planner tile. Every tile is the same size, so a long name is
 // written smaller until it fits; at the smallest size anything left over is cut off.
 const TITLE_MAX = 13;
-const TITLE_MIN = 9;
+const TITLE_MIN = 10;
+const TITLE_LEADING = 1.2;
 function FitTitle({ text }: { text: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
@@ -511,10 +525,18 @@ function FitTitle({ text }: { text: string }) {
     if (!el) return;
     const fit = () => {
       let size = TITLE_MAX;
+      el.style.webkitLineClamp = "";
+      el.style.maxHeight = "";
       el.style.fontSize = `${size}px`;
       while (size > TITLE_MIN && el.scrollHeight > el.clientHeight + 1) {
         size -= 0.5;
         el.style.fontSize = `${size}px`;
+      }
+      // Still too long at the smallest size: end on a whole line with "…".
+      if (el.scrollHeight > el.clientHeight + 1) {
+        const lines = Math.max(1, Math.floor((el.clientHeight + 1) / (size * TITLE_LEADING)));
+        el.style.webkitLineClamp = String(lines);
+        el.style.maxHeight = `${lines * size * TITLE_LEADING}px`;
       }
     };
     fit();
@@ -524,7 +546,7 @@ function FitTitle({ text }: { text: string }) {
     return () => watch.disconnect();
   }, [text]);
   return (
-    <span ref={ref} title={text} style={{ fontSize: TITLE_MAX }} className="min-h-0 flex-1 overflow-hidden leading-[1.2] font-medium break-words hyphens-auto">
+    <span ref={ref} title={text} style={{ fontSize: TITLE_MAX }} className="min-h-0 flex-1 overflow-hidden leading-[1.2] font-medium break-words hyphens-auto [display:-webkit-box] [-webkit-box-orient:vertical]">
       {text}
     </span>
   );
@@ -736,7 +758,6 @@ function CellPanel({
             <Button
               variant="outline"
               size="sm"
-              disabled={pending}
               className="h-auto py-1.5 whitespace-normal"
               onClick={() => {
                 run({ type: "set", day, slot, mealId: `new:${query}`, text: query.trim() }, () => addNewMeal(week, day, slot, query));

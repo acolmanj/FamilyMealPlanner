@@ -120,7 +120,7 @@ export async function deleteMeal(id: string): Promise<DeleteResult> {
   if (ahead.length) {
     const { error: slotError } = await supabase
       .from("plan_slots")
-      .update({ meal_id: null, as_written: null, why_line: null })
+      .update({ meal_id: null, as_written: null, why_line: null, status: "proposed" })
       .eq("household_id", householdId)
       .in("id", ahead.map((s) => s.id));
     if (slotError) {
@@ -138,9 +138,11 @@ export async function deleteMeal(id: string): Promise<DeleteResult> {
 
 // Undo a delete: the meal comes back, and so does each slot it was taken from, if that slot is still empty.
 export async function restoreMeal(id: string, emptied: EmptiedSlot[]): Promise<Result> {
-  const { supabase, householdId } = await context();
-  const { error } = await supabase.from("meals").update({ retired: false }).eq("household_id", householdId).eq("id", id);
+  const { supabase, householdId, t } = await context();
+  // Only a meal of this household: nothing is written to a slot unless the meal itself came back.
+  const { data: back, error } = await supabase.from("meals").update({ retired: false }).eq("household_id", householdId).eq("id", id).select("id");
   if (error) return { ok: false, error: error.message };
+  if (!back?.length) return { ok: false, error: t.actions.mealNotFound };
   const str = (x: unknown) => (typeof x === "string" ? x.slice(0, 2000) : null);
   for (const s of (Array.isArray(emptied) ? emptied : []).slice(0, 60)) {
     if (typeof s?.id !== "string") continue;
