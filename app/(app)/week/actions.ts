@@ -224,11 +224,18 @@ export async function addNewMeal(week: string, day: string, slot: string, name: 
   const ctx = await context();
   const { data: existing } = await ctx.supabase
     .from("meals")
-    .select("id")
+    .select("id, retired")
     .eq("household_id", ctx.householdId)
     .ilike("name_group", clean.replace(/[%_\\]/g, "\\$&"))
     .maybeSingle();
-  if (existing) return setCellMeal(week, day, slot, existing.id);
+  if (existing) {
+    // A meal deleted from the meal list comes back when it is typed again.
+    if (existing.retired) {
+      await ctx.supabase.from("meals").update({ retired: false }).eq("household_id", ctx.householdId).eq("id", existing.id);
+      revalidatePath("/meals");
+    }
+    return setCellMeal(week, day, slot, existing.id);
+  }
   const { data, error } = await ctx.supabase
     .from("meals")
     .insert({ household_id: ctx.householdId, name: clean, name_group: clean, variants_seen: [clean], source: "menu" })
