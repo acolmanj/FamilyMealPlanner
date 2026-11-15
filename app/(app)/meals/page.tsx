@@ -4,7 +4,9 @@ import { getHousehold } from "@/lib/household";
 import { mealName } from "@/lib/i18n/messages";
 import { getMessages } from "@/lib/i18n/server";
 import { isNotAMeal } from "@/lib/planner/not-a-meal";
+import { DAYS, cellDate, type Day } from "@/lib/planner/rules";
 import { isSlotPref } from "@/lib/planner/slot-pref";
+import { dublinToday, mondayOf } from "@/lib/planner/week";
 import { mealTags } from "@/lib/planner/tags";
 import { splitIngredients } from "@/lib/recipes/parse";
 import { Library, type LibraryMeal } from "./library";
@@ -38,14 +40,28 @@ export default async function MealsPage() {
   const { supabase, household } = await getHousehold();
   if (!household) return null;
   const { lang, t } = await getMessages();
-  const { data, error } = await supabase
+  const today = dublinToday();
+  const [{ data, error }, { data: planned }] = await Promise.all([
+    supabase
     .from("meals")
     .select(
       "id, name, name_en, name_es, variants_seen, ingredients_note, protein, starch, is_pasta, is_processed, effort, gf_confirmed_at, image_url, image_source, image_page_url, mealdb_ingredients, recipe_source, is_favourite, slot_preference, weekend_only, source, source_url",
     )
     .eq("retired", false)
     .eq("blacklisted", false)
-    .returns<Row[]>();
+    .returns<Row[]>(),
+    // Slots from this week on, to say how often a meal is still planned before it is deleted.
+    supabase
+      .from("plan_slots")
+      .select("meal_id, week_start, day")
+      .not("meal_id", "is", null)
+      .neq("status", "eaten")
+      .gte("week_start", mondayOf(new Date(`${today}T00:00:00Z`)))
+      .returns<{ meal_id: string; week_start: string; day: string }[]>(),
+  ]);
+  const plannedAhead = new Map<string, number>();
+  for (const s of planned ?? [])
+    if (DAYS.includes(s.day as Day) && cellDate(s.week_start, s.day as Day) >= today) plannedAhead.set(s.meal_id, (plannedAhead.get(s.meal_id) ?? 0) + 1);
   if (error) return <p className="text-destructive">{t.gluten.couldNotLoad(error.message)}</p>;
 
   const meals: LibraryMeal[] = (data ?? [])
@@ -65,6 +81,8 @@ export default async function MealsPage() {
       ingredients: splitIngredients(m.ingredients_note),
       recipeIngredients: m.mealdb_ingredients?.length ? m.mealdb_ingredients : null,
       gluten: mealStatus(m),
+      gfConfirmed: Boolean(m.gf_confirmed_at),
+      plannedAhead: plannedAhead.get(m.id) ?? 0,
       favourite: m.is_favourite,
       slotPref: isSlotPref(m.slot_preference) ? m.slot_preference : "either",
       weekendOnly: Boolean(m.weekend_only),

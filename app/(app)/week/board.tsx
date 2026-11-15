@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { FoodIcons } from "@/components/food-icons";
 import { GlutenBadge } from "@/components/gluten-badge";
 import { useLang } from "@/components/lang";
@@ -114,7 +114,8 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
     setError(null);
     startTransition(async () => {
       change(ch);
-      const r = await action();
+      // A dropped connection must not break the page: the tile goes back and a message says so.
+      const r = await action().catch((): Result => ({ ok: false }));
       if (!r.ok) setError(r.error ?? t.board.didNotSave);
       else after?.(r.adjustmentId);
     });
@@ -321,7 +322,20 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
         </div>
       )}
 
-      {pickedMeal && !drag && !cleared && (
+      {/* Phone: the pop-up has closed, so a save that failed is said here, over the week. (Desktop shows it in the side panel.) */}
+      {error && !sheetUp && !drag && (
+        <div
+          role="alert"
+          className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-sm items-center gap-2 rounded-2xl bg-destructive px-4 py-3 text-sm text-white shadow-lift sm:hidden"
+        >
+          <span className="min-w-0 flex-1">{error}</span>
+          <button className="-my-2 min-h-11 shrink-0 px-2 font-semibold" onClick={() => setError(null)} aria-label={t.board.close}>
+            ×
+          </button>
+        </div>
+      )}
+
+      {pickedMeal && !drag && !cleared && !error && (
         <div className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2 rounded-2xl bg-foreground/90 px-4 py-3 text-sm text-white shadow-lift backdrop-blur-xl sm:hidden">
           <span className="min-w-0 flex-1 truncate">{t.board.tapSlotFor(pickedMeal.name)}</span>
           <button className="shrink-0 font-semibold text-[#7ee08f]" onClick={() => setPicked(null)}>
@@ -332,7 +346,6 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
         <PlanHint week={week} cells={shown} />
-        {error && !sheetUp && <p className="rounded-xl bg-destructive/10 p-2 text-sm text-destructive sm:hidden">{error}</p>}
         <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs" aria-busy={pending}>
           <span />
           {SLOTS.map((s) => (
@@ -440,7 +453,7 @@ function DayRow({
               onClick={() => onTap(slot)}
               {...(c ? dragProps({ kind: "cell", day, slot, label }) : {})}
               className={cn(
-                "flex min-h-[4.5rem] min-w-0 flex-1 touch-manipulation items-start gap-1.5 rounded-xl border-l-4 border-l-transparent bg-card p-2 text-left shadow-card transition select-none active:scale-[0.98] [-webkit-touch-callout:none]",
+                "flex h-[5.25rem] min-w-0 flex-1 touch-manipulation items-start gap-1.5 rounded-xl border-l-4 border-l-transparent bg-card p-2 text-left shadow-card transition select-none active:scale-[0.98] [-webkit-touch-callout:none]",
                 !c && "border-2 border-dashed border-black/10 bg-transparent text-muted-foreground shadow-none",
                 m && PROTEIN_STYLE[m.tags.protein],
                 c && !m && "bg-card",
@@ -452,9 +465,9 @@ function DayRow({
             >
               {c ? (
                 <>
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5 self-stretch">
-                    <span className="line-clamp-3 text-[13px] leading-snug font-medium break-words hyphens-auto">{label}</span>
-                    <span className="mt-auto flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+                  <span className="flex min-h-0 min-w-0 flex-1 flex-col gap-0.5 self-stretch">
+                    <FitTitle text={label} />
+                    <span className="mt-auto flex shrink-0 flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
                       {m && <FoodIcons starch={m.tags.starch} isPasta={m.tags.isPasta} isPulse={m.tags.isPulse} hasRice={m.tags.hasRice} className="text-sm" />}
                       {m?.favourite && (
                         <span className="text-[13px] leading-none text-[#d99a00]" title={t.board.favourite}>
@@ -497,6 +510,45 @@ function DayRow({
         );
       })}
     </>
+  );
+}
+
+// The meal name on a planner tile. Every tile is the same size, so a long name is
+// written smaller until it fits; at the smallest size anything left over is cut off.
+const TITLE_MAX = 13;
+const TITLE_MIN = 10;
+const TITLE_LEADING = 1.2;
+function FitTitle({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      let size = TITLE_MAX;
+      el.style.webkitLineClamp = "";
+      el.style.maxHeight = "";
+      el.style.fontSize = `${size}px`;
+      while (size > TITLE_MIN && el.scrollHeight > el.clientHeight + 1) {
+        size -= 0.5;
+        el.style.fontSize = `${size}px`;
+      }
+      // Still too long at the smallest size: end on a whole line with "…".
+      if (el.scrollHeight > el.clientHeight + 1) {
+        const lines = Math.max(1, Math.floor((el.clientHeight + 1) / (size * TITLE_LEADING)));
+        el.style.webkitLineClamp = String(lines);
+        el.style.maxHeight = `${lines * size * TITLE_LEADING}px`;
+      }
+    };
+    fit();
+    // The tile gets wider or narrower with the window; fit again when it does.
+    const watch = new ResizeObserver(fit);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [text]);
+  return (
+    <span ref={ref} title={text} style={{ fontSize: TITLE_MAX }} className="min-h-0 flex-1 overflow-hidden leading-[1.2] font-medium break-words hyphens-auto [display:-webkit-box] [-webkit-box-orient:vertical]">
+      {text}
+    </span>
   );
 }
 
@@ -624,16 +676,18 @@ function CellPanel({
   const [query, setQuery] = useState("");
   const meal = cell?.mealId ? mealMap.get(cell.mealId) : undefined;
   const here = { day, slot, mealId: meal?.id ?? null };
-  const suggestions = suggestAlternatives({ weekStart: week, cells: ruleCells, meals: mealMap, history, cell: here, count: 5, lang });
+  const suggestions = suggestAlternatives({ weekStart: week, cells: ruleCells, meals: mealMap, history, cell: here, count: 1, lang });
 
   const askReason = (id?: string) => {
     if (!id) return onClose();
     setAdjustmentId(id);
     setMode("reason");
   };
-  // Filling an empty slot is not a correction, so it needs no reason.
-  const afterFill = cell ? askReason : () => onClose();
-  const pick = (m: PlanMeal) => run({ type: "set", day, slot, mealId: m.id, text: m.name }, () => setCellMeal(week, day, slot, m.id), afterFill);
+  // Picking a meal closes the pop-up at once; the week shows the new meal while it saves.
+  const pick = (m: PlanMeal) => {
+    run({ type: "set", day, slot, mealId: m.id, text: m.name }, () => setCellMeal(week, day, slot, m.id));
+    onClose();
+  };
 
   const q = normalise(query).trim();
   const matches = q ? meals.filter((m) => normalise(m.name).includes(q)).slice(0, 8) : [];
@@ -694,19 +748,21 @@ function CellPanel({
           <h2 className="mt-1 text-sm font-semibold">{cell ? t.board.swapFor : t.board.suggestedHere}</h2>
           {suggestions.length === 0 && <p className="text-muted-foreground">{t.board.noFit}</p>}
           {suggestions.map(({ meal: m, why }) => (
-            <MealTile key={m.id} meal={m} why={why} onClick={() => !pending && pick(m)} />
+            <MealTile key={m.id} meal={m} why={why} onClick={() => pick(m)} />
           ))}
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.board.search} aria-label={t.board.search} className="h-10 text-[15px] sm:h-9 sm:text-sm" />
           {matches.map((m) => (
-            <MealTile key={m.id} meal={m} onClick={() => !pending && m.gluten !== "blocked" && pick(m)} />
+            <MealTile key={m.id} meal={m} onClick={() => m.gluten !== "blocked" && pick(m)} />
           ))}
           {q.length > 1 && !exact && (
             <Button
               variant="outline"
               size="sm"
-              disabled={pending}
               className="h-auto py-1.5 whitespace-normal"
-              onClick={() => run({ type: "set", day, slot, mealId: `new:${query}`, text: query.trim() }, () => addNewMeal(week, day, slot, query), afterFill)}
+              onClick={() => {
+                run({ type: "set", day, slot, mealId: `new:${query}`, text: query.trim() }, () => addNewMeal(week, day, slot, query));
+                onClose();
+              }}
             >
               {t.board.addNew(query.trim())}
             </Button>

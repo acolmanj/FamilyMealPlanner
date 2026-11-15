@@ -12,7 +12,7 @@ import { guessProtein, guessTags, type Protein, type Starch } from "@/lib/planne
 import { cn } from "@/lib/utils";
 import { setFavourite } from "../favourites/actions";
 import { useResolveImages } from "../week/resolve-images";
-import { createMeal, importRecipe, updateMeal, type MealEdit } from "./actions";
+import { createMeal, deleteMeal, importRecipe, restoreMeal, updateMeal, type EmptiedSlot, type MealEdit } from "./actions";
 
 export type LibraryMeal = {
   id: string;
@@ -26,6 +26,10 @@ export type LibraryMeal = {
   ingredients: string[];
   recipeIngredients: string[] | null;
   gluten: Status;
+  // The household ticked "We cook this gluten-free".
+  gfConfirmed: boolean;
+  // Times it is planned from today on; those slots are emptied if the meal is deleted.
+  plannedAhead: number;
   image: string | null;
   imageSource: string | null;
   recipeUrl: string | null;
@@ -61,6 +65,23 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // A deleted meal can be brought back for a few seconds.
+  const [deleted, setDeleted] = useState<{ id: string; name: string; emptied: EmptiedSlot[] } | null>(null);
+  const [, startUndo] = useTransition();
+  useEffect(() => {
+    if (!deleted) return;
+    const id = setTimeout(() => setDeleted(null), 8000);
+    return () => clearTimeout(id);
+  }, [deleted]);
+  const undoDelete = () => {
+    if (!deleted) return;
+    const { id, name, emptied } = deleted;
+    setDeleted(null);
+    startUndo(async () => {
+      const r = await restoreMeal(id, emptied).catch(() => ({ ok: false }));
+      setNotice(r.ok ? t.meals.deleteUndone(name) : t.meals.deleteUndoFailed);
+    });
+  };
   const q = normalise(query).trim();
   const shown = q ? meals.filter((m) => normalise(`${m.name} ${m.name_en} ${m.name_es} ${m.ingredients.join(" ")}`).includes(q)) : meals;
 
@@ -79,7 +100,7 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
         )}
       </div>
 
-      {notice && <p className="rounded-xl bg-primary/10 p-3 text-sm text-primary">{notice}</p>}
+      {notice && <p role="status" className="rounded-xl bg-primary/10 p-3 text-sm text-primary">{notice}</p>}
       {adding && (
         <AddMeal
           onDone={(name) => {
@@ -103,20 +124,52 @@ export function Library({ meals }: { meals: LibraryMeal[] }) {
             {/* Room around each card for the star on its top-right corner. */}
             <div className="grid gap-x-4 gap-y-3.5 sm:grid-cols-2">
               {list.map((m) => (
-                <MealCard key={m.id} meal={m} open={open === m.id} onToggle={() => setOpen((o) => (o === m.id ? null : m.id))} />
+                <MealCard
+                  key={m.id}
+                  meal={m}
+                  open={open === m.id}
+                  onToggle={() => setOpen((o) => (o === m.id ? null : m.id))}
+                  onDeleted={(emptied) => (setOpen(null), setNotice(null), setDeleted({ id: m.id, name: m.name, emptied }))}
+                />
               ))}
             </div>
           </section>
         );
       })}
+
+      {deleted && (
+        <div
+          role="status"
+          className="fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-sm items-center gap-2 rounded-2xl bg-foreground/90 px-4 py-3 text-sm text-white shadow-lift backdrop-blur-xl"
+        >
+          <span className="min-w-0 flex-1 truncate">{t.meals.deleted(deleted.name)}</span>
+          <button className="-my-2 min-h-11 shrink-0 px-2 font-semibold text-[#7ee08f]" onClick={undoDelete}>
+            {t.meals.deleteUndo}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; onToggle: () => void }) {
+function MealCard({ meal, open, onToggle, onDeleted }: { meal: LibraryMeal; open: boolean; onToggle: () => void; onDeleted: (emptied: EmptiedSlot[]) => void }) {
   const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [starFailed, setStarFailed] = useState(false);
+  // Delete asks first: the Delete button opens a short question with two answers.
+  const [asking, setAsking] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, startDelete] = useTransition();
+  useEffect(() => {
+    if (!open) (setAsking(false), setDeleteError(null));
+  }, [open]);
+  const remove = () =>
+    startDelete(async () => {
+      setDeleteError(null);
+      const r = await deleteMeal(meal.id).catch(() => ({ ok: false as const, error: t.board.didNotSave }));
+      if (r.ok) onDeleted(r.emptied);
+      else setDeleteError(r.error);
+    });
   return (
     // The star sits on the card's top-right corner, outside the clipped card so it is not cut off.
     <div className={cn("relative", open && "sm:col-span-2")}>
@@ -157,8 +210,10 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
                   protein: meal.protein,
                   slot_preference: meal.slotPref,
                   weekend_only: meal.weekendOnly,
+                  gf_confirmed: meal.gfConfirmed,
                   ingredients: meal.ingredients,
                 }}
+                gluten={meal.gluten}
                 suggested={meal.recipeIngredients}
                 suggestedFrom="TheMealDB"
                 onSave={(edit) => updateMeal(meal.id, edit)}
@@ -185,9 +240,14 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
                   </p>
                 )}
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                  <Button size="sm" variant="outline" onClick={() => (setAsking(false), setEditing(true))}>
                     {t.meals.edit}
                   </Button>
+                  {!asking && (
+                    <Button size="sm" variant="outline" className="text-destructive" onClick={() => setAsking(true)}>
+                      {t.meals.delete}
+                    </Button>
+                  )}
                   {meal.recipeUrl && (
                     <a href={meal.recipeUrl} target="_blank" rel="noreferrer" className="text-xs underline">
                       {t.meals.openRecipe}
@@ -197,6 +257,26 @@ function MealCard({ meal, open, onToggle }: { meal: LibraryMeal; open: boolean; 
                     <span className="text-[10px] text-muted-foreground">{t.meals.photoFrom(sourceName(meal.imageSource, meal.recipeUrl))}</span>
                   )}
                 </div>
+                {asking && (
+                  <div role="group" aria-label={t.meals.deleteTitle(meal.name)} data-delete-confirm className="flex flex-col gap-2 rounded-xl bg-destructive/10 p-3">
+                    <p className="font-semibold">{t.meals.deleteTitle(meal.name)}</p>
+                    <p>{t.meals.deleteHelp}</p>
+                    {meal.plannedAhead > 0 && <p className="font-medium">{t.meals.deletePlanned(meal.plannedAhead)}</p>}
+                    {deleteError && (
+                      <p role="alert" className="text-destructive">
+                        {deleteError}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" className="bg-destructive text-white hover:bg-destructive/90" disabled={deleting} onClick={remove}>
+                        {deleting ? t.meals.deleting : t.meals.deleteYes}
+                      </Button>
+                      <Button size="sm" variant="outline" autoFocus disabled={deleting} onClick={() => setAsking(false)}>
+                        {t.meals.deleteNo}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -215,8 +295,11 @@ function MealForm({
   onSave,
   onDone,
   guessWeekend,
+  gluten,
 }: {
   initial: MealEdit;
+  // How the meal shows for gluten right now (a meal being edited; a new one has no status yet).
+  gluten?: Status;
   // A new meal: tick Weekends only for a roast, until the box is changed by hand.
   guessWeekend?: boolean;
   suggested?: string[] | null;
@@ -240,6 +323,7 @@ function MealForm({
     protein: f.protein,
     slot_preference: f.slot_preference,
     weekend_only: f.weekend_only,
+    gf_confirmed: f.gf_confirmed,
     ingredients: f.text.split("\n"),
   });
   const save = () =>
@@ -326,6 +410,29 @@ function MealForm({
           </Button>
         </div>
       )}
+      <div className="flex flex-col gap-1.5 rounded-xl bg-muted p-2.5">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="font-medium">{t.meals.gluten}</span>
+          {gluten && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {t.meals.gfNow}
+              <GlutenBadge status={gluten} />
+            </span>
+          )}
+        </span>
+        <label className="flex min-h-11 items-center gap-2.5">
+          <input
+            type="checkbox"
+            checked={f.gf_confirmed}
+            onChange={(e) => setF({ ...f, gf_confirmed: e.target.checked })}
+            className="size-5 shrink-0 accent-primary"
+          />
+          <span className="flex flex-col">
+            <span className="font-medium">{t.meals.gfConfirm}</span>
+            <span className="text-xs text-muted-foreground">{t.meals.gfConfirmHelp}</span>
+          </span>
+        </label>
+      </div>
       {error && <p className="text-destructive">{error}</p>}
       <div className="flex gap-2">
         <Button size="sm" disabled={pending} onClick={save}>
@@ -346,7 +453,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
   const [found, setFound] = useState<{ url: string; image: string | null; initial: MealEdit } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const blank: MealEdit = { name_en: "", name_es: "", protein: "veg", slot_preference: "either", weekend_only: false, ingredients: [] };
+  const blank: MealEdit = { name_en: "", name_es: "", protein: "veg", slot_preference: "either", weekend_only: false, gf_confirmed: false, ingredients: [] };
 
   const read = () =>
     startTransition(async () => {
@@ -357,7 +464,7 @@ function AddMeal({ onDone }: { onDone: (name?: string) => void }) {
       setFound({
         url: r.url,
         image: r.recipe.image,
-        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), slot_preference: "either", weekend_only: guessTags(name).isRoast, ingredients: r.recipe.ingredients },
+        initial: { name_en: lang === "en" ? name : "", name_es: lang === "es" ? name : "", protein: guessProtein(name, r.recipe.ingredients), slot_preference: "either", weekend_only: guessTags(name).isRoast, gf_confirmed: false, ingredients: r.recipe.ingredients },
       });
     });
 
