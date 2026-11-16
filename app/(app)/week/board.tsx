@@ -347,7 +347,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
         <PlanHint week={week} cells={shown} />
-        <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs transition-opacity group-data-[loading]/swipe:opacity-50" aria-busy={pending}>
+        <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs transition-opacity group-data-[loading]/swipe:pointer-events-none group-data-[loading]/swipe:opacity-50" aria-busy={pending}>
           <span />
           {SLOTS.map((s) => (
             <span key={s} className="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">

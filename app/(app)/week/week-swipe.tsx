@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useTransition } from "react";
+import { useRef, useTransition } from "react";
 import { startsAtEdge, swipeAxis, swipeTurn, type SwipePoint } from "@/lib/planner/swipe";
 
 // Swipe left for next week, right for the week before: the same as the two arrows.
@@ -12,12 +12,6 @@ export function WeekSwipe({ prevHref, nextHref, children }: { prevHref: string; 
   const [loading, startTransition] = useTransition();
   const root = useRef<HTMLDivElement>(null);
   const touch = useRef<{ id: number; start: SwipePoint; side: boolean } | null>(null);
-
-  // Have both weeks ready so the swipe feels quick.
-  useEffect(() => {
-    router.prefetch(prevHref);
-    router.prefetch(nextHref);
-  }, [router, prevHref, nextHref]);
 
   const locked = () => Boolean(root.current?.querySelector("[data-swipe-lock]"));
   const find = (list: React.TouchList, id: number) => Array.from(list).find((t) => t.identifier === id);
@@ -61,7 +55,8 @@ export function WeekSwipe({ prevHref, nextHref, children }: { prevHref: string; 
     <div
       ref={root}
       data-loading={loading ? "" : undefined}
-      className="group/swipe flex touch-pan-y flex-col gap-3"
+      // Up-and-down scrolling and pinch zoom stay with the browser.
+      className="group/swipe flex touch-pan-y touch-pinch-zoom flex-col gap-3"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
