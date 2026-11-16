@@ -251,7 +251,8 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
   const weekSuggestions = suggestForWeek({ weekStart: week, cells: ruleCells, meals: mealMap, history, count: 10, lang });
 
   return (
-    <div className="flex items-start gap-3">
+    // While a pop-up is open, a meal is held, or one is waiting for a slot, swiping must not change the week.
+    <div className="flex items-start gap-3" data-swipe-lock={sheetUp || drag || picked ? "" : undefined}>
       {/* On a phone the panel is a sheet over the week; tapping outside closes it. */}
       {sheetUp && !drag && <div className="fixed inset-0 z-40 bg-black/25 sm:hidden" onClick={closeSheet} aria-hidden="true" />}
       <aside
@@ -346,7 +347,7 @@ export function WeekBoard({ week, cells, meals, history }: { week: string; cells
 
       <div className="flex min-w-0 flex-1 flex-col gap-2 pb-16 sm:pb-0">
         <PlanHint week={week} cells={shown} />
-        <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs" aria-busy={pending}>
+        <div className="grid grid-cols-[2.25rem_repeat(2,minmax(0,1fr))] gap-2 text-xs transition-opacity group-data-[loading]/swipe:opacity-50" aria-busy={pending}>
           <span />
           {SLOTS.map((s) => (
             <span key={s} className="px-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
