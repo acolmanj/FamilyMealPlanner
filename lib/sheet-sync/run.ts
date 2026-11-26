@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SLOTS, type Day, type Slot } from "../planner/rules";
-import { cellId, decideSync, type AppSlot, type SlotWrite, type SyncCell } from "./decide";
+import { cellId, decideSync, type AppRow, type SlotWrite, type SyncCell } from "./decide";
 import { downloadXlsx, getAccessToken, getFileInfo, parseServiceAccount, type ServiceAccount } from "./google";
 import { makeMatcher, type LibraryMeal } from "./match";
 import { inWindow, parseMenu, syncWindow, type SheetRow } from "./parse";
@@ -54,7 +54,7 @@ export type SyncResult = {
   error?: string;
 };
 
-type SlotRow = AppSlot & { week_start: string; day: Day; slot: Slot; meals: { name: string } | null };
+type SlotRow = AppRow & { week_start: string; day: Day; slot: Slot; meals: { name: string } | null };
 
 const empty = (dryRun: boolean, message: string): SyncResult => ({
   ok: true, dryRun, fileChanged: false, message, checked: 0, changed: 0, unchangedKept: 0, emptiedKept: 0, alreadySame: 0, failed: 0, unmatched: [], changes: [],
@@ -120,7 +120,7 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
         .returns<{ week_start: string; day: Day; slot: Slot; cell_text: string }[]>(),
       supabase
         .from("plan_slots")
-        .select("week_start, day, slot, meal_id, as_written, is_leftover, is_takeaway, meals(name)")
+        .select("week_start, day, slot, meal_id, as_written, is_leftover, is_takeaway, status, changed_by_user, meals(name)")
         .eq("household_id", hid)
         .in("week_start", weekStarts.length ? weekStarts : ["1900-01-01"])
         .in("slot", [...SLOTS])
@@ -131,11 +131,14 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
     const library = meals.data ?? [];
     const nameOf = new Map(library.map((m) => [m.id, m.name]));
     const match = makeMatcher(library);
-    const cells: SyncCell[] = weeks.flatMap((w) =>
-      w.cells.map((c) => ({ weekStart: w.weekStart, day: c.day, slot: c.slot, text: c.text, match: match(c.text) })),
-    );
     const snapshot = new Map((snap.data ?? []).map((r) => [cellId({ weekStart: r.week_start, day: r.day, slot: r.slot }), r.cell_text]));
     const app = new Map((slots.data ?? []).map((r) => [cellId({ weekStart: r.week_start, day: r.day, slot: r.slot }), r]));
+    const cells: SyncCell[] = weeks.flatMap((w) =>
+      w.cells.map((c) => {
+        const at = { weekStart: w.weekStart, day: c.day, slot: c.slot };
+        return { ...at, text: c.text, match: match(c.text, app.get(cellId(at))?.meal_id) };
+      }),
+    );
     const decision = decideSync(cells, snapshot, app);
 
     const describe = (w: SlotWrite): Change => {

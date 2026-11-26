@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getHousehold } from "@/lib/household";
 import { getMessages } from "@/lib/i18n/server";
 import type { Relaxed } from "@/lib/planner/generate";
-import { emptySlots, passedDays, planWeeks } from "@/lib/planner/plan";
+import { UNDOABLE, emptySlots, isTaken, passedDays, planWeeks } from "@/lib/planner/plan";
 import { DAYS, SLOTS, addDays, type Day, type PlanMeal, type Slot } from "@/lib/planner/rules";
 import { defaultWeek, dublinToday } from "@/lib/planner/week";
 import { loadWeeks } from "../week/load";
@@ -104,7 +104,7 @@ export async function planTheWeeks(seed: number): Promise<PlanSummary | Failure>
     .in("week_start", weeks)
     .returns<{ week_start: string; day: Day; slot: Slot; meal_id: string | null; as_written: string | null }[]>();
   if (readError) return { ok: false, error: t.plan.error };
-  const taken = new Set((now ?? []).filter((r) => r.meal_id || r.as_written).map((r) => `${r.week_start}-${r.day}-${r.slot}`));
+  const taken = new Set((now ?? []).filter(isTaken).map((r) => `${r.week_start}-${r.day}-${r.slot}`));
   const rows = proposed.filter((r) => !taken.has(`${r.week_start}-${r.day}-${r.slot}`));
   const skipped = proposed.length - rows.length;
   if (rows.length) {
@@ -145,8 +145,7 @@ export async function undoPlan(added: AddedCell[]): Promise<{ ok: true; removed:
       .eq("day", a.day)
       .eq("slot", a.slot)
       .eq("meal_id", a.mealId)
-      .eq("status", "proposed")
-      .eq("changed_by_user", false)
+      .match(UNDOABLE)
       .select("id");
     if (error) return { ok: false, error: t.plan.error };
     removed += data?.length ?? 0;

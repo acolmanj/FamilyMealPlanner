@@ -96,4 +96,25 @@ describe("matching a cell to a meal", () => {
     expect(similarity("salmon pancakes", "pancakes salmon")).toBe(1);
     expect(similarity("pasta", "pizza")).toBeLessThan(0.86);
   });
+
+  it("keeps the meal the app already has when the cell is a shorter name for it", () => {
+    const m = makeMatcher([
+      meal("amb", "Amburguesas", { name_en: "Burgers" }),
+      meal("kofta", "Lamb kofta burgers", { name_group: "Burgers" }),
+      meal("gnoquis", "Ensalada de gnoquis crujientes", { name_es: "Ensalada de ñoquis crujientes" }),
+      meal("verde", "Ensalada verde"),
+    ]);
+    // Two meals are called Burgers: the one already in the slot wins, otherwise no guess.
+    expect(m("Burgers", "amb")).toEqual({ kind: "meal", mealId: "amb", asWritten: "Burgers" });
+    expect(m("Burgers")).toMatchObject({ kind: "unmatched" });
+    expect(m("Ensalada de ñoquis", "gnoquis")).toMatchObject({ kind: "meal", mealId: "gnoquis" });
+    expect(m("Ensalada de ñoquis")).toMatchObject({ kind: "unmatched" });
+    // A cell with words the app's meal doesn't have stays unmatched.
+    expect(m("Ensalada verde y nachos con guacamole", "verde")).toMatchObject({ kind: "unmatched" });
+    expect(m("Chicken curry", "amb")).toMatchObject({ kind: "unmatched" });
+    // Only little words in common is not enough.
+    expect(m("con y de", "gnoquis")).toMatchObject({ kind: "unmatched" });
+    // A meal that is not in the list (deleted) is never kept.
+    expect(m("Burgers", "deleted")).toMatchObject({ kind: "unmatched" });
+  });
 });

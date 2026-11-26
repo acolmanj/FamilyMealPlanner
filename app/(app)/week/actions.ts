@@ -15,7 +15,7 @@ import { DAYS, SLOTS, type Day, type Slot } from "@/lib/planner/rules";
 type Result = { ok: true; adjustmentId?: string } | { ok: false; error: string };
 
 // What a slot held, so a clear can be undone.
-export type SlotContent = { meal_id: string | null; as_written: string | null; is_takeaway: boolean; status: string; why_line: string | null; changed_by_user?: boolean };
+export type SlotContent = { meal_id: string | null; as_written: string | null; is_takeaway: boolean; is_leftover?: boolean; status: string; why_line: string | null; changed_by_user?: boolean };
 
 const isWeek = (w: string) => /^\d{4}-\d{2}-\d{2}$/.test(w) && new Date(`${w}T00:00:00Z`).getUTCDay() === 1;
 const isCell = (d: string, s: string) => DAYS.includes(d as Day) && SLOTS.includes(s as Slot);
@@ -46,7 +46,7 @@ async function log(
 async function getSlot({ supabase, householdId }: Ctx, week: string, day: string, slot: string) {
   const { data } = await supabase
     .from("plan_slots")
-    .select("id, meal_id, as_written, is_takeaway, status, why_line, changed_by_user")
+    .select("id, meal_id, as_written, is_takeaway, is_leftover, status, why_line, changed_by_user")
     .eq("household_id", householdId)
     .eq("week_start", week)
     .eq("day", day)
@@ -60,12 +60,12 @@ async function writeSlot(
   week: string,
   day: string,
   slot: string,
-  values: { meal_id: string | null; as_written: string | null; is_takeaway?: boolean; status: string },
+  values: { meal_id: string | null; as_written: string | null; is_takeaway?: boolean; is_leftover?: boolean; status: string },
 ) {
   const { data, error } = await supabase
     .from("plan_slots")
     .upsert(
-      { household_id: householdId, week_start: week, day, slot, changed_by_user: true, is_takeaway: false, why_line: null, ...values },
+      { household_id: householdId, week_start: week, day, slot, changed_by_user: true, is_takeaway: false, is_leftover: false, why_line: null, ...values },
       { onConflict: "household_id,week_start,day,slot" },
     )
     .select("id")
@@ -109,15 +109,15 @@ export async function moveCell(week: string, from: { day: string; slot: string }
   const a = await getSlot(ctx, week, from.day, from.slot);
   const b = await getSlot(ctx, week, to.day, to.slot);
   if (!a?.meal_id && !a?.as_written) return { ok: false, error: (await say()).nothingToMove };
-  const empty = { meal_id: null, as_written: null, is_takeaway: false, status: "proposed" };
-  await writeSlot(ctx, week, to.day, to.slot, { meal_id: a.meal_id, as_written: a.as_written, is_takeaway: a.is_takeaway, status: "proposed" });
+  const empty = { meal_id: null, as_written: null, is_takeaway: false, is_leftover: false, status: "proposed" };
+  await writeSlot(ctx, week, to.day, to.slot, { meal_id: a.meal_id, as_written: a.as_written, is_takeaway: a.is_takeaway, is_leftover: a.is_leftover === true, status: "proposed" });
   await writeSlot(
     ctx,
     week,
     from.day,
     from.slot,
     b && (b.meal_id || b.as_written)
-      ? { meal_id: b.meal_id, as_written: b.as_written, is_takeaway: b.is_takeaway, status: "proposed" }
+      ? { meal_id: b.meal_id, as_written: b.as_written, is_takeaway: b.is_takeaway, is_leftover: b.is_leftover === true, status: "proposed" }
       : empty,
   );
   const adjustmentId = await log(ctx, { slot_id: a.id, action: "move", from_meal: a.meal_id, to_meal: b?.meal_id ?? null });
@@ -132,12 +132,12 @@ export async function clearCell(week: string, day: string, slot: string): Promis
   if (!s) return { ok: true };
   const { error } = await ctx.supabase
     .from("plan_slots")
-    .update({ meal_id: null, as_written: null, is_takeaway: false, status: "proposed", changed_by_user: true, why_line: null })
+    .update({ meal_id: null, as_written: null, is_takeaway: false, is_leftover: false, status: "proposed", changed_by_user: true, why_line: null })
     .eq("id", s.id);
   if (error) return { ok: false, error: error.message };
   const adjustmentId = await log(ctx, { slot_id: s.id, action: "remove", from_meal: s.meal_id });
   revalidatePath("/week");
-  const before: SlotContent = { meal_id: s.meal_id, as_written: s.as_written, is_takeaway: s.is_takeaway, status: s.status, why_line: s.why_line, changed_by_user: s.changed_by_user };
+  const before: SlotContent = { meal_id: s.meal_id, as_written: s.as_written, is_takeaway: s.is_takeaway, is_leftover: s.is_leftover, status: s.status, why_line: s.why_line, changed_by_user: s.changed_by_user };
   return { ok: true, adjustmentId, before };
 }
 
@@ -167,6 +167,7 @@ export async function restoreCell(week: string, day: string, slot: string, befor
       meal_id: str(before.meal_id),
       as_written: str(before.as_written),
       is_takeaway: before.is_takeaway === true,
+      is_leftover: before.is_leftover === true,
       status: ["proposed", "locked", "eaten"].includes(before.status) ? before.status : "proposed",
       why_line: str(before.why_line),
       changed_by_user: before.changed_by_user === true,

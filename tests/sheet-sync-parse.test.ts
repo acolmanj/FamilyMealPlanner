@@ -54,6 +54,16 @@ describe("sheet dates", () => {
     expect(findAnchor(["19/10/2026", "26/10/2026", "05/01/2026", "garbage"])).toEqual({ position: 1, weekStart: "2026-10-26" });
   });
 
+  it("skips a week copied with its label unchanged", () => {
+    // The new week at the bottom still says 23/11: dating from it would pull every week back one.
+    expect(findAnchor(["09/11/2026", "16/11/2026", "23/11/2026", "23/11/2026"])).toEqual({ position: 2, weekStart: "2026-11-23" });
+  });
+
+  it("is not thrown off by one wrong label further up", () => {
+    // 19/10 is a week too late for its place; the newest label still anchors.
+    expect(findAnchor(["05/10/2026", "19/10/2026", "19/10/2026", "26/10/2026", "02/11/2026"])).toEqual({ position: 4, weekStart: "2026-11-02" });
+  });
+
   it("finds no anchor when no label is a Monday", () => {
     expect(findAnchor(["17/08/2024", "0/01/2026", null])).toBeNull();
   });

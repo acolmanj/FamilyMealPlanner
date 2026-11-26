@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { WHY_LINE, cellId, decideSync, type AppSlot, type SyncCell } from "../lib/sheet-sync/decide";
+import { WHY_LINE, cellId, decideSync, type AppRow, type SyncCell } from "../lib/sheet-sync/decide";
+import { isTaken, isUndoable } from "../lib/planner/plan";
 import type { CellMatch } from "../lib/sheet-sync/match";
 
 const W = "2026-11-23";
@@ -9,9 +10,9 @@ const cell = (text: string, match: CellMatch, day: SyncCell["day"] = "mon", slot
 const meal = (id: string, asWritten: string): CellMatch => ({ kind: "meal", mealId: id, asWritten });
 const EMPTY: CellMatch = { kind: "empty", asWritten: null };
 const ID = cellId({ weekStart: W, day: "mon", slot: "lunch" });
-const appEdit: AppSlot = { meal_id: "app-meal", as_written: "Chosen in the app", is_leftover: false, is_takeaway: false };
+const appEdit: AppRow = { meal_id: "app-meal", as_written: "Chosen in the app", is_leftover: false, is_takeaway: false, changed_by_user: true, status: "proposed" };
 
-const run = (c: SyncCell, snapshot?: string, app?: AppSlot) =>
+const run = (c: SyncCell, snapshot?: string, app?: AppRow) =>
   decideSync([c], new Map(snapshot === undefined ? [] : [[ID, snapshot]]), new Map(app ? [[ID, app]] : []));
 
 describe("sheet sync rules", () => {
@@ -20,7 +21,7 @@ describe("sheet sync rules", () => {
     expect(d.slotWrites).toEqual([
       {
         weekStart: W, day: "mon", slot: "lunch", kind: "meal", reason: "new",
-        values: { meal_id: "pie", as_written: "Fish Pie", is_leftover: false, is_takeaway: false, status: "proposed", changed_by_user: false, why_line: WHY_LINE, from_freezer_id: null },
+        values: { meal_id: "pie", as_written: "Fish Pie", is_leftover: false, is_takeaway: false, status: "proposed", changed_by_user: true, why_line: WHY_LINE, from_freezer_id: null },
       },
     ]);
     expect(d.snapshotWrites).toEqual([{ weekStart: W, day: "mon", slot: "lunch", text: "Fish Pie" }]);
@@ -75,7 +76,7 @@ describe("sheet sync rules", () => {
   });
 
   it("skips a write when the app already shows the same thing", () => {
-    const same: AppSlot = { meal_id: "pie", as_written: "Fish Pie", is_leftover: false, is_takeaway: false };
+    const same: AppRow = { meal_id: "pie", as_written: "Fish Pie", is_leftover: false, is_takeaway: false, changed_by_user: true };
     const d = run(cell("Fish Pie", meal("pie", "Fish Pie")), undefined, same);
     expect(d.slotWrites).toEqual([]);
     expect(d.sameAsApp).toBe(1);
@@ -85,5 +86,39 @@ describe("sheet sync rules", () => {
   it("compares text exactly: a note added after the colon is a change", () => {
     const d = run(cell("Fish Pie: with peas", meal("pie", "Fish Pie")), "Fish Pie", appEdit);
     expect(d.slotWrites).toHaveLength(1);
+  });
+
+  it("writes a planner suggestion that already matches, so it becomes the family's", () => {
+    const planner: AppRow = { meal_id: "pie", as_written: "Fish Pie", is_leftover: false, is_takeaway: false, changed_by_user: false, status: "proposed" };
+    const d = run(cell("Fish Pie", meal("pie", "Fish Pie")), undefined, planner);
+    expect(d.slotWrites).toHaveLength(1);
+    expect(d.slotWrites[0].values.changed_by_user).toBe(true);
+  });
+
+  it("keeps a past week's eaten or locked mark", () => {
+    const eaten: AppRow = { ...appEdit, status: "eaten" };
+    expect(run(cell("Pizza", meal("pizza", "Pizza")), undefined, eaten).slotWrites[0].values.status).toBe("eaten");
+    expect(run(cell("Pizza", meal("pizza", "Pizza")), undefined, { ...appEdit, status: "locked" }).slotWrites[0].values.status).toBe("locked");
+    expect(run(cell("Pizza", meal("pizza", "Pizza")), undefined, appEdit).slotWrites[0].values.status).toBe("proposed");
+  });
+
+  it("Plan week never fills or undoes a slot the sheet wrote", () => {
+    const d = decideSync(
+      [
+        cell("Fish Pie", meal("pie", "Fish Pie"), "mon"),
+        cell("Sobras", { kind: "leftover", asWritten: "Sobras" }, "tue"),
+        cell("Take-away", { kind: "takeaway", asWritten: "Take-away" }, "wed"),
+        cell("Bainas con patatas", { kind: "unmatched", asWritten: "Bainas con patatas" }, "thu"),
+      ],
+      new Map(),
+      new Map(),
+    );
+    expect(d.slotWrites).toHaveLength(4);
+    for (const w of d.slotWrites) {
+      expect(isTaken(w.values)).toBe(true); // Plan week writes only into empty slots
+      expect(isUndoable(w.values)).toBe(false); // its Undo takes out only its own suggestions
+    }
+    // A planner suggestion is still undoable.
+    expect(isUndoable({ status: "proposed", changed_by_user: false })).toBe(true);
   });
 });

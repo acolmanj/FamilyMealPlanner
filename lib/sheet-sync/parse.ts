@@ -78,17 +78,20 @@ function findBlocks(rows: SheetRow[]): Block[] {
   return blocks;
 }
 
-// Labels are often wrong, but week order is reliable. Anchor on the last week's label when
-// it is a Monday; otherwise walk back to the newest Monday label that fits the order (every
-// earlier Monday label is at least that many weeks before it). Every other week is counted
-// from the anchor.
+// Labels are often wrong, but week order is reliable. Anchor on the newest Monday label that
+// fits the order: the nearest Monday label before it is at least that many weeks earlier.
+// So a week copied with its label unchanged (two 23/11 in a row) is skipped rather than
+// pulling every week back by one. Only the nearest label is checked, so one wrong label
+// further up can't push the anchor back. Every other week is counted from the anchor.
 export function findAnchor(labels: SheetValue[]): { position: number; weekStart: string } | null {
   const dates = labels.map(parseLabel);
+  const monday = (i: number) => (dates[i] && isMonday(dates[i]!) ? dates[i] : null);
   for (let i = dates.length - 1; i >= 0; i--) {
-    const d = dates[i];
-    if (!d || !isMonday(d)) continue;
-    const fits = dates.slice(0, i).every((e, k) => !e || !isMonday(e) || daysBetween(e, d) >= 7 * (i - k));
-    if (i === dates.length - 1 || fits) return { position: i, weekStart: d };
+    const d = monday(i);
+    if (!d) continue;
+    let k = i - 1;
+    while (k >= 0 && !monday(k)) k--;
+    if (k < 0 || daysBetween(monday(k)!, d) >= 7 * (i - k)) return { position: i, weekStart: d };
   }
   return null;
 }

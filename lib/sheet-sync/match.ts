@@ -64,7 +64,14 @@ export function similarity(a: string, b: string): number {
 export const FUZZY_MIN = 0.86; // a near-certain match only
 export const FUZZY_MARGIN = 0.06; // and clearly better than the next meal
 
-export type Matcher = (text: string) => CellMatch;
+// The app's own meal in a slot wins over "unmatched" when every word of the cell is in one of
+// that meal's names: the sheet says "Burgers" or "Ensalada de ñoquis" and the app already holds
+// "Amburguesas" (also called Burgers) or "Ensalada de gnoquis crujientes". It never picks a
+// meal the app did not already have there.
+const LITTLE_WORDS = new Set(["de", "del", "con", "y", "e", "a", "al", "la", "el", "los", "las", "en", "and", "with", "the", "of", "in"]);
+const words = (key: string) => key.split(" ").filter(Boolean);
+
+export type Matcher = (text: string, appMealId?: string | null) => CellMatch;
 
 export function makeMatcher(meals: LibraryMeal[]): Matcher {
   // Every name a meal goes by, normalised. Main names are tried before old variants.
@@ -73,11 +80,22 @@ export function makeMatcher(meals: LibraryMeal[]): Matcher {
   // Names without their bracketed notes: "Pisto con arroz (congelador)" is "Pisto con arroz".
   const bare = new Map<string, Set<string>>();
   const all: { id: string; key: string }[] = [];
+  const keysOf = new Map<string, Set<string>>();
   const add = (map: Map<string, Set<string>>, key: string, id: string) => {
     if (!key) return;
     if (!map.has(key)) map.set(key, new Set());
     map.get(key)!.add(id);
     all.push({ id, key });
+    if (!keysOf.has(id)) keysOf.set(id, new Set());
+    keysOf.get(id)!.add(key);
+  };
+  const appMealFits = (key: string, id: string) => {
+    const cellWords = words(key);
+    if (!cellWords.some((w) => !LITTLE_WORDS.has(w))) return false;
+    return [...(keysOf.get(id) ?? [])].some((k) => {
+      const names = new Set(words(k));
+      return cellWords.every((w) => names.has(w));
+    });
   };
   for (const m of meals) {
     const names = [m.name, m.name_group, m.name_en, m.name_es].filter((n): n is string => Boolean(n));
@@ -87,20 +105,22 @@ export function makeMatcher(meals: LibraryMeal[]): Matcher {
     for (const n of [...names, ...variants]) if (/\(.*\)/.test(n)) add(bare, normalise(n.replace(/\([^)]*\)/g, " ")), m.id);
   }
 
-  return (raw: string) => {
+  return (raw: string, appMealId?: string | null) => {
     const asWritten = cleanCell(raw);
     if (!asWritten) return { kind: "empty", asWritten: null };
     // Sobras is never a meal, whatever the library holds.
     if (isSobras(asWritten)) return { kind: "leftover", asWritten };
     if (isTakeaway(asWritten)) return { kind: "takeaway", asWritten };
     const key = normalise(asWritten);
+    const unmatched = (): CellMatch =>
+      appMealId && appMealFits(key, appMealId) ? { kind: "meal", mealId: appMealId, asWritten } : { kind: "unmatched", asWritten };
     // The whole name first, then without its bracketed note ("Pizza (cumple)" is "Pizza").
     for (const k of new Set([key, normalise(asWritten.replace(/\([^)]*\)/g, " "))])) {
       if (!k) continue;
       for (const map of [main, variant, bare]) {
         const ids = map.get(k);
         if (ids?.size === 1) return { kind: "meal", mealId: [...ids][0], asWritten };
-        if (ids && ids.size > 1) return { kind: "unmatched", asWritten }; // two meals share the name: don't guess
+        if (ids && ids.size > 1) return unmatched(); // two meals share the name: don't guess
       }
     }
     // No exact name: the best near match, if one meal clearly wins.
@@ -110,6 +130,6 @@ export function makeMatcher(meals: LibraryMeal[]): Matcher {
     const [first, second] = ranked;
     if (first && first[1] >= FUZZY_MIN && (!second || first[1] - second[1] >= FUZZY_MARGIN))
       return { kind: "meal", mealId: first[0], asWritten };
-    return { kind: "unmatched", asWritten };
+    return unmatched();
   };
 }

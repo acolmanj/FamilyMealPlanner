@@ -184,7 +184,7 @@ describe("a sync run", () => {
     expect(slots).toHaveLength(7);
     expect(slots.some((s) => s.week_start === "2026-10-26")).toBe(false);
     const at = (w: string, d: string, s: string) => slots.find((x) => x.week_start === w && x.day === d && x.slot === s);
-    expect(at("2026-11-16", "thu", "lunch")).toMatchObject({ meal_id: "pie", as_written: "Fish Pie", status: "proposed", changed_by_user: false, why_line: "From the family menu sheet" });
+    expect(at("2026-11-16", "thu", "lunch")).toMatchObject({ meal_id: "pie", as_written: "Fish Pie", status: "proposed", changed_by_user: true, why_line: "From the family menu sheet" });
     // A retired (deleted) meal is never matched.
     expect(at("2026-11-16", "mon", "lunch")).toMatchObject({ meal_id: null, as_written: "Lentils" });
     expect(at("2026-11-23", "mon", "dinner")).toMatchObject({ meal_id: null, is_leftover: true, as_written: "Sobras" });
