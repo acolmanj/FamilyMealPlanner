@@ -261,6 +261,23 @@ describe("a sync run", () => {
     expect(db.tables.sheet_sync_state[0].last_error).toMatch(/Could not find any week/);
   });
 
+  it("says in plain words when the sheet is not shared with the sync account, and writes nothing", async () => {
+    for (const [status, at] of [[404, "drive"], [403, "sheets"]] as const) {
+      const db = fakeDb({ meals: library() });
+      const f = (async (url: string) => {
+        if (String(url).includes("oauth2")) return Response.json({ access_token: "tok" });
+        const isSheets = String(url).startsWith("https://sheets.googleapis.com/");
+        if ((at === "sheets") === isSheets) return Response.json({ error: { code: status, message: "File not found" } }, { status });
+        return Response.json({ name: "Weekly Menu", modifiedTime: "2026-11-26T10:00:00.000Z" });
+      }) as typeof fetch;
+      const r = await runSync(opts(db, { f, calls: [] }));
+      expect(r.ok).toBe(false);
+      expect(r.error).toMatch(/Share the sheet with the sync's Google account \(.+@.+\)/);
+      expect(db.upserts.map((u) => u.table)).toEqual(["sheet_sync_state"]);
+      expect(db.tables.sheet_sync_state[0].file_modified_at).toBeUndefined();
+    }
+  });
+
   it("does not mention problems in old weeks outside the window", async () => {
     const db = fakeDb({ meals: library() });
     const old = [["Week of Monday 6 October 2026"], ["Week of Monday 6 October 2026"], ["Week of Tuesday 13 October 2026"], ...SHEET.slice(18, 27)];

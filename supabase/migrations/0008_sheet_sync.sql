@@ -1,4 +1,4 @@
--- Sync from the family menu sheet ("Menú Semanal.xlsx" in Google Drive).
+-- Sync from the family's "Weekly Menu" Google Sheet (its "Menu" tab).
 -- Safe to run more than once.
 
 -- What each sheet cell said at the last sync. A cell is only copied into plan_slots

@@ -91,7 +91,7 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
     if (stateError) throw new Error(`Reading the last sync: ${stateError.message}`);
 
     const token = await getAccessToken(o.settings.account, o.fetch);
-    const info = await getFileInfo(token, o.settings.fileId, o.fetch);
+    const info = await getFileInfo(token, o.settings.fileId, o.fetch, o.settings.account.client_email);
     const last = state?.file_modified_at ? Date.parse(state.file_modified_at) : null;
     // A dry run is a preview, so it always reads the file.
     if (!dryRun && !o.force && last !== null && Date.parse(info.modifiedTime) <= last) {
@@ -99,7 +99,7 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
       return { ...empty(dryRun, "The sheet has not changed since the last sync."), fileName: info.name, fileModifiedAt: info.modifiedTime };
     }
 
-    const rows = await getSheetValues(token, o.settings.fileId, MENU_RANGE, o.fetch);
+    const rows = await getSheetValues(token, o.settings.fileId, MENU_RANGE, o.fetch, o.settings.account.client_email);
     const parsed = parseMenu(rows);
     const window = syncWindow(o.today);
     const weeks = parsed.weeks.filter((w) => inWindow(w.weekStart, window));
