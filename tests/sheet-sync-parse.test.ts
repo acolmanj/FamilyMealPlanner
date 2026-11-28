@@ -1,107 +1,156 @@
-import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
-import { SheetError, findAnchor, inWindow, parseLabel, parseMenu, syncWindow, type SheetRow } from "../lib/sheet-sync/parse";
-import { readSheetRows } from "../lib/sheet-sync/xlsx";
+import { SheetError, inWindow, parseMenu, parseWeekHeader, syncWindow, type SheetRow } from "../lib/sheet-sync/parse";
 
-// A small made-up sheet in the family's layout. The real file is not in the repo.
-const HEADER: SheetRow = [null, null, "MONDAY ", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-const week = (label: SheetRow[0], lunch: string[], dinner: string[]): SheetRow[] => [
-  [label, "LUNCH", ...lunch],
-  [null, "DINNER", ...dinner],
-];
+// A small made-up "Menu" tab in the family's layout. The real sheet is not in the repo.
 const seven = (s: string) => Array.from({ length: 7 }, (_, i) => `${s} ${i + 1}`);
+const DAY_NAMES = ["", "Mon 23 Nov", "Tue 24 Nov", "Wed 25 Nov", "Thu 26 Nov", "Fri 27 Nov", "Sat 28 Nov", "Sun 29 Nov"];
+const week = (header: string, lunch: string[] | null, dinner: string[] | null): SheetRow[] => [
+  [header],
+  DAY_NAMES,
+  ...(lunch ? [["Lunch", ...lunch]] : []),
+  ...(dinner ? [["Dinner", ...dinner]] : []),
+  [],
+];
+const TOP: SheetRow[] = [["Weekly menu"], ["Write each meal in its box. Each week runs Monday to Sunday."], []];
+const text = (w: { cells: { day: string; slot: string; text: string }[] }, day: string, slot: string) =>
+  w.cells.find((c) => c.day === day && c.slot === slot)?.text;
 
-const TODAY = "2026-11-26"; // a Thursday; its week starts Monday 23 Nov
-
-function sheet(labels: SheetRow[0][]): SheetRow[] {
-  return [
-    ["WEEKLY MENU"],
-    HEADER,
-    ...labels.flatMap((l, i) => week(l, seven(`L${i}`), seven(`D${i}`))),
-    // Ideas and desserts after the last week: column B is empty.
-    [null, null, null, "Recetas con granada", "Dúrum kebab casero"],
-    [null, null, "Pastel de chocolate", "Lemon curd"],
-  ];
-}
-
-describe("sheet dates", () => {
-  it("reads dd/mm/yyyy text, real dates and Excel date numbers", () => {
-    expect(parseLabel("10/8/2026")).toBe("2026-08-10");
-    expect(parseLabel("17/08/2024")).toBe("2024-08-17");
-    expect(parseLabel("02/01/2026")).toBe("2026-01-02");
-    expect(parseLabel(new Date(Date.UTC(2026, 10, 23)))).toBe("2026-11-23");
-    expect(parseLabel(46349)).toBe("2026-11-23");
+describe("week headers", () => {
+  it("reads the date in the usual ways", () => {
+    expect(parseWeekHeader("Week of Monday 23 November 2026")).toBe("2026-11-23");
+    expect(parseWeekHeader("  week of MONDAY  2 november 2026 ")).toBe("2026-11-02");
+    expect(parseWeekHeader("Week of Mon 1 Mar 2027")).toBe("2027-03-01");
+    expect(parseWeekHeader("Week of 23 November 2026")).toBe("2026-11-23");
+    expect(parseWeekHeader("Week of 23/11/2026")).toBe("2026-11-23");
+    expect(parseWeekHeader("Week of Monday 7/12/2026")).toBe("2026-12-07");
   });
 
-  it("rejects labels that are not dates", () => {
-    expect(parseLabel("0/01/2026")).toBeNull();
-    expect(parseLabel("31/02/2026")).toBeNull();
-    expect(parseLabel("next week")).toBeNull();
-    expect(parseLabel(null)).toBeNull();
-    expect(parseLabel("")).toBeNull();
-  });
-
-  it("anchors on the last week when its label is a Monday", () => {
-    // The real sheet's labels, oldest first.
-    const labels = ["10/8/2026", "17/08/2024", "24/08/2024", "02/01/2026", "0/01/2026", "16/11/2026", "23/11/2026"];
-    expect(findAnchor(labels)).toEqual({ position: 6, weekStart: "2026-11-23" });
-  });
-
-  it("walks back past wrong labels to the newest Monday that fits the order", () => {
-    // 02/01/2026 is a Friday and 0/01/2026 is not a date: the anchor is 26/10.
-    expect(findAnchor(["19/10/2026", "26/10/2026", "02/01/2026", "0/01/2026"])).toEqual({ position: 1, weekStart: "2026-10-26" });
-    // 05/01/2026 is a Monday but comes after 26/10/2026 in the sheet, so it can't be right.
-    expect(findAnchor(["19/10/2026", "26/10/2026", "05/01/2026", "garbage"])).toEqual({ position: 1, weekStart: "2026-10-26" });
-  });
-
-  it("skips a week copied with its label unchanged", () => {
-    // The new week at the bottom still says 23/11: dating from it would pull every week back one.
-    expect(findAnchor(["09/11/2026", "16/11/2026", "23/11/2026", "23/11/2026"])).toEqual({ position: 2, weekStart: "2026-11-23" });
-  });
-
-  it("is not thrown off by one wrong label further up", () => {
-    // 19/10 is a week too late for its place; the newest label still anchors.
-    expect(findAnchor(["05/10/2026", "19/10/2026", "19/10/2026", "26/10/2026", "02/11/2026"])).toEqual({ position: 4, weekStart: "2026-11-02" });
-  });
-
-  it("finds no anchor when no label is a Monday", () => {
-    expect(findAnchor(["17/08/2024", "0/01/2026", null])).toBeNull();
+  it("gives no date for headers it can't read", () => {
+    expect(parseWeekHeader("Week of Monday 31 February 2026")).toBeNull();
+    expect(parseWeekHeader("Week of Monday 23 Novembre 2026")).toBeNull();
+    expect(parseWeekHeader("Week of next Monday")).toBeNull();
+    expect(parseWeekHeader("Weekly menu")).toBeNull();
   });
 });
 
-describe("sheet blocks", () => {
-  it("dates every week from the anchor and ignores the ideas rows", () => {
-    const parsed = parseMenu(sheet(["10/8/2026", "17/08/2024", "02/01/2026", "0/01/2026", new Date(Date.UTC(2026, 10, 16)), "23/11/2026"]), TODAY);
-    expect(parsed.weeks.map((w) => w.weekStart)).toEqual(["2026-10-19", "2026-10-26", "2026-11-02", "2026-11-09", "2026-11-16", "2026-11-23"]);
-    expect(parsed.anchor).toMatchObject({ position: 5, weekStart: "2026-11-23" });
-    const last = parsed.weeks[5];
+describe("the Menu tab", () => {
+  it("reads each week block by its header date", () => {
+    const rows = [
+      ...TOP,
+      ...week("Week of Monday 16 November 2026", seven("L16"), seven("D16")),
+      ...week("Week of Monday 23 November 2026", seven("L23"), seven("D23")),
+    ];
+    const { weeks, problems } = parseMenu(rows);
+    expect(problems).toEqual([]);
+    expect(weeks.map((w) => w.weekStart)).toEqual(["2026-11-16", "2026-11-23"]);
+    const last = weeks[1];
     expect(last.cells).toHaveLength(14);
-    expect(last.cells[0]).toEqual({ day: "mon", slot: "lunch", text: "L5 1" });
-    expect(last.cells[13]).toEqual({ day: "sun", slot: "dinner", text: "D5 7" });
-    expect(parsed.weeks.flatMap((w) => w.cells).some((c) => /granada|Lemon/.test(c.text))).toBe(false);
+    expect(last.cells[0]).toEqual({ day: "mon", slot: "lunch", text: "L23 1" });
+    expect(last.cells[13]).toEqual({ day: "sun", slot: "dinner", text: "D23 7" });
+    // The day names row and the title are never read as meals.
+    expect(weeks.flatMap((w) => w.cells).some((c) => /Nov|Weekly|Write/.test(c.text))).toBe(false);
   });
 
-  it("keeps empty cells as empty text", () => {
-    const rows: SheetRow[] = [HEADER, ["23/11/2026", "LUNCH", "Pasta", null, "  "], [null, "DINNER"]];
-    const cells = parseMenu(rows, TODAY).weeks[0].cells;
-    expect(cells.map((c) => c.text)).toEqual(["Pasta", ...Array(13).fill("")]);
+  it("is fine with extra blank rows and short rows", () => {
+    const rows: SheetRow[] = [
+      ...TOP,
+      [],
+      ["Week of Monday 23 November 2026"],
+      [],
+      DAY_NAMES,
+      [""],
+      ["Lunch", "Pasta boloñesa", "", "  Curry  con lentejas "],
+      [],
+      [],
+      ["Dinner"],
+    ];
+    const [w] = parseMenu(rows).weeks;
+    expect(w.cells.map((c) => c.text)).toEqual(["Pasta boloñesa", "", "Curry con lentejas", ...Array(11).fill("")]);
   });
 
-  it("stops when the dates are too far from today", () => {
-    expect(() => parseMenu(sheet(["14/12/2026", "21/12/2026"]), TODAY)).toThrow(SheetError); // 25 days ahead
-    expect(() => parseMenu(sheet(["21/09/2026", "28/09/2026"]), TODAY)).toThrow(/too far/); // 59 days back
-    expect(parseMenu(sheet(["14/12/2026"]), TODAY).anchor.weekStart).toBe("2026-12-14"); // 18 days ahead is fine
-    expect(parseMenu(sheet(["05/10/2026"]), TODAY).anchor.weekStart).toBe("2026-10-05"); // 52 days back is fine
+  it("reads Lunch and Dinner in either order", () => {
+    const rows: SheetRow[] = [["Week of Monday 23 November 2026"], DAY_NAMES, ["dinner", ...seven("D")], ["LUNCH ", ...seven("L")]];
+    const [w] = parseMenu(rows).weeks;
+    expect(text(w, "mon", "lunch")).toBe("L 1");
+    expect(text(w, "sun", "dinner")).toBe("D 7");
   });
 
-  it("stops when no week can be dated or the layout is wrong", () => {
-    expect(() => parseMenu(sheet(["0/01/2026", "02/01/2026"]), TODAY)).toThrow(/can't be dated/);
-    expect(() => parseMenu([["23/11/2026", "LUNCH", "Pasta"]], TODAY)).toThrow(/MONDAY/);
-    expect(() => parseMenu([HEADER], TODAY)).toThrow(/no LUNCH/);
+  it("counts a missing Dinner row as empty cells", () => {
+    const [w] = parseMenu(week("Week of Monday 23 November 2026", seven("L"), null)).weeks;
+    expect(w.cells.filter((c) => c.slot === "dinner").map((c) => c.text)).toEqual(Array(7).fill(""));
+    expect(text(w, "fri", "lunch")).toBe("L 5");
+  });
+
+  it("skips a week whose header is not a Monday, and still reads the others", () => {
+    const rows = [
+      ...TOP,
+      ...week("Week of Monday 16 November 2026", seven("L16"), seven("D16")),
+      ...week("Week of Monday 24 November 2026", seven("Lx"), seven("Dx")),
+      ...week("Week of Monday 30 November 2026", seven("L30"), seven("D30")),
+    ];
+    const { weeks, problems } = parseMenu(rows);
+    expect(weeks.map((w) => w.weekStart)).toEqual(["2026-11-16", "2026-11-30"]);
+    expect(weeks.flatMap((w) => w.cells).some((c) => c.text.startsWith("Lx"))).toBe(false);
+    expect(problems).toEqual([
+      { weekStart: "2026-11-23", message: "Week header 'Week of Monday 24 November 2026' (row 9) is not a Monday, so that week was skipped" },
+    ]);
+  });
+
+  it("skips a header with a date it can't read, without mixing its meals into the week before", () => {
+    const rows = [...week("Week of Monday 16 November 2026", seven("L16"), seven("D16")), ...week("Week of Monday 23 Novembre 2026", seven("Lx"), seven("Dx"))];
+    const { weeks, problems } = parseMenu(rows);
+    expect(weeks).toHaveLength(1);
+    expect(text(weeks[0], "mon", "lunch")).toBe("L16 1");
+    expect(problems[0]).toEqual({ weekStart: null, message: expect.stringMatching(/'Week of Monday 23 Novembre 2026' \(row 6\) has a date that can't be read/) });
+  });
+
+  it("skips every copy of a week that appears twice", () => {
+    // A block copied to add a week, with its date not changed yet.
+    const rows = [
+      ...week("Week of Monday 16 November 2026", seven("L16"), seven("D16")),
+      ...week("Week of Monday 23 November 2026", seven("L23"), seven("D23")),
+      ...week("Week of Monday 23 November 2026", seven("Lcopy"), seven("Dcopy")),
+    ];
+    const { weeks, problems } = parseMenu(rows);
+    expect(weeks.map((w) => w.weekStart)).toEqual(["2026-11-16"]);
+    expect(problems).toEqual([
+      {
+        weekStart: "2026-11-23",
+        message: "There are 2 weeks for Monday 23 November 2026 (rows 6 and 11), so that week was skipped. Change the date in the copied week.",
+      },
+    ]);
+  });
+
+  it("reads only the first of two Lunch rows in a week, and says so", () => {
+    const rows: SheetRow[] = [["Week of Monday 23 November 2026"], ["Lunch", "First"], ["Lunch", "Second"], ["Dinner", "Pizza"]];
+    const { weeks, problems } = parseMenu(rows);
+    expect(text(weeks[0], "mon", "lunch")).toBe("First");
+    expect(problems.map((p) => p.message)).toEqual(["The week of Monday 23 November 2026 (row 1) has more than one Lunch row, so only the first one was read"]);
+  });
+
+  it("ignores rows before the first week and anything that is not Lunch or Dinner", () => {
+    // Ideas live on their own tab, which the sync never asks Google for; notes typed
+    // under a week here are not meals either.
+    const rows: SheetRow[] = [
+      ["Lunch", "Not in a week"],
+      ...week("Week of Monday 23 November 2026", seven("L"), seven("D")),
+      ["Ideas", "Recetas con granada", "Dúrum kebab casero"],
+      ["", "Pastel de chocolate", "Lemon curd"],
+    ];
+    const { weeks } = parseMenu(rows);
+    expect(weeks).toHaveLength(1);
+    expect(weeks[0].cells.some((c) => /Not in a week|granada|chocolate|Lemon/.test(c.text))).toBe(false);
+  });
+
+  it("stops when there is no week at all", () => {
+    expect(() => parseMenu([...TOP, ["Lunch", "Pasta"]])).toThrow(SheetError);
+    expect(() => parseMenu([])).toThrow(/Week of Monday 23 November 2026/);
   });
 });
 
 describe("weeks that sync", () => {
+  const TODAY = "2026-11-26"; // a Thursday; its week starts Monday 23 Nov
+
   it("runs from three weeks back to four weeks ahead of this week", () => {
     const w = syncWindow(TODAY);
     expect(w).toEqual({ from: "2026-11-02", to: "2026-12-21" });
@@ -115,29 +164,11 @@ describe("weeks that sync", () => {
     expect(syncWindow("2026-11-29").from).toBe("2026-11-02");
     expect(syncWindow("2026-11-30").from).toBe("2026-11-09");
   });
-});
 
-describe("reading an .xlsx file", () => {
-  it("turns rich text, links, formulas and dates into plain values", async () => {
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet("Sheet1");
-    ws.addRow(["WEEKLY MENU"]);
-    ws.addRow(HEADER);
-    ws.addRow([{ formula: "DATE(2026,11,16)", result: new Date(Date.UTC(2026, 10, 16)) }, "LUNCH", "Fish Pie"]);
-    ws.addRow([null, "DINNER", { richText: [{ text: "Crema de zanahoria" }, { text: "https://elpais.com/x" }] }]);
-    ws.addRow(["23/11/2026", "LUNCH", null, "Curry con lentejas"]);
-    ws.addRow([null, "DINNER", { text: "Ensalada de gnoquis", hyperlink: "https://elpais.com/y" }]);
-    ws.addRow([]);
-    ws.addRow([null, null, "Banana bread"]);
-    const data = Buffer.from(await wb.xlsx.writeBuffer());
-
-    const rows = await readSheetRows(data);
-    const parsed = parseMenu(rows, TODAY);
-    expect(parsed.weeks.map((w) => w.weekStart)).toEqual(["2026-11-16", "2026-11-23"]);
-    const text = (i: number, day: string, slot: string) => parsed.weeks[i].cells.find((c) => c.day === day && c.slot === slot)?.text;
-    expect(text(0, "mon", "lunch")).toBe("Fish Pie");
-    expect(text(0, "mon", "dinner")).toBe("Crema de zanahoriahttps://elpais.com/x");
-    expect(text(1, "tue", "lunch")).toBe("Curry con lentejas");
-    expect(text(1, "mon", "dinner")).toBe("Ensalada de gnoquis");
+  it("keeps only the parsed weeks inside the window", () => {
+    const headers = ["26 October", "2 November", "21 December", "28 December"].map((d) => `Week of Monday ${d} 2026`);
+    const { weeks } = parseMenu(headers.flatMap((h) => week(h, seven("L"), seven("D"))));
+    const w = syncWindow(TODAY);
+    expect(weeks.filter((x) => inWindow(x.weekStart, w)).map((x) => x.weekStart)).toEqual(["2026-11-02", "2026-12-21"]);
   });
 });

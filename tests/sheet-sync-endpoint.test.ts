@@ -5,7 +5,6 @@ import { PGlite } from "@electric-sql/pglite";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseServiceAccount, signJwt } from "../lib/sheet-sync/google";
-import type { SheetRow } from "../lib/sheet-sync/parse";
 import { SHEET_HOUSEHOLD_ID, bearerMatches, runSync, sheetSyncSettings, type SyncSettings } from "../lib/sheet-sync/run";
 
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -22,7 +21,7 @@ describe("sheet sync settings", () => {
     expect(sheetSyncSettings({ GOOGLE_SERVICE_ACCOUNT_JSON: KEY_JSON })).toBeNull();
     expect(sheetSyncSettings({ SHEET_SYNC_SECRET: "s", GOOGLE_SERVICE_ACCOUNT_JSON: "not json" })).toBeNull();
     const on = sheetSyncSettings({ SHEET_SYNC_SECRET: "s", GOOGLE_SERVICE_ACCOUNT_JSON: KEY_JSON });
-    expect(on?.fileId).toBe("1nX1VREv-8kqeDtTbLRbI2VhkRkpQwLm6");
+    expect(on?.fileId).toBe("1ID3hf0eSLux3TiLlOUTdVNREMbuQWfdTP3yBYXGEWvU");
     expect(sheetSyncSettings({ SHEET_SYNC_SECRET: "s", GOOGLE_SERVICE_ACCOUNT_JSON: KEY_JSON, SHEET_SYNC_FILE_ID: "other" })?.fileId).toBe("other");
   });
 
@@ -46,7 +45,7 @@ describe("sheet sync settings", () => {
     const claims = JSON.parse(Buffer.from(c, "base64url").toString());
     expect(claims).toMatchObject({
       iss: "menu-reader@example.iam.gserviceaccount.com",
-      scope: "https://www.googleapis.com/auth/drive.readonly",
+      scope: "https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.metadata.readonly",
       aud: "https://oauth2.googleapis.com/token",
       exp: 1_700_003_600,
     });
@@ -124,34 +123,55 @@ function fakeDb(tables: Record<string, Row[]>, failSlot?: (r: Row) => boolean) {
   return { client: { from } as unknown as SupabaseClient, upserts, tables };
 }
 
-const HEADER: SheetRow = [null, null, "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
-const SHEET: SheetRow[] = [
-  HEADER,
-  ["26/10/2026", "LUNCH", "Old week"], // history: outside the weeks that sync
-  [null, "DINNER"],
-  ["02/11/2026", "LUNCH"],
-  [null, "DINNER"],
-  ["0/01/2026", "LUNCH"], // a wrong label: dated by its place, 9 Nov
-  [null, "DINNER"],
-  ["16/11/2026", "LUNCH", "Lentils", null, null, "Fish Pie"],
-  [null, "DINNER", "Salchichas"],
-  ["23/11/2026", "LUNCH", "Pasta boloñesa", "Curry con lentejas"],
-  [null, "DINNER", "Sobras", null, "Bainas con patatas"],
-  [null, null, "Banana bread"],
+// The "Menu" tab as the Sheets API gives it: text only, blank cells at the end of a row left out.
+const days = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const SHEET: string[][] = [
+  ["Weekly menu"],
+  ["Write each meal in its box. Each week runs Monday to Sunday."],
+  [],
+  ["Week of Monday 26 October 2026"], // history: outside the weeks that sync
+  days,
+  ["Lunch", "Old week"],
+  ["Dinner"],
+  [],
+  ["Week of Monday 2 November 2026"],
+  days,
+  ["Lunch"],
+  ["Dinner"],
+  [],
+  ["Week of Monday 9 November 2026"],
+  days,
+  ["Lunch"],
+  ["Dinner"],
+  [],
+  ["Week of Monday 16 November 2026"],
+  days,
+  ["Lunch", "Lentils", "", "", "Fish Pie"],
+  ["Dinner", "Salchichas"],
+  [],
+  ["Week of Monday 23 November 2026"],
+  days,
+  ["Lunch", "Pasta boloñesa", "Curry con lentejas"],
+  ["Dinner", "Sobras", "", "Bainas con patatas"],
+  [],
+  ["Week of Monday 1 December 2026"], // a Tuesday: skipped and listed as a problem
+  days,
+  ["Lunch", "Pizza"],
 ];
 
 const settings: SyncSettings = { secret: "s", account: parseServiceAccount(KEY_JSON)!, fileId: "file1" };
 
-function fakeDrive(modifiedTime = "2026-11-26T10:00:00.000Z") {
+function fakeDrive(modifiedTime = "2026-11-26T10:00:00.000Z", values: string[][] = SHEET) {
   const calls: string[] = [];
   const f = (async (url: string) => {
     calls.push(String(url));
     if (String(url).includes("oauth2")) return Response.json({ access_token: "tok" });
-    if (String(url).includes("alt=media")) return new Response(new Uint8Array([1, 2, 3]));
-    return Response.json({ name: "Menú Semanal.xlsx", modifiedTime, mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    if (String(url).startsWith("https://sheets.googleapis.com/")) return Response.json({ range: "Menu!A1:H31", majorDimension: "ROWS", values });
+    return Response.json({ name: "Weekly Menu", modifiedTime });
   }) as typeof fetch;
   return { f, calls };
 }
+const readsSheet = (calls: string[]) => calls.some((u) => u.startsWith("https://sheets.googleapis.com/"));
 
 const library = () => [
   { id: "pie", household_id: SHEET_HOUSEHOLD_ID, name: "Pastel de pescado", name_group: "Pastel de pescado", name_en: "Fish pie", name_es: null, variants_seen: [], retired: false, blacklisted: false },
@@ -168,7 +188,6 @@ const opts = (db: ReturnType<typeof fakeDb>, drive: ReturnType<typeof fakeDrive>
   dryRun: false,
   force: false,
   fetch: drive.f,
-  readRows: async () => SHEET,
   ...extra,
 });
 
@@ -179,6 +198,11 @@ describe("a sync run", () => {
     const r = await runSync(opts(db, drive));
     expect(r.ok).toBe(true);
     expect(r.weeks).toEqual(["2026-11-02", "2026-11-09", "2026-11-16", "2026-11-23"]);
+    // Only the Menu tab is asked for, so the Ideas tab is never read.
+    expect(drive.calls).toContain("https://sheets.googleapis.com/v4/spreadsheets/file1/values/Menu!A1%3AH?valueRenderOption=FORMATTED_VALUE");
+    expect(drive.calls).toContain("https://www.googleapis.com/drive/v3/files/file1?fields=modifiedTime,name&supportsAllDrives=true");
+    expect(r.problems).toEqual(["Week header 'Week of Monday 1 December 2026' (row 29) is not a Monday, so that week was skipped"]);
+    expect(r.message).toMatch(/1 problem/);
     expect(r.checked).toBe(56);
     const slots = db.tables.plan_slots;
     expect(slots).toHaveLength(7);
@@ -193,12 +217,12 @@ describe("a sync run", () => {
     expect(db.tables.sheet_sync_state[0]).toMatchObject({ file_modified_at: "2026-11-26T10:00:00.000Z", last_error: null });
   });
 
-  it("does not download the file when Drive says it has not changed", async () => {
+  it("does not read the sheet when Drive says it has not changed", async () => {
     const db = fakeDb({ meals: library(), sheet_sync_state: [{ household_id: SHEET_HOUSEHOLD_ID, file_modified_at: "2026-11-26T10:00:00.000Z" }] });
     const drive = fakeDrive("2026-11-26T10:00:00.000Z");
     const r = await runSync(opts(db, drive));
     expect(r).toMatchObject({ ok: true, fileChanged: false, changed: 0 });
-    expect(drive.calls.some((u) => u.includes("alt=media"))).toBe(false);
+    expect(readsSheet(drive.calls)).toBe(false);
     expect(db.upserts.map((u) => u.table)).toEqual(["sheet_sync_state"]);
     // force=1 reads it anyway.
     const forced = await runSync(opts(db, drive, { force: true }));
@@ -228,13 +252,22 @@ describe("a sync run", () => {
     expect(db.tables.sheet_sync_state[0].last_error).toMatch(/write refused/);
   });
 
-  it("stops and writes nothing to the plan when the weeks can't be dated", async () => {
+  it("stops and writes nothing to the plan when the sheet has no weeks", async () => {
     const db = fakeDb({ meals: library() });
-    const r = await runSync(opts(db, fakeDrive(), { readRows: async () => [HEADER, ["0/01/2026", "LUNCH", "Pizza"]] }));
+    const r = await runSync(opts(db, fakeDrive(undefined, [["Weekly menu"], ["Lunch", "Pizza"]])));
     expect(r.ok).toBe(false);
-    expect(r.error).toMatch(/can't be dated/);
+    expect(r.error).toMatch(/Could not find any week/);
     expect(db.upserts.map((u) => u.table)).toEqual(["sheet_sync_state"]);
-    expect(db.tables.sheet_sync_state[0].last_error).toMatch(/can't be dated/);
+    expect(db.tables.sheet_sync_state[0].last_error).toMatch(/Could not find any week/);
+  });
+
+  it("does not mention problems in old weeks outside the window", async () => {
+    const db = fakeDb({ meals: library() });
+    const old = [["Week of Monday 6 October 2026"], ["Week of Monday 6 October 2026"], ["Week of Tuesday 13 October 2026"], ...SHEET.slice(18, 27)];
+    const r = await runSync(opts(db, fakeDrive(undefined, old)));
+    expect(r.ok).toBe(true);
+    expect(r.problems).toEqual([]);
+    expect(r.weeks).toEqual(["2026-11-16", "2026-11-23"]);
   });
 });
 

@@ -5,10 +5,10 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL, isSupabaseConfigured } from "@/lib/env
 import { dublinToday } from "@/lib/planner/week";
 import { SHEET_HOUSEHOLD_ID, bearerMatches, runSync, sheetSyncSettings } from "@/lib/sheet-sync/run";
 
-// Copies the family menu sheet from Google Drive into the plan. Called every 15 minutes
+// Copies the family's "Weekly Menu" Google Sheet into the plan. Called every 15 minutes
 // by .github/workflows/sheet-sync.yml. POST only, with "Authorization: Bearer <SHEET_SYNC_SECRET>".
 //   ?dryRun=1  work out the changes and return them, saving nothing
-//   ?force=1   read the file even if Drive says it has not changed
+//   ?force=1   read the sheet even if Drive says it has not changed
 // A deployment without the sheet settings (the friend family's copy) answers 404 and does nothing.
 
 export const runtime = "nodejs";
@@ -49,7 +49,6 @@ export async function POST(request: NextRequest) {
       today: dublinToday(),
       dryRun: flag(params.get("dryRun")),
       force: flag(params.get("force")),
-      readRows: async (data) => (await import("@/lib/sheet-sync/xlsx")).readSheetRows(data),
     });
     return NextResponse.json({ enabled: true, ...result }, { status: result.ok ? 200 : 422 });
   } finally {

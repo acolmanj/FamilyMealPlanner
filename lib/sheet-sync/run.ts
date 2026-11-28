@@ -2,14 +2,16 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SLOTS, type Day, type Slot } from "../planner/rules";
 import { cellId, decideSync, type AppRow, type SlotWrite, type SyncCell } from "./decide";
-import { downloadXlsx, getAccessToken, getFileInfo, parseServiceAccount, type ServiceAccount } from "./google";
+import { getAccessToken, getFileInfo, getSheetValues, parseServiceAccount, type ServiceAccount } from "./google";
 import { makeMatcher, type LibraryMeal } from "./match";
-import { inWindow, parseMenu, syncWindow, type SheetRow } from "./parse";
+import { inWindow, parseMenu, syncWindow } from "./parse";
 
-// One sync run: check the Drive file, and if it changed copy the menu into plan_slots.
+// One sync run: check the Google Sheet, and if it changed copy the menu into plan_slots.
 // The endpoint (app/api/sheet-sync/route.ts) handles sign-in; this does the work.
 
-export const DEFAULT_FILE_ID = "1nX1VREv-8kqeDtTbLRbI2VhkRkpQwLm6";
+// The family's "Weekly Menu" Google Sheet. Only its "Menu" tab is read ("Ideas" is not).
+export const DEFAULT_FILE_ID = "1ID3hf0eSLux3TiLlOUTdVNREMbuQWfdTP3yBYXGEWvU";
+export const MENU_RANGE = "Menu!A1:H";
 // The only household this sync may write to (the family's, from the seed).
 export const SHEET_HOUSEHOLD_ID = "00000000-0000-4000-8000-000000000001";
 
@@ -50,6 +52,8 @@ export type SyncResult = {
   alreadySame: number;
   failed: number;
   unmatched: Unmatched[];
+  // Weeks in the sheet that were skipped or only partly read, in plain words.
+  problems: string[];
   changes: Change[];
   error?: string;
 };
@@ -57,7 +61,7 @@ export type SyncResult = {
 type SlotRow = AppRow & { week_start: string; day: Day; slot: Slot; meals: { name: string } | null };
 
 const empty = (dryRun: boolean, message: string): SyncResult => ({
-  ok: true, dryRun, fileChanged: false, message, checked: 0, changed: 0, unchangedKept: 0, emptiedKept: 0, alreadySame: 0, failed: 0, unmatched: [], changes: [],
+  ok: true, dryRun, fileChanged: false, message, checked: 0, changed: 0, unchangedKept: 0, emptiedKept: 0, alreadySame: 0, failed: 0, unmatched: [], problems: [], changes: [],
 });
 
 export type RunOptions = {
@@ -68,8 +72,6 @@ export type RunOptions = {
   dryRun: boolean;
   force: boolean;
   fetch?: typeof fetch;
-  // Reads the downloaded file. Passed in so the xlsx reader loads only when a file is read.
-  readRows: (data: Buffer) => Promise<SheetRow[]>;
 };
 
 export async function runSync(o: RunOptions): Promise<SyncResult> {
@@ -97,10 +99,13 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
       return { ...empty(dryRun, "The sheet has not changed since the last sync."), fileName: info.name, fileModifiedAt: info.modifiedTime };
     }
 
-    const rows = await o.readRows(await downloadXlsx(token, o.settings.fileId, info.mimeType, o.fetch));
-    const parsed = parseMenu(rows, o.today);
+    const rows = await getSheetValues(token, o.settings.fileId, MENU_RANGE, o.fetch);
+    const parsed = parseMenu(rows);
     const window = syncWindow(o.today);
     const weeks = parsed.weeks.filter((w) => inWindow(w.weekStart, window));
+    // Problems in old history weeks are not worth mentioning on every run.
+    const problems = parsed.problems.filter((p) => p.weekStart === null || inWindow(p.weekStart, window)).map((p) => p.message);
+    const skippedNote = problems.length ? ` ${problems.length === 1 ? "There is 1 problem" : `There are ${problems.length} problems`} in the sheet: see "problems".` : "";
     const weekStarts = weeks.map((w) => w.weekStart);
 
     const [meals, snap, slots] = await Promise.all([
@@ -167,6 +172,7 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
       emptiedKept: decision.emptied,
       alreadySame: decision.sameAsApp,
       unmatched,
+      problems,
     };
 
     if (dryRun) {
@@ -177,7 +183,7 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
         changed: changes.length,
         failed: 0,
         changes,
-        message: `Dry run: ${changes.length} of ${cells.length} slots would change. Nothing was saved.`,
+        message: `Dry run: ${changes.length} of ${cells.length} slots would change. Nothing was saved.${skippedNote}`,
       };
     }
 
@@ -210,7 +216,7 @@ export async function runSync(o: RunOptions): Promise<SyncResult> {
       failed: failed.size,
       changes: written,
       message: ok
-        ? `Synced: ${written.length} of ${cells.length} slots changed.`
+        ? `Synced: ${written.length} of ${cells.length} slots changed.${skippedNote}`
         : `Synced with problems: ${written.length} slots changed, ${failed.size} could not be saved.`,
       ...(ok ? {} : { error: errors.join("; ") }),
     };

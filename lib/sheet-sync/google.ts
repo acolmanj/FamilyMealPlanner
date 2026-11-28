@@ -1,16 +1,16 @@
 import { createSign } from "node:crypto";
 
-// Reads one file from Google Drive as a service account. The account only has view access
-// to the shared file. No Google SDK: a signed JWT is swapped for an access token.
+// Reads the family's Google Sheet as a service account. The account only has view access
+// to the shared sheet. No Google SDK: a signed JWT is swapped for an access token.
 
 export type ServiceAccount = { client_email: string; private_key: string };
 type Fetch = typeof fetch;
 
-const SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+// Read the sheet's cells, and read the file's name and last-changed time from Drive.
+const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly https://www.googleapis.com/auth/drive.metadata.readonly";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const DRIVE = "https://www.googleapis.com/drive/v3/files";
-const GOOGLE_SHEET = "application/vnd.google-apps.spreadsheet";
-const XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const SHEETS = "https://sheets.googleapis.com/v4/spreadsheets";
 
 // The key JSON from the Google Cloud console, or null when it is missing or not a key.
 export function parseServiceAccount(json: string | undefined): ServiceAccount | null {
@@ -57,23 +57,21 @@ export async function getAccessToken(key: ServiceAccount, f: Fetch = fetch): Pro
   return data.access_token;
 }
 
-export type DriveFile = { name: string; modifiedTime: string; mimeType?: string };
+export type DriveFile = { name: string; modifiedTime: string };
 
 export async function getFileInfo(token: string, fileId: string, f: Fetch = fetch): Promise<DriveFile> {
-  const url = `${DRIVE}/${encodeURIComponent(fileId)}?fields=modifiedTime,name,mimeType&supportsAllDrives=true`;
+  const url = `${DRIVE}/${encodeURIComponent(fileId)}?fields=modifiedTime,name&supportsAllDrives=true`;
   const res = await f(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(10_000) });
   if (!res.ok) await fail("Reading the file details from Google Drive", res);
   return (await res.json()) as DriveFile;
 }
 
-// The file as .xlsx. A file that was turned into a Google Sheet is exported as .xlsx instead.
-export async function downloadXlsx(token: string, fileId: string, mimeType: string | undefined, f: Fetch = fetch): Promise<Buffer> {
-  const id = encodeURIComponent(fileId);
-  const url =
-    mimeType === GOOGLE_SHEET
-      ? `${DRIVE}/${id}/export?mimeType=${encodeURIComponent(XLSX)}`
-      : `${DRIVE}/${id}?alt=media&supportsAllDrives=true`;
+// The cells of one range as the sheet shows them, row by row. Google leaves out blank
+// rows at the end and blank cells at the end of a row.
+export async function getSheetValues(token: string, sheetId: string, range: string, f: Fetch = fetch): Promise<string[][]> {
+  const url = `${SHEETS}/${encodeURIComponent(sheetId)}/values/${encodeURIComponent(range)}?valueRenderOption=FORMATTED_VALUE`;
   const res = await f(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store", signal: AbortSignal.timeout(20_000) });
-  if (!res.ok) await fail("Downloading the file from Google Drive", res);
-  return Buffer.from(await res.arrayBuffer());
+  if (!res.ok) await fail("Reading the sheet from Google Sheets", res);
+  const data = (await res.json()) as { values?: unknown[][] };
+  return (data.values ?? []).map((row) => (Array.isArray(row) ? row.map((v) => (v == null ? "" : String(v))) : []));
 }
