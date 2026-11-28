@@ -7,6 +7,15 @@ import type { Lang } from "../i18n/messages";
 // history, so next week never repeats this week's meals or breaks recency across the join.
 // Days before today are left as they are: they count as taken and are never filled.
 
+// A slot Plan week must not write into: anything with a meal or words in it.
+export const isTaken = (s: { meal_id: string | null; as_written: string | null }) => Boolean(s.meal_id || s.as_written);
+
+// Undo of Plan week takes a slot back out only while it is still the planner's own suggestion.
+// Edits in the app and slots copied from the family menu sheet are changed_by_user, so they stay.
+export const UNDOABLE = { status: "proposed", changed_by_user: false } as const;
+export const isUndoable = (s: { status: string; changed_by_user: boolean }) =>
+  s.status === UNDOABLE.status && s.changed_by_user === UNDOABLE.changed_by_user;
+
 export type WeekToPlan = { weekStart: string; cells: Cell[] };
 export type PlannedWeek = { weekStart: string; empty: number; passed: Day[]; cells: GeneratedCell[]; relaxed: Relaxed[]; failed: boolean };
 

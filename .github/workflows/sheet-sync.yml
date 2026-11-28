@@ -1,0 +1,46 @@
+# Every 15 minutes, ask the app to copy the family menu sheet into the plan.
+# Needs the repo secret SHEET_SYNC_SECRET (the same value as the app's setting).
+# The app URL can be changed with the repo variable SHEET_SYNC_URL.
+name: Sheet sync
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only show what would change, save nothing"
+        type: boolean
+        default: false
+      force:
+        description: "Read the sheet even if Google Drive says it has not changed"
+        type: boolean
+        default: false
+
+concurrency:
+  group: sheet-sync
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Sync the menu sheet
+        env:
+          SECRET: ${{ secrets.SHEET_SYNC_SECRET }}
+          URL: ${{ vars.SHEET_SYNC_URL || 'https://familymealplanner-inky.vercel.app/api/sheet-sync' }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+          FORCE: ${{ inputs.force && '1' || '0' }}
+        run: |
+          if [ -z "$SECRET" ]; then
+            echo "::notice::SHEET_SYNC_SECRET is not set yet, so there is nothing to do."
+            exit 0
+          fi
+          # --fail-with-body: a failed sync turns the run red and still prints why.
+          curl --fail-with-body -sS --max-time 90 -X POST \
+            -H "Authorization: Bearer $SECRET" \
+            "$URL?dryRun=$DRY_RUN&force=$FORCE"
+          echo

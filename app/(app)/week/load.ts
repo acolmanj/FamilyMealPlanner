@@ -14,7 +14,9 @@ export type MealImage = { url: string; source: string | null; page: string | nul
 export type RecipeIdea = { name: string; url: string; gluten: { term: string; swap?: string }[] };
 // gfStock: an El País recipe that uses stock, so the stock must be a gluten-free one.
 export type BoardMeal = PlanMeal & { tags: Tags; gluten: Status; image: MealImage | null; recipe: RecipeIdea | null; gfStock?: boolean };
-export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; leftover: boolean; why: string | null };
+// text is what was written in the slot (the menu sheet's words when no meal matched them);
+// leftover and takeaway mark Sobras and take-away or eating out, which are not meals.
+export type BoardCell = { day: Day; slot: Slot; mealId: string | null; text: string | null; leftover: boolean; takeaway?: boolean; why: string | null };
 
 type MealRow = {
   id: string;
@@ -49,6 +51,7 @@ type SlotRow = {
   as_written: string | null;
   status: string;
   is_leftover: boolean;
+  is_takeaway: boolean;
   why_line: string | null;
 };
 
@@ -90,7 +93,7 @@ export async function loadWeeks(weeks: string[], lang: Lang = "en") {
       .eq("blacklisted", false)
       .order("name")
       .returns<MealRow[]>(),
-    supabase.from("plan_slots").select("week_start, day, slot, meal_id, as_written, status, is_leftover, why_line").returns<SlotRow[]>(),
+    supabase.from("plan_slots").select("week_start, day, slot, meal_id, as_written, status, is_leftover, is_takeaway, why_line").returns<SlotRow[]>(),
   ]);
   if (error) return { error: error.message } as const;
 
@@ -119,6 +122,7 @@ export async function loadWeeks(weeks: string[], lang: Lang = "en") {
       mealId: s.meal_id,
       text: s.as_written ? s.as_written.split(/:\s|: ?https?:/)[0].trim() : null,
       leftover: s.is_leftover,
+      takeaway: s.is_takeaway,
       why: s.why_line,
     }));
   const cells: Record<string, BoardCell[]> = Object.fromEntries(weeks.map((w) => [w, cellsOf(w)]));

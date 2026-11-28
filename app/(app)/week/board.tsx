@@ -25,6 +25,7 @@ import {
 import type { Protein, Tags } from "@/lib/planner/tags";
 import { cn } from "@/lib/utils";
 import { addNewMeal, clearCell, moveCell, restoreCell, saveMealTags, setCellMeal, setReason, type SlotContent, type TagEdit } from "./actions";
+import { WHY_LINE } from "@/lib/sheet-sync/decide";
 import type { BoardCell, BoardMeal } from "./load";
 import { dublinToday } from "@/lib/planner/week";
 import { useResolveImages } from "./resolve-images";
@@ -58,7 +59,7 @@ function applyChange(cells: BoardCell[], ch: Change): BoardCell[] {
     case "set":
       return [
         ...cells.filter((c) => !same(c, ch)),
-        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, leftover: false, why: null },
+        { day: ch.day, slot: ch.slot, mealId: ch.mealId, text: ch.text, leftover: false, takeaway: false, why: null },
       ];
     case "clear":
       return cells.filter((c) => !same(c, ch));
@@ -479,7 +480,7 @@ function DayRow({
                       {m?.idea && m.gluten !== "blocked" && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-warning">{t.board.newIdea}</span>}
                     {m && !fitsDay(m, day) && <span className="rounded-full bg-warning/15 px-1.5 py-px font-semibold text-[#9a4f00]">{t.board.weekendsOnly}</span>}
                       {m?.gluten === "blocked" && <span className="font-semibold text-destructive">{t.board.blocked}</span>}
-                      {!m && <span>{c.leftover ? t.board.leftovers : t.board.notInLibrary}</span>}
+                      {!m && <span>{c.leftover ? t.board.leftovers : c.takeaway ? t.board.takeaway : t.board.notInLibrary}</span>}
                     </span>
                   </span>
                   {/* The photo on top, and room under it for the bin. */}
@@ -719,7 +720,7 @@ function CellPanel({
       )}
 
       {meal?.gfStock && <p className="rounded-xl bg-warning/10 px-3 py-2 font-medium text-[#9a4f00]">{t.board.gfStock}</p>}
-      {cell?.why && mode === "main" && <p className="text-muted-foreground">{t.gen.why(cell.why)}</p>}
+      {cell?.why && mode === "main" && <p className="text-muted-foreground">{cell.why === WHY_LINE ? t.board.fromSheet : t.gen.why(cell.why)}</p>}
 
       {meal && mode === "main" && <RecipeNote meal={meal} />}
 
